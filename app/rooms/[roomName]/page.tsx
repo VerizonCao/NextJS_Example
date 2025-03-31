@@ -32,7 +32,7 @@ import { isVideoCodec } from '@/lib/types';
 // }
 
 
-export default function Page({
+export default async function Page({
   params,
   searchParams,
 }: {
@@ -44,18 +44,13 @@ export default function Page({
     codec?: string;
   };
 }) {
-
-
   const codec =
     typeof searchParams.codec === 'string' && isVideoCodec(searchParams.codec)
       ? searchParams.codec
       : 'vp9';
   const hq = searchParams.hq === 'true' ? true : false;
 
-
-
   return (
     <PageClientImpl roomName={params.roomName} region={searchParams.region} hq={hq} codec={codec} />
   );
-
 }
