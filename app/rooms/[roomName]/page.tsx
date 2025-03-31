@@ -32,7 +32,7 @@ import { isVideoCodec } from '@/lib/types';
 // }
 
 
-export default async function Page({
+export default function Page({
   params,
   searchParams,
 }: {
