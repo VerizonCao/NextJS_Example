@@ -69,3 +69,34 @@ export async function authenticate(
   }
 }
 
+
+// function to start runpod agent for now. 
+export async function startStreamingSession(instruction: string, seconds: number) {
+  // Start the process but don't await it
+  Promise.resolve().then(async () => {
+    try {
+      const response = await fetch('https://api.runpod.ai/v2/ig6zqibcn2nc8b/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': process.env.RUNPOD_API_KEY || '',
+        },
+        body: JSON.stringify({
+          input: {
+            instruction,
+            seconds,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Streaming session completed:', data);
+    } catch (error) {
+      console.error('Error in streaming session:', error);
+    }
+  });
+
+  // Return immediately
+  return { status: 'started' };
+}
+

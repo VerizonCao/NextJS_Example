@@ -7,11 +7,15 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@livekit/components-react": "^2.9.0",
+    "@livekit/components-styles": "^1.1.5",
     "@tailwindcss/forms": "^0.5.10",
     "autoprefixer": "10.4.20",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
+    "livekit-client": "^2.9.9",
+    "livekit-server-sdk": "^2.10.2",
     "next": "latest",
     "next-auth": "5.0.0-beta.25",
     "postcss": "8.5.1",
@@ -21,7 +25,11 @@
     "tailwindcss": "3.4.17",
     "typescript": "5.7.3",
     "use-debounce": "^10.0.4",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+
+    "@datadog/browser-logs": "^5.23.3",
+    "tinykeys": "^3.0.0",
+    "@livekit/krisp-noise-filter": "0.2.16"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

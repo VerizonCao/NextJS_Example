@@ -1,5 +1,10 @@
+import '@livekit/components-styles';
+import '@livekit/components-styles/prefabs';
+
 import '@/app/ui/global.css';
 import { inter } from '@/app/ui/fonts';
+
+
  
 export default function RootLayout({
   children,
