@@ -32,25 +32,33 @@ import { isVideoCodec } from '@/lib/types';
 // }
 
 
-export default function Page({
+export default async function Page({
   params,
   searchParams,
 }: {
-  params: { roomName: string };
-  searchParams: {
-    // FIXME: We should not allow values for regions if in playground mode.
+  params: Promise<{ roomName: string }>;
+  searchParams: Promise<{
     region?: string;
     hq?: string;
     codec?: string;
-  };
+  }>;
 }) {
+  // Await both params and searchParams
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+
   const codec =
-    typeof searchParams.codec === 'string' && isVideoCodec(searchParams.codec)
-      ? searchParams.codec
+    typeof resolvedSearchParams.codec === 'string' && isVideoCodec(resolvedSearchParams.codec)
+      ? resolvedSearchParams.codec
       : 'vp9';
-  const hq = searchParams.hq === 'true' ? true : false;
+  const hq = resolvedSearchParams.hq === 'true' ? true : false;
 
   return (
-    <PageClientImpl roomName={params.roomName} region={searchParams.region} hq={hq} codec={codec} />
+    <PageClientImpl 
+      roomName={resolvedParams.roomName} 
+      region={resolvedSearchParams.region} 
+      hq={hq} 
+      codec={codec} 
+    />
   );
 }
