@@ -3,14 +3,14 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { startStreamingSession } from '@/app/lib/actions';
-
+import { generateRoomId } from '@/lib/client-utils';
 
 
 export default function RitaStreamingPage() {
   const router = useRouter();
  
   const handleStream = async () => {
-    const roomName = "my-room";
+    const roomName = generateRoomId();
     
     try {
       await startStreamingSession("test", 60, roomName);
