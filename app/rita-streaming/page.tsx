@@ -13,7 +13,7 @@ export default function RitaStreamingPage() {
     const roomName = "my-room";
     
     try {
-      await startStreamingSession("test", 60);
+      await startStreamingSession("test", 60, roomName);
       router.push(`/rooms/${roomName}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
