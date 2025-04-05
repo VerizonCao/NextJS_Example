@@ -1,46 +1,83 @@
-import { Card } from '@/app/ui/dashboard/cards';
-import RevenueChart from '@/app/ui/dashboard/revenue-chart';
-import LatestInvoices from '@/app/ui/dashboard/latest-invoices';
-import { lusitana } from '@/app/ui/fonts';
-// import { fetchRevenue, fetchLatestInvoices, fetchCardData } from '@/app/lib/data';
-import { fetchLatestInvoices, fetchCardData } from '@/app/lib/data';
-import CardWrapper from '@/app/ui/dashboard/cards';
+'use client';
 
-import { Suspense } from 'react';
-import { LatestInvoicesSkeleton, RevenueChartSkeleton, CardsSkeleton } from '@/app/ui/skeletons';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { startStreamingSession } from '@/app/lib/actions';
+import { generateRoomId } from '@/lib/client-utils';
+import { useState } from 'react';
+
+// List of all Rita avatars
+const ritaAvatars = [
+  { id: 1, src: '/rita-avatars-test/1.png', name: 'Rita 1' },
+  { id: 2, src: '/rita-avatars-test/deepspace.png', name: 'Deep Space' },
+  { id: 3, src: '/rita-avatars-test/rest_4_crop.png', name: 'Rest 4' },
+  { id: 4, src: '/rita-avatars-test/rest_5_square.png', name: 'Rest 5' },
+  { id: 5, src: '/rita-avatars-test/rest_8_square.png', name: 'Rest 8' },
+  { id: 6, src: '/rita-avatars-test/t13.png', name: 'T13' },
+  { id: 7, src: '/rita-avatars-test/tifa_3.png', name: 'Tifa 3' },
+];
+
+export default function RitaStreamingPage() {
+  const router = useRouter();
+  const [selectedAvatar, setSelectedAvatar] = useState(ritaAvatars[0]);
  
-export default async function Page() {
-  // const revenue = await fetchRevenue();
-  // const latestInvoices = await fetchLatestInvoices();
-  const { numberOfInvoices, numberOfCustomers, totalPaidInvoices, totalPendingInvoices } = await fetchCardData();
+  const handleStream = async (avatarId: number) => {
+    const roomName = generateRoomId();
+    const avatar = ritaAvatars.find(a => a.id === avatarId);
+    
+    try {
+      // await startStreamingSession("test", 60, roomName, avatar?.src || '');
+      router.push(`/rooms/${roomName}`);
+    } catch (error) {
+      console.error('Failed to start streaming session:', error);
+      // You might want to show an error message to the user here
+    }
+  };
+
   return (
-    <main>
-      <h1 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>
-        Dashboard
-      </h1>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Suspense fallback={<CardsSkeleton />}>
-          <CardWrapper />
-        </Suspense>
-        {/* <Card title="Collected" value={totalPaidInvoices} type="collected" />
-        <Card title="Pending" value={totalPendingInvoices} type="pending" />
-        <Card title="Total Invoices" value={numberOfInvoices} type="invoices" />
-        <Card
-          title="Total Customers"
-          value={numberOfCustomers}
-          type="customers"
-        /> */}
+    <div className="flex flex-col items-center gap-6 p-6">
+      <h1 className="text-2xl font-bold mb-4">Rita Avatars</h1>
+      
+      {/* Selected avatar display */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-2">{selectedAvatar.name}</h2>
+        <div className="relative w-[90px] h-[160px] border-2 border-blue-500 rounded-lg overflow-hidden">
+          <Image
+            src={selectedAvatar.src}
+            alt={selectedAvatar.name}
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+        <button 
+          onClick={() => handleStream(selectedAvatar.id)}
+          className="mt-2 w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+        >
+          Stream with {selectedAvatar.name}
+        </button>
       </div>
-      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-4 lg:grid-cols-8">
-        {/* <RevenueChart revenue={revenue}  /> */}
-        <Suspense fallback={<RevenueChartSkeleton />}>
-          <RevenueChart />
-        </Suspense>
-        {/* <LatestInvoices latestInvoices={latestInvoices} /> */}
-        <Suspense fallback={<LatestInvoicesSkeleton />}>
-          <LatestInvoices/>
-        </Suspense>
+      
+      {/* All avatars grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {ritaAvatars.map((avatar) => (
+          <div 
+            key={avatar.id} 
+            className={`flex flex-col items-center cursor-pointer ${selectedAvatar.id === avatar.id ? 'ring-2 ring-blue-500 rounded-lg p-1' : ''}`}
+            onClick={() => setSelectedAvatar(avatar)}
+          >
+            <div className="relative w-[220px] h-[320px] rounded-lg overflow-hidden">
+              <Image
+                src={avatar.src}
+                alt={avatar.name}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <span className="mt-1 text-sm">{avatar.name}</span>
+          </div>
+        ))}
       </div>
-    </main>
+    </div>
   );
 }

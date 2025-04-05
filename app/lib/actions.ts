@@ -71,7 +71,7 @@ export async function authenticate(
 
 
 // function to start runpod agent for now. 
-export async function startStreamingSession(instruction: string, seconds: number, room: string = "my-room") {
+export async function startStreamingSession(instruction: string, seconds: number, room: string = "my-room", avatarSource: string = "") {
   try {
     const response = await fetch('https://api.runpod.ai/v2/ig6zqibcn2nc8b/run', {
       method: 'POST',
@@ -84,6 +84,7 @@ export async function startStreamingSession(instruction: string, seconds: number
           instruction,
           seconds,
           room,
+          avatarSource,
         },
       }),
     });
