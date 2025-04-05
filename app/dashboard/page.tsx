@@ -8,13 +8,13 @@ import { useState } from 'react';
 
 // List of all Rita avatars
 const ritaAvatars = [
-  { id: 1, src: '/rita-avatars-test/1.png', name: 'Rita 1' },
-  { id: 2, src: '/rita-avatars-test/deepspace.png', name: 'Deep Space' },
-  { id: 3, src: '/rita-avatars-test/rest_4_crop.png', name: 'Rest 4' },
-  { id: 4, src: '/rita-avatars-test/rest_5_square.png', name: 'Rest 5' },
-  { id: 5, src: '/rita-avatars-test/rest_8_square.png', name: 'Rest 8' },
-  { id: 6, src: '/rita-avatars-test/t13.png', name: 'T13' },
-  { id: 7, src: '/rita-avatars-test/tifa_3.png', name: 'Tifa 3' },
+  { id: 1, src: 'rita-avatars-test/1.png', name: 'Rita 1' },
+  { id: 2, src: 'rita-avatars-test/deepspace.png', name: 'Deep Space' },
+  { id: 3, src: 'rita-avatars-test/rest_4_crop.png', name: 'Rest 4' },
+  { id: 4, src: 'rita-avatars-test/rest_5_square.png', name: 'Rest 5' },
+  { id: 5, src: 'rita-avatars-test/rest_8_square.png', name: 'Rest 8' },
+  { id: 6, src: 'rita-avatars-test/t13.png', name: 'T13' },
+  { id: 7, src: 'rita-avatars-test/tifa_3.png', name: 'Tifa 3' },
 ];
 
 export default function RitaStreamingPage() {
@@ -43,7 +43,7 @@ export default function RitaStreamingPage() {
         <h2 className="text-xl font-semibold mb-2">{selectedAvatar.name}</h2>
         <div className="relative w-[90px] h-[160px] border-2 border-blue-500 rounded-lg overflow-hidden">
           <Image
-            src={selectedAvatar.src}
+            src={`/${selectedAvatar.src}`}
             alt={selectedAvatar.name}
             fill
             className="object-cover"
@@ -68,7 +68,7 @@ export default function RitaStreamingPage() {
           >
             <div className="relative w-[220px] h-[320px] rounded-lg overflow-hidden">
               <Image
-                src={avatar.src}
+                src={`/${avatar.src}`}
                 alt={avatar.name}
                 fill
                 className="object-cover"
