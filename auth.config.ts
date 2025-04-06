@@ -15,7 +15,7 @@ export const authConfig = {
         console.log("emailVerified", emailVerified);
         const email = profile?.email ?? "";
   
-        if (emailVerified && email.endsWith("@gmail.com")) {
+        if (emailVerified) {
           return true;
         }
         return false; // ❌ Block sign-in if not verified or wrong domain
