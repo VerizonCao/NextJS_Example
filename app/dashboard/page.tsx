@@ -15,6 +15,9 @@ const ritaAvatars = [
   { id: 5, src: 'rita-avatars-test/rest_8_square.png', name: 'Rest 8' },
   { id: 6, src: 'rita-avatars-test/t13.png', name: 'T13' },
   { id: 7, src: 'rita-avatars-test/tifa_3.png', name: 'Tifa 3' },
+  { id: 8, src: 'rita-avatars-test/girl_white.png', name: 'cute girl 1' },
+  { id: 8, src: 'rita-avatars-test/girl_red.png', name: 'cute girl 2' },
+  { id: 8, src: 'rita-avatars-test/mingren.png', name: 'mingren' },
 ];
 
 export default function RitaStreamingPage() {
