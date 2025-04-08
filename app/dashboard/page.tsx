@@ -4,7 +4,16 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { startStreamingSession } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
-import { useState } from 'react';
+import { useState, Suspense, useEffect } from 'react';
+import MyAvatars from '@/app/ui/rita/my-avatars';
+import { useSession } from 'next-auth/react';
+
+// Loading component for images
+function ImageLoading() {
+  return (
+    <div className="w-full h-full bg-gray-200 animate-pulse rounded-lg" />
+  );
+}
 
 // List of all Rita avatars
 const ritaAvatars = [
@@ -22,7 +31,9 @@ const ritaAvatars = [
 
 export default function RitaStreamingPage() {
   const router = useRouter();
-  const [selectedAvatar, setSelectedAvatar] = useState(ritaAvatars[0]);
+  const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
+  const { data: session, status } = useSession();
+  const userEmail = session?.user?.email || '';
  
   const handleStream = async (avatarId: number) => {
     const roomName = generateRoomId();
@@ -41,46 +52,51 @@ export default function RitaStreamingPage() {
     <div className="flex flex-col items-center gap-6 p-6">
       <h1 className="text-2xl font-bold mb-4">Rita Avatars</h1>
       
-      {/* Selected avatar display */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">{selectedAvatar.name}</h2>
-        <div className="relative w-[90px] h-[160px] border-2 border-blue-500 rounded-lg overflow-hidden">
-          <Image
-            src={`/${selectedAvatar.src}`}
-            alt={selectedAvatar.name}
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
-        <button 
-          onClick={() => handleStream(selectedAvatar.id)}
-          className="mt-2 w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-        >
-          Stream with {selectedAvatar.name}
-        </button>
-      </div>
-      
       {/* All avatars grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {ritaAvatars.map((avatar) => (
           <div 
             key={avatar.id} 
-            className={`flex flex-col items-center cursor-pointer ${selectedAvatar.id === avatar.id ? 'ring-2 ring-blue-500 rounded-lg p-1' : ''}`}
-            onClick={() => setSelectedAvatar(avatar)}
+            className="flex flex-col items-center"
           >
-            <div className="relative w-[220px] h-[320px] rounded-lg overflow-hidden">
-              <Image
-                src={`/${avatar.src}`}
-                alt={avatar.name}
-                fill
-                className="object-cover"
-              />
+            <div 
+              className={`relative w-[220px] h-[320px] rounded-lg overflow-hidden cursor-pointer ${globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.id, type: 'rita'})}
+            >
+              <Suspense fallback={<ImageLoading />}>
+                <Image
+                  src={`/${avatar.src}`}
+                  alt={avatar.name}
+                  fill
+                  sizes="220px"
+                  priority={avatar.id === 1 || (globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita')}
+                  className="object-cover"
+                />
+              </Suspense>
             </div>
             <span className="mt-1 text-sm">{avatar.name}</span>
+            {globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' && (
+              <button 
+                onClick={() => handleStream(avatar.id)}
+                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+              >
+                Stream with {avatar.name}
+              </button>
+            )}
           </div>
         ))}
       </div>
+      
+      {/* My Avatars section - only render when we have a valid email */}
+      {userEmail && (
+        <div className="w-full mt-8">
+          <MyAvatars 
+            userEmail={userEmail} 
+            globalSelectedAvatar={globalSelectedAvatar}
+            setGlobalSelectedAvatar={setGlobalSelectedAvatar}
+          />
+        </div>
+      )}
     </div>
   );
 }

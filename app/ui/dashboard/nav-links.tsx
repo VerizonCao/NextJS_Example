@@ -20,6 +20,7 @@ const links = [
   // },
   // { name: 'Customers', href: '/dashboard/customers', icon: UserGroupIcon },
   // { name: 'Rita', href: '/rita-streaming', icon: HomeIcon },
+  { name: 'Avatar Generation', href: '/dashboard/image-upload', icon: DocumentDuplicateIcon },
 ];
 
 export default function NavLinks() {

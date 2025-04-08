@@ -1,10 +1,13 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    domains: ['rita-avatar-image.s3.us-west-2.amazonaws.com'],
+  },
+  // You can enable this later if needed:
   // experimental: {
-  //   ppr: 'incremental'
-  // }
+  //   ppr: 'incremental',
+  // },
 };
 
 export default nextConfig;

@@ -7,8 +7,14 @@ import postgres from 'postgres';
 
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
+import { getPresignedGetUrl, getPresignedPutUrl } from './s3';
+import { saveAvatar, getUserByIdEmail, loadAvatarsByOwner } from './data';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+
+import { customAlphabet } from 'nanoid'
+const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 11)
+
 
 
 const FormSchema = z.object({
@@ -95,6 +101,99 @@ export async function startStreamingSession(instruction: string, seconds: number
   } catch (error) {
     console.error('Error in streaming session:', error);
     throw error;
+  }
+}
+
+export async function getPresignedUrl(key: string) {
+  try {
+    const presignedUrl = await getPresignedGetUrl(key);
+    return { presignedUrl };
+  } catch (error) {
+    console.error('Error generating presigned URL:', error);
+    throw new Error('Failed to generate presigned URL');
+  }
+}
+
+export async function generatePresignedUrl(key: string) {
+  try {
+    const presignedUrl = await getPresignedPutUrl(key);
+    return { presignedUrl };
+  } catch (error) {
+    console.error('Error generating presigned URL:', error);
+    throw new Error('Failed to generate presigned URL');
+  }
+}
+
+/**
+ * Server action to save avatar data to the database
+ */
+export async function saveAvatarData(avatarData: {
+  avatar_name: string;
+  prompt?: string;
+  owner_email: string;
+  image_uri?: string;
+}): Promise<{ success: boolean; message: string }> {
+  try {
+
+    const owner_id = await getUserByIdEmail(avatarData.owner_email);
+    
+    if (!owner_id) {
+      return { success: false, message: 'User not found' };
+    }
+
+    // add avatar id here
+    const avatarId = 'a-' + nanoid();
+
+    const success = await saveAvatar({
+      ...avatarData,
+      avatar_id: avatarId,
+      owner_id: owner_id
+    });
+    if (success) {
+      return { success: true, message: 'Avatar saved successfully' };
+    } else {
+      return { success: false, message: 'Failed to save avatar' };
+    }
+  } catch (error) {
+    console.error('Error in saveAvatarData action:', error);
+    return { success: false, message: 'An error occurred while saving the avatar' };
+  }
+}
+
+/**
+ * Server action to load all avatars for a user by their email
+ */
+export async function loadUserAvatars(userEmail: string): Promise<{ 
+  success: boolean; 
+  avatars: any[] | null; 
+  message: string 
+}> {
+  try {
+    // Get the user ID from their email
+    const userId = await getUserByIdEmail(userEmail);
+    
+    if (!userId) {
+      return { success: false, avatars: null, message: 'User not found' };
+    }
+
+    // Load all avatars for this user
+    const avatars = await loadAvatarsByOwner(userId);
+    
+    // Limit to only 10 avatars
+    const limitedAvatars = avatars.slice(0, 10);
+    
+    return { 
+      success: true, 
+      avatars: limitedAvatars, 
+      message: 'Avatars loaded successfully' 
+    };
+  } catch (error) {
+    console.error('Error in loadUserAvatars action:', error);
+    return { 
+      success: false, 
+      avatars: null, 
+      message: 'An error occurred while loading avatars' 
+    };
   }
 }
 

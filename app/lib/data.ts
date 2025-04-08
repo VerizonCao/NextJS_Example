@@ -1,4 +1,5 @@
 import postgres from 'postgres';
+import { z } from 'zod';
 import {
   CustomerField,
   CustomersTableType,
@@ -223,3 +224,179 @@ export async function fetchFilteredCustomers(query: string) {
     throw new Error('Failed to fetch customer table.');
   }
 }
+
+// user dbs
+
+const UserFormSchema = z.object({
+  user_id: z.string(),
+  email: z.string(),
+});
+ 
+const CreateUser = UserFormSchema;
+
+export async function createUser(formData: FormData) {
+  const { user_id, email } = CreateUser.parse({
+      user_id: formData.get('user_id'),
+      email: formData.get('email'),
+    });
+
+  // save into db
+  try{
+      await sql`
+      INSERT INTO users (user_id, email)
+      VALUES (${user_id}, ${email})
+  `;
+  } catch(error){
+      console.log(error);
+  }
+
+}
+
+/**
+ * Check if a user exists in the database by email
+ * @param email The email to check
+ * @returns Promise<boolean> True if user exists, false otherwise
+ */
+export async function userExistsByEmail(email: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      SELECT EXISTS (
+        SELECT 1 FROM users WHERE email = ${email}
+      ) as exists
+    `;
+    return result[0].exists;
+  } catch (error) {
+    console.error('Error checking if user exists by email:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if a user exists in the database by user_id
+ * @param userId The user_id to check
+ * @returns Promise<boolean> True if user exists, false otherwise
+ */
+export async function userExistsById(userId: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      SELECT EXISTS (
+        SELECT 1 FROM users WHERE user_id = ${userId}
+      ) as exists
+    `;
+    return result[0].exists;
+  } catch (error) {
+    console.error('Error checking if user exists by user_id:', error);
+    return false;
+  }
+}
+
+/**
+ * Get a user's ID by their email address
+ * @param email The email to look up
+ * @returns Promise<string | null> The user ID if found, null otherwise
+ */
+export async function getUserByIdEmail(email: string): Promise<string | null> {
+  try {
+    const result = await sql`
+      SELECT user_id FROM users WHERE email = ${email}
+    `;
+    return result.length > 0 ? result[0].user_id : null;
+  } catch (error) {
+    console.error('Error getting user ID by email:', error);
+    return null;
+  }
+}
+
+// avatar dbs
+
+/**
+ * Save a new avatar to the database
+ * @param avatarData Object containing avatar information
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function saveAvatar(avatarData: {
+  avatar_id: string;
+  avatar_name: string;
+  prompt?: string;
+  owner_id: string;
+  image_uri?: string;
+}): Promise<boolean> {
+  try {
+    const result = await sql`
+      INSERT INTO avatars (avatar_id, avatar_name, prompt, owner_id, image_uri)
+      VALUES (${avatarData.avatar_id}, ${avatarData.avatar_name}, ${avatarData.prompt || null}, ${avatarData.owner_id}, ${avatarData.image_uri || null})
+    `;
+    return true;
+  } catch (error) {
+    console.error('Error saving avatar:', error);
+    return false;
+  }
+}
+
+// Define the Avatar type
+type Avatar = {
+  avatar_id: string;
+  avatar_name: string;
+  prompt: string | null;
+  owner_id: string;
+  image_uri: string | null;
+  create_time: Date;
+  update_time: Date;
+};
+
+/**
+ * Load an avatar from the database by its ID
+ * @param avatarId The avatar_id to retrieve
+ * @returns Promise<Avatar | null> The avatar data or null if not found
+ */
+export async function loadAvatar(avatarId: string): Promise<Avatar | null> {
+  try {
+    const result = await sql<Avatar[]>`
+      SELECT 
+        avatar_id, 
+        avatar_name, 
+        prompt, 
+        owner_id, 
+        image_uri, 
+        create_time, 
+        update_time
+      FROM avatars 
+      WHERE avatar_id = ${avatarId}
+    `;
+    
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error('Error loading avatar:', error);
+    return null;
+  }
+}
+
+/**
+ * Load all avatars for a specific owner
+ * @param ownerId The owner_id to retrieve avatars for
+ * @returns Promise<Avatar[]> Array of avatar objects
+ */
+export async function loadAvatarsByOwner(ownerId: string): Promise<Avatar[]> {
+  try {
+    const result = await sql<Avatar[]>`
+      SELECT 
+        avatar_id, 
+        avatar_name, 
+        prompt, 
+        owner_id, 
+        image_uri, 
+        create_time, 
+        update_time
+      FROM avatars 
+      WHERE owner_id = ${ownerId}
+      ORDER BY create_time DESC
+    `;
+    
+    return result;
+  } catch (error) {
+    console.error('Error loading avatars by owner:', error);
+    return [];
+  }
+}
+
+

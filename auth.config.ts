@@ -1,5 +1,8 @@
 import type { NextAuthConfig } from 'next-auth';
+import { userExistsByEmail, createUser, getUserByIdEmail } from './app/lib/data';
 
+import { customAlphabet } from 'nanoid'
+const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 11)
 
  
 export const authConfig = {
@@ -21,6 +24,48 @@ export const authConfig = {
         return false; // ❌ Block sign-in if not verified or wrong domain
       }
       return true; // ✅ Allow other providers
+    },
+
+    async session({ session, token }) {
+      // Add email or any other info to session
+      if (token?.email) {
+        session.user.email = token.email;
+      }
+      if (token?.userId) {
+        (session.user as any).userId = token.userId;
+      }
+      return session;
+    },
+    async jwt({ token, account, profile, user }) {
+
+      console.log("Inside JWT");
+      // Save email in JWT token
+      if (account && profile?.email) {
+        const email = profile.email;
+
+        const exists = await userExistsByEmail(email);
+
+        let userId = null;
+        if (!exists) {
+          userId = 'u-' + nanoid();
+
+          // Build a FormData object to match createUser's input format
+          const formData = new FormData();
+          formData.set('user_id', userId);
+          formData.set('email', email);
+          // Create the user
+          await createUser(formData);
+        }
+        else
+        {
+          userId = await getUserByIdEmail(email);
+        }
+
+        token.email = email;
+        token.user_id = userId;
+
+      }
+      return token;
     },
 
     // 🚧 Controls access to routes (App Router only)
