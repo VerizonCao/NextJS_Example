@@ -81,7 +81,7 @@ export default function MyAvatars({ userEmail, globalSelectedAvatar, setGlobalSe
     const roomName = generateRoomId();
     
     try {
-      await startStreamingSession("test", 60, roomName, imageUri);
+      // await startStreamingSession("test", 60, roomName, imageUri);
       router.push(`/rooms/${roomName}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);

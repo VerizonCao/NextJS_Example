@@ -12,6 +12,7 @@ import {
   PreJoin,
   VideoConference,
 } from '@livekit/components-react';
+import { CustomPreJoin } from '@/app/ui/rita/prejoin';
 import {
   ExternalE2EEKeyProvider,
   RoomOptions,
@@ -68,7 +69,12 @@ export function PageClientImpl(props: {
     <main data-lk-theme="default" style={{ height: '80vh' }}>     
       {connectionDetails === undefined || preJoinChoices === undefined ? (
         <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-          <PreJoin
+          {/* <PreJoin
+            defaults={preJoinDefaults}
+            onSubmit={handlePreJoinSubmit}
+            onError={handlePreJoinError}
+          /> */}
+          <CustomPreJoin
             defaults={preJoinDefaults}
             onSubmit={handlePreJoinSubmit}
             onError={handlePreJoinError}
