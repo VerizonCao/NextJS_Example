@@ -40,7 +40,7 @@ export default function RitaStreamingPage() {
     const avatar = ritaAvatars.find(a => a.id === avatarId);
     
     try {
-      // await startStreamingSession("test", 60, roomName, avatar?.src || '');
+      await startStreamingSession("test", 60, roomName, avatar?.src || '');
       router.push(`/rooms/${roomName}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
