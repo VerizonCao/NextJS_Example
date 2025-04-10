@@ -318,13 +318,34 @@ export async function saveAvatar(avatarData: {
   avatar_id: string;
   avatar_name: string;
   prompt?: string;
+  scene_prompt?: string;
+  agent_bio?: string;
+  voice_id?: string;
   owner_id: string;
   image_uri?: string;
 }): Promise<boolean> {
   try {
     const result = await sql`
-      INSERT INTO avatars (avatar_id, avatar_name, prompt, owner_id, image_uri)
-      VALUES (${avatarData.avatar_id}, ${avatarData.avatar_name}, ${avatarData.prompt || null}, ${avatarData.owner_id}, ${avatarData.image_uri || null})
+      INSERT INTO avatars (
+        avatar_id, 
+        avatar_name, 
+        prompt, 
+        scene_prompt,
+        agent_bio,
+        voice_id,
+        owner_id, 
+        image_uri
+      )
+      VALUES (
+        ${avatarData.avatar_id}, 
+        ${avatarData.avatar_name}, 
+        ${avatarData.prompt || null}, 
+        ${avatarData.scene_prompt || null},
+        ${avatarData.agent_bio || null},
+        ${avatarData.voice_id || null},
+        ${avatarData.owner_id}, 
+        ${avatarData.image_uri || null}
+      )
     `;
     return true;
   } catch (error) {
@@ -338,6 +359,9 @@ type Avatar = {
   avatar_id: string;
   avatar_name: string;
   prompt: string | null;
+  scene_prompt: string | null;
+  agent_bio: string | null;
+  voice_id: string | null;
   owner_id: string;
   image_uri: string | null;
   create_time: Date;
@@ -382,7 +406,10 @@ export async function loadAvatarsByOwner(ownerId: string): Promise<Avatar[]> {
       SELECT 
         avatar_id, 
         avatar_name, 
-        prompt, 
+        prompt,
+        scene_prompt,
+        agent_bio,
+        voice_id,
         owner_id, 
         image_uri, 
         create_time, 

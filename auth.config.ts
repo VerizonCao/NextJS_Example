@@ -71,26 +71,37 @@ export const authConfig = {
     // 🚧 Controls access to routes (App Router only)
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
-      const isRoom = nextUrl.pathname.startsWith('/rooms');
-      const isRitaStreaming = nextUrl.pathname.startsWith('/rita-streaming');
+      const pathname = nextUrl.pathname;
+    
+      const isOnDashboard = pathname.startsWith('/dashboard');
+      const isRoom = pathname.startsWith('/rooms');
+      const isRitaStreaming = pathname.startsWith('/rita-streaming');
+      const isAudioSample = pathname.startsWith('/audio_samples');
+    
+      // ✅ Allow audio file requests to go through without redirect
+      if (isAudioSample) {
+        return true;
+      }
+    
       if (isOnDashboard) {
         if (isLoggedIn) return true;
         return false; // Redirect unauthenticated users to login page
       } else if (isRoom) {
-        // if isRoom, we don't check it
         if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
-      }
-      else if (isRitaStreaming) {
+        return false;
+      } else if (isRitaStreaming) {
         if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
+        return false;
       }
-      else if (isLoggedIn) {
+    
+      // ✅ Redirect only if logged in AND not accessing special routes
+      if (isLoggedIn) {
         return Response.redirect(new URL('/dashboard', nextUrl));
       }
+    
       return true;
-    },
+    }
+    
 
   },
   providers: [], // Add providers with an empty array for now

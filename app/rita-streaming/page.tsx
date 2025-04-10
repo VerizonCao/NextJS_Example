@@ -26,8 +26,12 @@ export default function RitaStreamingPage() {
     const avatar = ritaAvatars.find(a => a.id === avatarId);
     
     try {
-      // Send the avatar source path to the startStreamingSession function
-      await startStreamingSession("test", 300, roomName, avatar?.src || '');
+      await startStreamingSession({
+        instruction: "test",
+        seconds: 300,
+        room: roomName,
+        avatarSource: avatar?.src || '',
+      });
       router.push(`/rooms/${roomName}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);

@@ -17,16 +17,16 @@ function ImageLoading() {
 
 // List of all Rita avatars
 const ritaAvatars = [
-  { id: 1, src: 'rita-avatars-test/1.png', name: 'Rita 1' },
-  { id: 2, src: 'rita-avatars-test/deepspace.png', name: 'Deep Space' },
-  { id: 3, src: 'rita-avatars-test/rest_4_crop.png', name: 'Rest 4' },
-  { id: 4, src: 'rita-avatars-test/rest_5_square.png', name: 'Rest 5' },
-  { id: 5, src: 'rita-avatars-test/rest_8_square.png', name: 'Rest 8' },
-  { id: 6, src: 'rita-avatars-test/t13.png', name: 'T13' },
-  { id: 7, src: 'rita-avatars-test/tifa_3.png', name: 'Tifa 3' },
-  { id: 8, src: 'rita-avatars-test/girl_white.png', name: 'cute girl 1' },
-  { id: 9, src: 'rita-avatars-test/girl_red.png', name: 'cute girl 2' },
-  { id: 10, src: 'rita-avatars-test/mingren.png', name: 'mingren' },
+  { id: 1, src: 'rita-avatars-test/1.png', name: 'Rita 1', prompt: 'friendly talking assistant' },
+  { id: 2, src: 'rita-avatars-test/deepspace.png', name: 'Deep Space', prompt: 'friendly talking assistant' },
+  { id: 3, src: 'rita-avatars-test/rest_4_crop.png', name: 'Rest 4', prompt: 'friendly talking assistant' },
+  { id: 4, src: 'rita-avatars-test/rest_5_square.png', name: 'Rest 5', prompt: 'friendly talking assistant' },
+  { id: 5, src: 'rita-avatars-test/rest_8_square.png', name: 'Rest 8', prompt: 'friendly talking assistant' },
+  { id: 6, src: 'rita-avatars-test/t13.png', name: 'T13', prompt: 'friendly talking assistant' },
+  { id: 7, src: 'rita-avatars-test/tifa_3.png', name: 'Tifa 3', prompt: 'friendly talking assistant' },
+  { id: 8, src: 'rita-avatars-test/girl_white.png', name: 'cute girl 1', prompt: 'friendly talking assistant' },
+  { id: 9, src: 'rita-avatars-test/girl_red.png', name: 'cute girl 2', prompt: 'friendly talking assistant' },
+  { id: 10, src: 'rita-avatars-test/mingren.png', name: 'mingren', prompt: 'friendly talking assistant' },
 ];
 
 export default function RitaStreamingPage() {
@@ -40,7 +40,16 @@ export default function RitaStreamingPage() {
     const avatar = ritaAvatars.find(a => a.id === avatarId);
     
     try {
-      await startStreamingSession("test", 60, roomName, avatar?.src || '');
+      await startStreamingSession({
+        instruction: "test",
+        seconds: 300,
+        room: roomName,
+        avatarSource: avatar?.src || '',
+        llmUserNickname: session?.user?.name || 'Friend',
+        llmUserBio: 'a friend',
+        llmAssistantNickname: avatar?.name,
+        llmAssistantBio: avatar?.prompt,
+      });
       router.push(`/rooms/${roomName}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
@@ -91,7 +100,7 @@ export default function RitaStreamingPage() {
       {userEmail && (
         <div className="w-full mt-8">
           <MyAvatars 
-            userEmail={userEmail} 
+            session={session}
             globalSelectedAvatar={globalSelectedAvatar}
             setGlobalSelectedAvatar={setGlobalSelectedAvatar}
           />

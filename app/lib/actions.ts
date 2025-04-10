@@ -77,22 +77,55 @@ export async function authenticate(
 
 
 // function to start runpod agent for now. 
-export async function startStreamingSession(instruction: string, seconds: number, room: string = "my-room", avatarSource: string = "") {
+export async function startStreamingSession({
+  instruction,
+  seconds,
+  room = "my-room",
+  avatarSource = "",
+  llmUserNickname = null,
+  llmUserBio = null,
+  llmAssistantNickname = null,
+  llmAssistantBio = null,
+  llmAssistantAdditionalCharacteristics = null,
+  llmConversationContext = null,
+  ttsVoiceIdCartesia = null,
+}: {
+  instruction: string;
+  seconds: number;
+  room?: string;
+  avatarSource?: string;
+  llmUserNickname?: string | null;
+  llmUserBio?: string | null;
+  llmAssistantNickname?: string | null;
+  llmAssistantBio?: string | null;
+  llmAssistantAdditionalCharacteristics?: string | null;
+  llmConversationContext?: string | null;
+  ttsVoiceIdCartesia?: string | null;
+}) {
   try {
+    const input: Record<string, any> = {
+      instruction,
+      seconds,
+      room,
+      avatarSource,
+    };
+
+    // Only add fields that are not null
+    if (llmUserNickname !== null) input.llm_user_nickname = llmUserNickname;
+    if (llmUserBio !== null) input.llm_user_bio = llmUserBio;
+    if (llmAssistantNickname !== null) input.llm_assistant_nickname = llmAssistantNickname;
+    if (llmAssistantBio !== null) input.llm_assistant_bio = llmAssistantBio;
+    if (llmAssistantAdditionalCharacteristics !== null) input.llm_assistant_additional_characteristics = llmAssistantAdditionalCharacteristics;
+    if (llmConversationContext !== null) input.llm_conversation_context = llmConversationContext;
+    if (ttsVoiceIdCartesia !== null) input.tts_voice_id_cartesia = ttsVoiceIdCartesia;
+
     const response = await fetch('https://api.runpod.ai/v2/ig6zqibcn2nc8b/run', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': process.env.RUNPOD_API_KEY || '',
       },
-      body: JSON.stringify({
-        input: {
-          instruction,
-          seconds,
-          room,
-          avatarSource,
-        },
-      }),
+      body: JSON.stringify({ input }),
     });
 
     const data = await response.json();
@@ -130,11 +163,13 @@ export async function generatePresignedUrl(key: string) {
 export async function saveAvatarData(avatarData: {
   avatar_name: string;
   prompt?: string;
+  scene_prompt?: string;
+  agent_bio?: string;
   owner_email: string;
   image_uri?: string;
+  voice_id?: string;
 }): Promise<{ success: boolean; message: string }> {
   try {
-
     const owner_id = await getUserByIdEmail(avatarData.owner_email);
     
     if (!owner_id) {
@@ -193,6 +228,57 @@ export async function loadUserAvatars(userEmail: string): Promise<{
       success: false, 
       avatars: null, 
       message: 'An error occurred while loading avatars' 
+    };
+  }
+}
+
+/**
+ * Server action to retrieve voice data from Cartesia API
+ */
+
+// gender: masculine, feminine, gender_neutral
+export async function getCartesiaVoices(
+  gender: string, 
+  limit: number,
+  is_starred: boolean
+): Promise<{ 
+  success: boolean; 
+  voices: any[] | null; 
+  message: string,
+}> {
+  try {
+    const response = await fetch(`https://api.cartesia.ai/voices/?limit=${limit}&is_starred=${is_starred}&gender=${gender}&is_owner=false`, {
+      method: 'GET',
+      headers: {
+        'Cartesia-Version': '2024-11-13',
+        'X-API-Key': process.env.CARTESIA_API_KEY || '',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error fetching voices:', response.status, errorData);
+      return { 
+        success: false, 
+        voices: null, 
+        message: `Failed to fetch voices: ${response.status} ${response.statusText}` 
+      };
+    }
+
+    const data = await response.json();
+    console.log("voice return data is", data);
+    
+    return { 
+      success: true, 
+      voices: data.data, 
+      message: 'Voices retrieved successfully' 
+    };
+  } catch (error) {
+    console.error('Error in getCartesiaVoices action:', error);
+    return { 
+      success: false, 
+      voices: null, 
+      message: 'An error occurred while retrieving voices' 
     };
   }
 }
