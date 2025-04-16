@@ -9,8 +9,8 @@ import {
   formatChatMessageLinks,
   LiveKitRoom,
   LocalUserChoices,
-  PreJoin,
   VideoConference,
+  useRemoteParticipants,
 } from '@livekit/components-react';
 import { CustomPreJoin } from '@/app/ui/rita/prejoin';
 import {
@@ -35,63 +35,169 @@ export function PageClientImpl(props: {
   hq: boolean;
   codec: VideoCodec;
 }) {
+  const router = useRouter();
   const [preJoinChoices, setPreJoinChoices] = React.useState<LocalUserChoices | undefined>(
     undefined,
   );
   const preJoinDefaults = React.useMemo(() => {
     return {
-      username: '',
-      videoEnabled: true,
+      username: 'user',
+      videoEnabled: false,
       audioEnabled: true,
+      videoDeviceId: undefined,
+      audioDeviceId: undefined,
     };
   }, []);
   const [connectionDetails, setConnectionDetails] = React.useState<ConnectionDetails | undefined>(
     undefined,
   );
+  const [room, setRoom] = React.useState<Room | null>(null);
+  const [roomConnected, setRoomConnected] = React.useState(false);
 
-  const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
-    setPreJoinChoices(values);
-    const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
-    url.searchParams.append('roomName', props.roomName);
-    url.searchParams.append('participantName', values.username);
-    if (props.region) {
-      url.searchParams.append('region', props.region);
+  // Submit data when component mounts
+  React.useEffect(() => {
+    const submitData = async () => {
+      try {
+        console.log('Submitting data...');
+        const values = preJoinDefaults;
+        setPreJoinChoices(values);
+        
+        // Get connection details
+        const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
+        url.searchParams.append('roomName', props.roomName);
+        url.searchParams.append('participantName', values.username);
+        if (props.region) {
+          url.searchParams.append('region', props.region);
+        }
+        const connectionDetailsResp = await fetch(url.toString());
+        const connectionDetailsData = await connectionDetailsResp.json();
+        setConnectionDetails(connectionDetailsData);
+        console.log('Got connection details:', connectionDetailsData);
+
+        // Create room options
+        const roomOptions: RoomOptions = {
+          videoCaptureDefaults: {
+            deviceId: values.videoDeviceId ?? undefined,
+            resolution: props.hq ? VideoPresets.h2160 : VideoPresets.h720,
+          },
+          publishDefaults: {
+            dtx: false,
+            videoSimulcastLayers: props.hq
+              ? [VideoPresets.h1080, VideoPresets.h720]
+              : [VideoPresets.h540, VideoPresets.h216],
+            red: true,
+            videoCodec: props.codec,
+          },
+          audioCaptureDefaults: {
+            deviceId: values.audioDeviceId ?? undefined,
+          },
+          adaptiveStream: { pixelDensity: 'screen' },
+          dynacast: true,
+        };
+
+        // Create and connect to room
+        const newRoom = new Room(roomOptions);
+        console.log('Created new room instance');
+        setRoom(newRoom);
+
+        // Connect to room with proper error handling
+        try {
+          console.log('Attempting to connect to room...');
+          await newRoom.connect(connectionDetailsData.serverUrl, connectionDetailsData.participantToken, {
+            autoSubscribe: true,
+          });
+          console.log('Successfully connected to room');
+          setRoomConnected(true);
+        } catch (error) {
+          console.error('Error connecting to room:', error);
+          // Clean up on error
+          newRoom.disconnect();
+          setRoom(null);
+          setRoomConnected(false);
+          setConnectionDetails(undefined);
+          setPreJoinChoices(undefined);
+          throw error;
+        }
+      } catch (error) {
+        console.error('Error in setup:', error);
+        // Reset all state on error
+        setRoom(null);
+        setRoomConnected(false);
+        setConnectionDetails(undefined);
+        setPreJoinChoices(undefined);
+      }
+    };
+
+    submitData();
+  }, [props.roomName, props.region, props.hq, props.codec, preJoinDefaults]);
+
+  const handleLeave = React.useCallback(() => {
+    console.log('User requested to leave room...');
+    if (room) {
+      room.disconnect();
     }
-    const connectionDetailsResp = await fetch(url.toString());
-    const connectionDetailsData = await connectionDetailsResp.json();
-    setConnectionDetails(connectionDetailsData);
-  }, []);
-  const handlePreJoinError = React.useCallback((e: any) => console.error(e), []);
+    setRoom(null);
+    setRoomConnected(false);
+    setConnectionDetails(undefined);
+    setPreJoinChoices(undefined);
+    router.push('/');
+  }, [room, router]);
+
+  // Handle room disconnection events
+  React.useEffect(() => {
+    if (room) {
+      const handleDisconnected = () => {
+        console.log('Room disconnected, attempting to reconnect...');
+        // Always attempt to reconnect unless it's a user-initiated leave
+        room.connect(connectionDetails?.serverUrl || '', connectionDetails?.participantToken || '', {
+          autoSubscribe: true,
+        }).catch((error) => {
+          console.error('Failed to reconnect:', error);
+        });
+      };
+
+      room.on('disconnected', handleDisconnected);
+      return () => {
+        room.off('disconnected', handleDisconnected);
+      };
+    }
+  }, [room, connectionDetails]);
 
   return (
-    // <main data-lk-theme="default" style={{ height: '100%' }}>
-    // hard fix 
     <main data-lk-theme="default" style={{ height: '80vh' }}>     
-      {connectionDetails === undefined || preJoinChoices === undefined ? (
+      {!preJoinChoices || !room || !connectionDetails || !roomConnected ? (
         <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-          {/* <PreJoin
-            defaults={preJoinDefaults}
-            onSubmit={handlePreJoinSubmit}
-            onError={handlePreJoinError}
-          /> */}
-          <CustomPreJoin
-            defaults={preJoinDefaults}
-            onSubmit={handlePreJoinSubmit}
-            onError={handlePreJoinError}
-          />
+          <CustomPreJoin onLeave={handleLeave} />
         </div>
       ) : (
-        <VideoConferenceComponent
-          connectionDetails={connectionDetails}
-          userChoices={preJoinChoices}
-          options={{ codec: props.codec, hq: props.hq }}
-        />
+        <LiveKitRoom
+          room={room}
+          token={connectionDetails.participantToken}
+          serverUrl={connectionDetails.serverUrl}
+          connect={true}
+          video={preJoinChoices.videoEnabled}
+          audio={preJoinChoices.audioEnabled}
+          onDisconnected={() => {
+            console.log('Room disconnected, attempting to reconnect...');
+            room.connect(connectionDetails.serverUrl, connectionDetails.participantToken, {
+              autoSubscribe: true,
+            }).catch((error) => {
+              console.error('Failed to reconnect:', error);
+            });
+          }}
+        >
+          <RoomContent
+            userChoices={preJoinChoices}
+            connectionDetails={connectionDetails}
+            options={{ codec: props.codec, hq: props.hq }}
+          />
+        </LiveKitRoom>
       )}
     </main>
   );
 }
 
-function VideoConferenceComponent(props: {
+function RoomContent(props: {
   userChoices: LocalUserChoices;
   connectionDetails: ConnectionDetails;
   options: {
@@ -99,113 +205,24 @@ function VideoConferenceComponent(props: {
     codec: VideoCodec;
   };
 }) {
-  const e2eePassphrase =
-    typeof window !== 'undefined' && decodePassphrase(location.hash.substring(1));
-
-  const worker =
-    typeof window !== 'undefined' &&
-    e2eePassphrase &&
-    new Worker(new URL('livekit-client/e2ee-worker', import.meta.url));
-  const e2eeEnabled = !!(e2eePassphrase && worker);
-  const keyProvider = new ExternalE2EEKeyProvider();
-  const [e2eeSetupComplete, setE2eeSetupComplete] = React.useState(false);
-
-  const roomOptions = React.useMemo((): RoomOptions => {
-    let videoCodec: VideoCodec | undefined = props.options.codec ? props.options.codec : 'vp9';
-    if (e2eeEnabled && (videoCodec === 'av1' || videoCodec === 'vp9')) {
-      videoCodec = undefined;
-    }
-    return {
-      videoCaptureDefaults: {
-        deviceId: props.userChoices.videoDeviceId ?? undefined,
-        resolution: props.options.hq ? VideoPresets.h2160 : VideoPresets.h720,
-      },
-      publishDefaults: {
-        dtx: false,
-        videoSimulcastLayers: props.options.hq
-          ? [VideoPresets.h1080, VideoPresets.h720]
-          : [VideoPresets.h540, VideoPresets.h216],
-        red: !e2eeEnabled,
-        videoCodec,
-      },
-      audioCaptureDefaults: {
-        deviceId: props.userChoices.audioDeviceId ?? undefined,
-      },
-      adaptiveStream: { pixelDensity: 'screen' },
-      dynacast: true,
-      e2ee: e2eeEnabled
-        ? {
-            keyProvider,
-            worker,
-          }
-        : undefined,
-    };
-  }, [props.userChoices, props.options.hq, props.options.codec]);
-
-  const room = React.useMemo(() => new Room(roomOptions), []);
-
-  React.useEffect(() => {
-    if (e2eeEnabled) {
-      keyProvider
-        .setKey(decodePassphrase(e2eePassphrase))
-        .then(() => {
-          room.setE2EEEnabled(true).catch((e) => {
-            if (e instanceof DeviceUnsupportedError) {
-              alert(
-                `You're trying to join an encrypted meeting, but your browser does not support it. Please update it to the latest version and try again.`,
-              );
-              console.error(e);
-            } else {
-              throw e;
-            }
-          });
-        })
-        .then(() => setE2eeSetupComplete(true));
-    } else {
-      setE2eeSetupComplete(true);
-    }
-  }, [e2eeEnabled, room, e2eePassphrase]);
-
-  const connectOptions = React.useMemo((): RoomConnectOptions => {
-    return {
-      autoSubscribe: true,
-    };
-  }, []);
-
-  const router = useRouter();
-  const handleOnLeave = React.useCallback(() => router.push('/'), [router]);
-  const handleError = React.useCallback((error: Error) => {
-    console.error(error);
-    alert(`Encountered an unexpected error, check the console logs for details: ${error.message}`);
-  }, []);
-  const handleEncryptionError = React.useCallback((error: Error) => {
-    console.error(error);
-    alert(
-      `Encountered an unexpected encryption error, check the console logs for details: ${error.message}`,
-    );
-  }, []);
-
+  const remoteParticipants = useRemoteParticipants();
+  const hasRemoteParticipant = remoteParticipants.length > 0;
+  console.log('hasRemoteParticipant!!!!', hasRemoteParticipant);
   return (
     <>
-      <LiveKitRoom
-        connect={e2eeSetupComplete}
-        room={room}
-        token={props.connectionDetails.participantToken}
-        serverUrl={props.connectionDetails.serverUrl}
-        connectOptions={connectOptions}
-        video={props.userChoices.videoEnabled}
-        audio={props.userChoices.audioEnabled}
-        onDisconnected={handleOnLeave}
-        onEncryptionError={handleEncryptionError}
-        onError={handleError}
-      >
+      {hasRemoteParticipant ? (
         <VideoConference
           chatMessageFormatter={formatChatMessageLinks}
           SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
         />
-        <DebugMode />
-        <RecordingIndicator />
-      </LiveKitRoom>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="text-lg font-medium text-gray-700">Waiting for agent to join...</div>
+          <div className="mt-2 text-sm text-gray-500">You will be automatically connected when the agent is ready.</div>
+        </div>
+      )}
+      <DebugMode />
+      <RecordingIndicator />
     </>
   );
 }

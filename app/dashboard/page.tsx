@@ -49,6 +49,9 @@ export default function RitaStreamingPage() {
         llmUserBio: 'a friend',
         llmAssistantNickname: avatar?.name,
         llmAssistantBio: avatar?.prompt,
+        llmAssistantAdditionalCharacteristics: avatar?.prompt,
+        llmConversationContext: null,
+        ttsVoiceIdCartesia: null,
       });
       router.push(`/rooms/${roomName}`);
     } catch (error) {
@@ -69,7 +72,7 @@ export default function RitaStreamingPage() {
             className="flex flex-col items-center"
           >
             <div 
-              className={`relative w-[220px] h-[320px] rounded-lg overflow-hidden cursor-pointer ${globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? 'ring-2 ring-blue-500' : ''}`}
+              className={`relative w-[220px] h-[320px] rounded-lg overflow-hidden cursor-pointer group ${globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? 'ring-2 ring-blue-500' : ''}`}
               onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.id, type: 'rita'})}
             >
               <Suspense fallback={<ImageLoading />}>
@@ -81,6 +84,9 @@ export default function RitaStreamingPage() {
                   priority={avatar.id === 1 || (globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita')}
                   className="object-cover"
                 />
+                <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4">
+                  <p className="text-white text-sm text-center">{avatar.prompt}</p>
+                </div>
               </Suspense>
             </div>
             <span className="mt-1 text-sm">{avatar.name}</span>

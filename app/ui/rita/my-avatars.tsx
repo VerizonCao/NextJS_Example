@@ -94,6 +94,7 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
     }
     
     const roomName = generateRoomId();
+    // const roomName = "ino0-liue"
     
     // Print all avatar information
     console.log('Starting streaming session with avatar:', {
@@ -106,21 +107,22 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
       voice_id: avatar.voice_id,
       create_time: avatar.create_time
     });
+
     
     try {
-      await startStreamingSession({
-        instruction: "test",
-        seconds: 300,
-        room: roomName,
-        avatarSource: avatar.image_uri,
-        llmUserNickname: session?.user?.name || 'Friend',
-        llmUserBio: 'a friend',
-        llmAssistantNickname: avatar.avatar_name,
-        llmAssistantBio: avatar.agent_bio || 'this is an agent bio',
-        llmAssistantAdditionalCharacteristics: avatar.prompt,
-        llmConversationContext: avatar.scene_prompt,
-        ttsVoiceIdCartesia: avatar.voice_id,
-      });
+      // await startStreamingSession({
+      //   instruction: "test",
+      //   seconds: 300,
+      //   room: roomName,
+      //   avatarSource: avatar.image_uri,
+      //   llmUserNickname: session?.user?.name || 'Friend',
+      //   llmUserBio: 'a friend',
+      //   llmAssistantNickname: avatar.avatar_name,
+      //   llmAssistantBio: avatar.agent_bio || 'this is an agent bio',
+      //   llmAssistantAdditionalCharacteristics: avatar.prompt,
+      //   llmConversationContext: avatar.scene_prompt,
+      //   ttsVoiceIdCartesia: avatar.voice_id,
+      // });
       router.push(`/rooms/${roomName}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
