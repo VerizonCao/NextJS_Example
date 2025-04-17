@@ -74,11 +74,11 @@ export function PageClientImpl(props: {
             onSubmit={handlePreJoinSubmit}
             onError={handlePreJoinError}
           /> */}
-          <CustomPreJoin
+          {/* <CustomPreJoin
             defaults={preJoinDefaults}
             onSubmit={handlePreJoinSubmit}
             onError={handlePreJoinError}
-          />
+          /> */}
         </div>
       ) : (
         <VideoConferenceComponent
