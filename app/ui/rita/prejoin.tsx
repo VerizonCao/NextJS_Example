@@ -3,19 +3,11 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 
-interface CustomPreJoinProps {
-  onLeave?: () => void;
-}
-
-export function CustomPreJoin({ onLeave }: CustomPreJoinProps) {
+export function CustomPreJoin() {
   const router = useRouter();
 
   const handleLeave = () => {
-    if (onLeave) {
-      onLeave();
-    } else {
-      router.push('/');
-    }
+    router.push('/');
   };
 
   return (
