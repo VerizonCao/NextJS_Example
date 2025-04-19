@@ -4,8 +4,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { startStreamingSession } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
-import { useState, Suspense, useEffect } from 'react';
-import MyAvatars from '@/app/ui/rita/my-avatars';
+import { useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 
 // Loading component for images
@@ -32,8 +31,7 @@ const ritaAvatars = [
 export default function RitaStreamingPage() {
   const router = useRouter();
   const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
-  const { data: session, status } = useSession();
-  const userEmail = session?.user?.email || '';
+  const { data: session } = useSession();
  
   const handleStream = async (avatarId: number) => {
     const roomName = generateRoomId();
@@ -53,7 +51,7 @@ export default function RitaStreamingPage() {
         llmConversationContext: null,
         ttsVoiceIdCartesia: null,
       });
-      router.push(`/rooms/${roomName}`);
+      router.push(`/rooms/${roomName}?returnPath=/dashboard&presignedUrl=/${avatar?.src}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
       // You might want to show an error message to the user here
@@ -101,17 +99,6 @@ export default function RitaStreamingPage() {
           </div>
         ))}
       </div>
-      
-      {/* My Avatars section - only render when we have a valid email */}
-      {userEmail && (
-        <div className="w-full mt-8">
-          <MyAvatars 
-            session={session}
-            globalSelectedAvatar={globalSelectedAvatar}
-            setGlobalSelectedAvatar={setGlobalSelectedAvatar}
-          />
-        </div>
-      )}
     </div>
   );
 }

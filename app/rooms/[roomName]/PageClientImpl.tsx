@@ -11,6 +11,7 @@ import {
   LocalUserChoices,
   VideoConference,
   useRemoteParticipants,
+  useRoomContext,
 } from '@livekit/components-react';
 import { CustomPreJoin } from '@/app/ui/rita/prejoin';
 import {
@@ -31,7 +32,11 @@ export function PageClientImpl(props: {
   region?: string;
   hq: boolean;
   codec: VideoCodec;
+  returnPath?: string;
+  presignedUrl?: string;
 }) {
+
+  // console.log('PageClientImpl props', props);
   const router = useRouter();
   const [preJoinChoices, setPreJoinChoices] = React.useState<LocalUserChoices | undefined>(
     undefined,
@@ -107,10 +112,10 @@ export function PageClientImpl(props: {
 
   return (
     // <main data-lk-theme="default" style={{ height: '80vh' }}>
-    <main data-lk-theme="default" style={{ height: '80vh', backgroundColor: '#000' }}>
+    <main data-lk-theme="default" style={{ height: '100vh', backgroundColor: '#000' }}>
       {!preJoinChoices || !room || !connectionDetails ? (
         <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-          <CustomPreJoin/>
+          <CustomPreJoin returnPath={props.returnPath} presignedUrl={props.presignedUrl}/>
         </div>
       ) : (
         <LiveKitRoom
@@ -121,8 +126,11 @@ export function PageClientImpl(props: {
           audio={preJoinChoices.audioEnabled}
           onDisconnected={() => {
             if (hasConnected && hadRemoteParticipant) {
-              console.log('Room disconnected, navigating to homepage...');
-              router.push('/');
+              console.log('Room disconnected, navigating to return path is', props.returnPath);
+              // router.push(props.returnPath || '/');
+              setTimeout(() => {
+                router.push(props.returnPath || '/');
+              }, 0); // defer navigation after React event loop
             } else {
               console.log('Disconnected early, but no redirect because remote never joined');
             }
@@ -133,6 +141,8 @@ export function PageClientImpl(props: {
             connectionDetails={connectionDetails}
             options={{ codec: props.codec, hq: props.hq }}
             onRemoteJoin={() => setHadRemoteParticipant(true)}
+            returnPath={props.returnPath}
+            presignedUrl={props.presignedUrl}
           />
         </LiveKitRoom>
       )}
@@ -148,10 +158,77 @@ function RoomContent(props: {
     codec: VideoCodec;
   };
   onRemoteJoin: () => void;
+  returnPath?: string;
+  presignedUrl?: string;
 }) {
   const remoteParticipants = useRemoteParticipants();
   const hasRemoteParticipant = remoteParticipants.length > 0;
-  // console.log('hasRemoteParticipant', hasRemoteParticipant);
+
+  // send data code start
+  
+  const room = useRoomContext();
+  // Add data sending functionality
+  React.useEffect(() => {
+    if (!room) return;
+
+    const sendCustomData = () => {
+      // Only send data if room is connected
+      if (room.state !== 'connected') {
+        console.log('Room not connected, skipping data send');
+        return;
+      }
+
+      try {
+        const customData = {
+          timestamp: Date.now(),
+          roomName: room.name,
+          participantCount: remoteParticipants.length + 1, // +1 for local participant
+          // Add any other custom data you want to send
+        };
+
+        // Send data to all participants
+        room.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(customData)),
+          { reliable: true } // ensure data delivery
+        );
+      } catch (error) {
+        console.error('Error sending custom data:', error);
+      }
+    };
+
+    // Only start sending data when room is connected
+    const handleRoomConnected = () => {
+      sendCustomData();
+      const interval = setInterval(sendCustomData, 5000);
+      return () => clearInterval(interval);
+    };
+
+    let cleanup: (() => void) | undefined;
+
+    if (room.state === 'connected') {
+      cleanup = handleRoomConnected();
+    }
+
+    room.on('connected', () => {
+      cleanup = handleRoomConnected();
+    });
+
+    room.on('disconnected', () => {
+      if (cleanup) {
+        cleanup();
+        cleanup = undefined;
+      }
+    });
+
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, [room, remoteParticipants.length]);
+
+
+  // send data code end
 
   React.useEffect(() => {
     if (hasRemoteParticipant) {
@@ -168,7 +245,7 @@ function RoomContent(props: {
         />
       ) : (
         <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-          <CustomPreJoin/>
+          <CustomPreJoin returnPath={props.returnPath} presignedUrl={props.presignedUrl}/>
         </div>
       )}
       <DebugMode />

@@ -152,7 +152,7 @@ export default function ImageUploadPage() {
           }
 
           // redirect to the dashboard
-          router.push('/dashboard');
+          router.push('/dashboard/my-avatars');
         } 
         
       } catch (error) {

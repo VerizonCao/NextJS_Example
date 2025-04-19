@@ -94,7 +94,7 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
     }
     
     const roomName = generateRoomId();
-    // const roomName = "ino0-liue"
+    const presignedUrl = avatarUrls[avatar.avatar_id];
     
     // Print all avatar information
     console.log('Starting streaming session with avatar:', {
@@ -123,7 +123,8 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
         llmConversationContext: avatar.scene_prompt,
         ttsVoiceIdCartesia: avatar.voice_id,
       });
-      router.push(`/rooms/${roomName}`);
+      router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars`);
+      router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars&presignedUrl=${encodeURIComponent(presignedUrl)}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
       // You might want to show an error message to the user here

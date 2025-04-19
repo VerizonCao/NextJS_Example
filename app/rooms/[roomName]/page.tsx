@@ -12,6 +12,8 @@ export default async function Page({
     region?: string;
     hq?: string;
     codec?: string;
+    returnPath?: string;
+    presignedUrl?: string;
   }>;
 }) {
   // Await both params and searchParams
@@ -29,7 +31,9 @@ export default async function Page({
       roomName={resolvedParams.roomName} 
       region={resolvedSearchParams.region} 
       hq={hq} 
-      codec={codec} 
+      codec={codec}
+      returnPath={resolvedSearchParams.returnPath}
+      presignedUrl={resolvedSearchParams.presignedUrl}
     />
   );
 }
