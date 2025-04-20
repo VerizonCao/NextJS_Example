@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { startStreamingSession } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { Stick_No_Bills } from 'next/font/google';
+import AvatarPopup from './avatar-popup';
 
 // Loading component for images
 function ImageLoading() {
@@ -25,6 +26,8 @@ type UserAvatar = {
   scene_prompt?: string;
   voice_id?: string;
 };
+
+export type { UserAvatar };
 
 type MyAvatarsProps = {
   session: any; // Using any for now since we don't have the exact Session type
@@ -110,25 +113,30 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
 
     
     try {
-      await startStreamingSession({
-        instruction: "test",
-        seconds: 300,
-        room: roomName,
-        avatarSource: avatar.image_uri,
-        llmUserNickname: session?.user?.name || 'Friend',
-        llmUserBio: 'a friend',
-        llmAssistantNickname: avatar.avatar_name,
-        llmAssistantBio: avatar.agent_bio || 'this is an agent bio',
-        llmAssistantAdditionalCharacteristics: avatar.prompt,
-        llmConversationContext: avatar.scene_prompt,
-        ttsVoiceIdCartesia: avatar.voice_id,
-      });
+      // await startStreamingSession({
+      //   instruction: "test",
+      //   seconds: 300,
+      //   room: roomName,
+      //   avatarSource: avatar.image_uri,
+      //   llmUserNickname: session?.user?.name || 'Friend',
+      //   llmUserBio: 'a friend',
+      //   llmAssistantNickname: avatar.avatar_name,
+      //   llmAssistantBio: avatar.agent_bio || 'this is an agent bio',
+      //   llmAssistantAdditionalCharacteristics: avatar.prompt,
+      //   llmConversationContext: avatar.scene_prompt,
+      //   ttsVoiceIdCartesia: avatar.voice_id,
+      // });
       router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars&presignedUrl=${encodeURIComponent(presignedUrl)}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
       // You might want to show an error message to the user here
     }
   };
+
+  const selectedAvatar = avatars.find(avatar => 
+    globalSelectedAvatar?.id === avatar.avatar_id && 
+    globalSelectedAvatar?.type === 'my'
+  );
 
   if (loading) {
     return (
@@ -205,17 +213,14 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
               )}
             </div>
             <span className="mt-1 text-sm">{avatar.avatar_name}</span>
-            {globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'my' && (
-              <button 
-                onClick={() => handleStream(avatar)}
-                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-              >
-                Stream with {avatar.avatar_name}
-              </button>
-            )}
           </div>
         ))}
       </div>
+      <AvatarPopup
+        avatar={selectedAvatar || null}
+        onStream={handleStream}
+        onClose={() => setGlobalSelectedAvatar(null)}
+      />
     </div>
   );
 }

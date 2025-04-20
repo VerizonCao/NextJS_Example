@@ -6,6 +6,7 @@ import { startStreamingSession } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
+import AvatarPopup from '@/app/ui/rita/avatar-popup';
 
 // Loading component for images
 function ImageLoading() {
@@ -38,25 +39,30 @@ export default function RitaStreamingPage() {
     const avatar = ritaAvatars.find(a => a.id === avatarId);
     
     try {
-      await startStreamingSession({
-        instruction: "test",
-        seconds: 300,
-        room: roomName,
-        avatarSource: avatar?.src || '',
-        llmUserNickname: session?.user?.name || 'Friend',
-        llmUserBio: 'a friend',
-        llmAssistantNickname: avatar?.name,
-        llmAssistantBio: avatar?.prompt,
-        llmAssistantAdditionalCharacteristics: avatar?.prompt,
-        llmConversationContext: null,
-        ttsVoiceIdCartesia: null,
-      });
+      // await startStreamingSession({
+      //   instruction: "test",
+      //   seconds: 300,
+      //   room: roomName,
+      //   avatarSource: avatar?.src || '',
+      //   llmUserNickname: session?.user?.name || 'Friend',
+      //   llmUserBio: 'a friend',
+      //   llmAssistantNickname: avatar?.name,
+      //   llmAssistantBio: avatar?.prompt,
+      //   llmAssistantAdditionalCharacteristics: avatar?.prompt,
+      //   llmConversationContext: null,
+      //   ttsVoiceIdCartesia: null,
+      // });
       router.push(`/rooms/${roomName}?returnPath=/dashboard&presignedUrl=/${avatar?.src}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
       // You might want to show an error message to the user here
     }
   };
+
+  const selectedAvatar = ritaAvatars.find(avatar => 
+    globalSelectedAvatar?.id === avatar.id && 
+    globalSelectedAvatar?.type === 'rita'
+  );
 
   return (
     <div className="flex flex-col items-center gap-6 p-6">
@@ -88,17 +94,21 @@ export default function RitaStreamingPage() {
               </Suspense>
             </div>
             <span className="mt-1 text-sm">{avatar.name}</span>
-            {globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' && (
-              <button 
-                onClick={() => handleStream(avatar.id)}
-                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-              >
-                Stream with {avatar.name}
-              </button>
-            )}
           </div>
         ))}
       </div>
+      <AvatarPopup
+        avatar={selectedAvatar ? {
+          avatar_id: selectedAvatar.id.toString(),
+          avatar_name: selectedAvatar.name,
+          image_uri: `/${selectedAvatar.src}`,
+          create_time: new Date(),
+          prompt: selectedAvatar.prompt,
+          agent_bio: selectedAvatar.prompt,
+        } : null}
+        onStream={() => selectedAvatar && handleStream(selectedAvatar.id)}
+        onClose={() => setGlobalSelectedAvatar(null)}
+      />
     </div>
   );
 }

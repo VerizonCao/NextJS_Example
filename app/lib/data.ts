@@ -386,7 +386,10 @@ export async function loadAvatar(avatarId: string): Promise<Avatar | null> {
       SELECT 
         avatar_id, 
         avatar_name, 
-        prompt, 
+        prompt,
+        scene_prompt,
+        agent_bio,
+        voice_id,
         owner_id, 
         image_uri, 
         create_time, 
