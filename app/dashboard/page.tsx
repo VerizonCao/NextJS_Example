@@ -39,19 +39,19 @@ export default function RitaStreamingPage() {
     const avatar = ritaAvatars.find(a => a.id === avatarId);
     
     try {
-      // await startStreamingSession({
-      //   instruction: "test",
-      //   seconds: 300,
-      //   room: roomName,
-      //   avatarSource: avatar?.src || '',
-      //   llmUserNickname: session?.user?.name || 'Friend',
-      //   llmUserBio: 'a friend',
-      //   llmAssistantNickname: avatar?.name,
-      //   llmAssistantBio: avatar?.prompt,
-      //   llmAssistantAdditionalCharacteristics: avatar?.prompt,
-      //   llmConversationContext: null,
-      //   ttsVoiceIdCartesia: null,
-      // });
+      await startStreamingSession({
+        instruction: "test",
+        seconds: 300,
+        room: roomName,
+        avatarSource: avatar?.src || '',
+        llmUserNickname: session?.user?.name || 'Friend',
+        llmUserBio: 'a friend',
+        llmAssistantNickname: avatar?.name,
+        llmAssistantBio: avatar?.prompt,
+        llmAssistantAdditionalCharacteristics: avatar?.prompt,
+        llmConversationContext: null,
+        ttsVoiceIdCartesia: null,
+      });
       router.push(`/rooms/${roomName}?returnPath=/dashboard&presignedUrl=/${avatar?.src}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);

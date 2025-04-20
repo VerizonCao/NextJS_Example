@@ -113,19 +113,19 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
 
     
     try {
-      // await startStreamingSession({
-      //   instruction: "test",
-      //   seconds: 300,
-      //   room: roomName,
-      //   avatarSource: avatar.image_uri,
-      //   llmUserNickname: session?.user?.name || 'Friend',
-      //   llmUserBio: 'a friend',
-      //   llmAssistantNickname: avatar.avatar_name,
-      //   llmAssistantBio: avatar.agent_bio || 'this is an agent bio',
-      //   llmAssistantAdditionalCharacteristics: avatar.prompt,
-      //   llmConversationContext: avatar.scene_prompt,
-      //   ttsVoiceIdCartesia: avatar.voice_id,
-      // });
+      await startStreamingSession({
+        instruction: "test",
+        seconds: 300,
+        room: roomName,
+        avatarSource: avatar.image_uri,
+        llmUserNickname: session?.user?.name || 'Friend',
+        llmUserBio: 'a friend',
+        llmAssistantNickname: avatar.avatar_name,
+        llmAssistantBio: avatar.agent_bio || 'this is an agent bio',
+        llmAssistantAdditionalCharacteristics: avatar.prompt,
+        llmConversationContext: avatar.scene_prompt,
+        ttsVoiceIdCartesia: avatar.voice_id,
+      });
       router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars&presignedUrl=${encodeURIComponent(presignedUrl)}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
