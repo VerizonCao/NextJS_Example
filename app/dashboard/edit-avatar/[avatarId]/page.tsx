@@ -9,12 +9,13 @@ type PageParams = {
 };
 
 export default function EditAvatarPage({
-  params,
-}: {
-  params: Promise<PageParams>;
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
-  const { avatarId } = use(params);
+    params,
+    searchParams,
+  }: {
+    params: Promise<PageParams>; // ← Promise type
+    searchParams?: { [key: string]: string | string[] | undefined };
+  }) {
+  const { avatarId } = use(params); // ← unwrap with `use`
   const [isEditing, setIsEditing] = useState(false);
   const [avatar, setAvatar] = useState<any>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
