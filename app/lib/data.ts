@@ -361,8 +361,7 @@ export async function saveAvatar(avatarData: {
   }
 }
 
-// Define the Avatar type
-type Avatar = {
+export type Avatar = {
   avatar_id: string;
   avatar_name: string;
   prompt: string | null;
@@ -470,6 +469,76 @@ export async function setPresignedUrlRedis(
     return true;
   } catch (error) {
     console.error('Error setting presigned URL:', error);
+    return false;
+  }
+}
+
+/**
+ * Update an existing avatar's data
+ * @param avatarId The ID of the avatar to update
+ * @param updateData Partial avatar data containing only the fields to update
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function updateAvatarData(
+  avatarId: string,
+  updateData: Partial<Omit<Avatar, 'avatar_id' | 'create_time' | 'update_time'>>
+): Promise<boolean> {
+  try {
+    // Build the update query dynamically based on provided fields
+    const updateFields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (updateData.avatar_name) {
+      updateFields.push(`avatar_name = $${paramIndex}`);
+      values.push(updateData.avatar_name);
+      paramIndex++;
+    }
+    if (updateData.prompt !== undefined) {
+      updateFields.push(`prompt = $${paramIndex}`);
+      values.push(updateData.prompt);
+      paramIndex++;
+    }
+    if (updateData.scene_prompt !== undefined) {
+      updateFields.push(`scene_prompt = $${paramIndex}`);
+      values.push(updateData.scene_prompt);
+      paramIndex++;
+    }
+    if (updateData.agent_bio !== undefined) {
+      updateFields.push(`agent_bio = $${paramIndex}`);
+      values.push(updateData.agent_bio);
+      paramIndex++;
+    }
+    if (updateData.voice_id !== undefined) {
+      updateFields.push(`voice_id = $${paramIndex}`);
+      values.push(updateData.voice_id);
+      paramIndex++;
+    }
+    if (updateData.image_uri !== undefined) {
+      updateFields.push(`image_uri = $${paramIndex}`);
+      values.push(updateData.image_uri);
+      paramIndex++;
+    }
+
+    // Always update the update_time
+    updateFields.push(`update_time = NOW()`);
+
+    if (updateFields.length === 1) { // Only update_time was added
+      return false; // No actual fields to update
+    }
+
+    const query = `
+      UPDATE avatars
+      SET ${updateFields.join(', ')}
+      WHERE avatar_id = $${paramIndex}
+      RETURNING avatar_id
+    `;
+    values.push(avatarId);
+
+    const result = await sql.unsafe(query, values);
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error updating avatar:', error);
     return false;
   }
 }

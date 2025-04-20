@@ -8,7 +8,16 @@ import postgres from 'postgres';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { getPresignedGetUrl, getPresignedPutUrl } from './s3';
-import { saveAvatar, getUserByIdEmail, loadAvatarsByOwner, getPresignedUrlRedis, setPresignedUrlRedis } from './data';
+import { 
+  saveAvatar, 
+  getUserByIdEmail, 
+  loadAvatarsByOwner, 
+  getPresignedUrlRedis, 
+  setPresignedUrlRedis, 
+  loadAvatar as loadAvatarFromDb, 
+  updateAvatarData as updateAvatarDataFromDb,
+  Avatar 
+} from './data';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -291,6 +300,64 @@ export async function getCartesiaVoices(
       voices: null, 
       message: 'An error occurred while retrieving voices' 
     };
+  }
+}
+
+/**
+ * Server action to load a single avatar by its ID
+ */
+export async function loadAvatar(avatarId: string): Promise<{ 
+  success: boolean; 
+  avatar: Avatar | null; 
+  message: string 
+}> {
+  try {
+    const avatar = await loadAvatarFromDb(avatarId);
+    
+    if (!avatar) {
+      return { 
+        success: false, 
+        avatar: null, 
+        message: 'Avatar not found' 
+      };
+    }
+    
+    return { 
+      success: true, 
+      avatar, 
+      message: 'Avatar loaded successfully' 
+    };
+  } catch (error) {
+    console.error('Error in loadAvatar action:', error);
+    return { 
+      success: false, 
+      avatar: null, 
+      message: 'An error occurred while loading the avatar' 
+    };
+  }
+}
+
+/**
+ * Server action to update an existing avatar's data
+ * @param avatarId The ID of the avatar to update
+ * @param updateData Partial avatar data containing only the fields to update
+ * @returns Promise<{ success: boolean; message: string }> Response indicating success or failure
+ */
+export async function updateAvatarData(
+  avatarId: string,
+  updateData: Partial<Omit<Avatar, 'avatar_id' | 'create_time' | 'update_time'>>
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const success = await updateAvatarDataFromDb(avatarId, updateData);
+    
+    if (success) {
+      return { success: true, message: 'Avatar updated successfully' };
+    } else {
+      return { success: false, message: 'No fields were updated' };
+    }
+  } catch (error) {
+    console.error('Error in updateAvatarData action:', error);
+    return { success: false, message: 'An error occurred while updating the avatar' };
   }
 }
 
