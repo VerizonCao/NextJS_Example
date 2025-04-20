@@ -5,6 +5,7 @@ export default async function EditAvatarPage({
   params,
 }: {
   params: { avatarId: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   const avatar = await loadAvatar(params.avatarId);
 
