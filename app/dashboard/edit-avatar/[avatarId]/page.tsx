@@ -10,10 +10,8 @@ type PageParams = {
 
 export default function EditAvatarPage({
     params,
-    searchParams,
   }: {
     params: Promise<PageParams>; // ← Promise type
-    searchParams?: { [key: string]: string | string[] | undefined };
   }) {
   const { avatarId } = use(params); // ← unwrap with `use`
   const [isEditing, setIsEditing] = useState(false);
