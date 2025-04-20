@@ -123,7 +123,6 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
         llmConversationContext: avatar.scene_prompt,
         ttsVoiceIdCartesia: avatar.voice_id,
       });
-      router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars`);
       router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars&presignedUrl=${encodeURIComponent(presignedUrl)}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);

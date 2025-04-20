@@ -23,6 +23,9 @@ import {
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
+// custom video conference
+import { VideoConferenceCustom } from '@/app/components/VideoConferenceCustom';
+
 const CONN_DETAILS_ENDPOINT =
   process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
 const SHOW_SETTINGS_MENU = process.env.NEXT_PUBLIC_SHOW_SETTINGS_MENU == 'true';
@@ -239,7 +242,8 @@ function RoomContent(props: {
   return (
     <>
       {hasRemoteParticipant ? (
-        <VideoConference
+        // <VideoConference
+        <VideoConferenceCustom
           chatMessageFormatter={formatChatMessageLinks}
           SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
         />
