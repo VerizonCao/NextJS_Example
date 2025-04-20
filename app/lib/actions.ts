@@ -8,7 +8,7 @@ import postgres from 'postgres';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { getPresignedGetUrl, getPresignedPutUrl } from './s3';
-import { saveAvatar, getUserByIdEmail, loadAvatarsByOwner } from './data';
+import { saveAvatar, getUserByIdEmail, loadAvatarsByOwner, getPresignedUrlRedis, setPresignedUrlRedis } from './data';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -139,7 +139,18 @@ export async function startStreamingSession({
 
 export async function getPresignedUrl(key: string) {
   try {
+    // First check if we have the presigned URL in Redis
+    const cachedUrl = await getPresignedUrlRedis(key);
+    if (cachedUrl) {
+      return { presignedUrl: cachedUrl };
+    }
+
+    // If not in Redis, generate a new one
     const presignedUrl = await getPresignedGetUrl(key);
+    
+    // Store the new presigned URL in Redis with a 1-hour TTL
+    await setPresignedUrlRedis(key, presignedUrl);
+    
     return { presignedUrl };
   } catch (error) {
     console.error('Error generating presigned URL:', error);

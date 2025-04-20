@@ -110,11 +110,6 @@ export const ParticipantTileCustom: (
       const layoutContext = useMaybeLayoutContext();
       const autoManageSubscription = useFeatureContext()?.autoSubscription;
       
-      // Check if the participant is the local participant
-      if (trackReference.participant?.isLocal) {
-        return null; // Hide the local participant
-      }
-  
       const handleSubscribe = React.useCallback(
         (subscribed: boolean) => {
           if (
@@ -129,6 +124,11 @@ export const ParticipantTileCustom: (
         },
         [trackReference, layoutContext],
       );
+  
+      // Check if the participant is the local participant
+      if (trackReference.participant?.isLocal) {
+        return null; // Hide the local participant
+      }
   
       return (
         <div

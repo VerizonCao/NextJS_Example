@@ -10,7 +10,14 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 
+import { Redis } from '@upstash/redis'
+
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+});
 
 export async function fetchRevenue() {
   try {
@@ -423,6 +430,44 @@ export async function loadAvatarsByOwner(ownerId: string): Promise<Avatar[]> {
   } catch (error) {
     console.error('Error loading avatars by owner:', error);
     return [];
+  }
+}
+
+/**
+ * Get a presigned URL from Redis using a URI key
+ * @param uri The URI key to look up
+ * @returns Promise<string | null> The presigned URL if found, null otherwise
+ */
+export async function getPresignedUrlRedis(uri: string): Promise<string | null> {
+  try {
+    const key = `uri:${uri}`;
+    const presignedUrl = await redis.get(key);
+    return presignedUrl as string | null;
+  } catch (error) {
+    console.error('Error getting presigned URL:', error);
+    return null;
+  }
+}
+
+/**
+ * Set a presigned URL in Redis with a URI key
+ * @param uri The URI key to store
+ * @param presignedUrl The presigned URL to store
+ * @param ttlSeconds Optional time-to-live in seconds (default: 1 hour)
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function setPresignedUrlRedis(
+  uri: string,
+  presignedUrl: string,
+  ttlSeconds: number = 3600
+): Promise<boolean> {
+  try {
+    const key = `uri:${uri}`;
+    await redis.set(key, presignedUrl, { ex: ttlSeconds });
+    return true;
+  } catch (error) {
+    console.error('Error setting presigned URL:', error);
+    return false;
   }
 }
 
