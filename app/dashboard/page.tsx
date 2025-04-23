@@ -7,6 +7,8 @@ import { generateRoomId } from '@/lib/client-utils';
 import { useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import AvatarPopup from '@/app/ui/rita/avatar-popup';
+import { Badge } from '@/app/components/badge';
+import { Card } from '@/app/components/card';
 
 // Loading component for images
 function ImageLoading() {
@@ -27,6 +29,18 @@ const ritaAvatars = [
   { id: 8, src: 'rita-avatars-test/girl_white.png', name: 'cute girl 1', prompt: 'friendly talking assistant' },
   { id: 9, src: 'rita-avatars-test/girl_red.png', name: 'cute girl 2', prompt: 'friendly talking assistant' },
   { id: 10, src: 'rita-avatars-test/mingren.png', name: 'mingren', prompt: 'friendly talking assistant' },
+];
+
+// Define category data for mapping
+const categories = [
+  { name: "Girl", color: "#7e8dc8" },
+  { name: "OC", color: "#837ec8" },
+  { name: "BlueArchive", color: "#c8917e" },
+  { name: "fanart", color: "#7ec8bb" },
+  { name: "VTuber", color: "#c8b87e" },
+  { name: "NEWGAME!", color: "#c87e92" },
+  { name: "Helltaker", color: "#c8807e" },
+  { name: "Ghost", color: "#ba7ec8" },
 ];
 
 export default function RitaStreamingPage() {
@@ -65,38 +79,61 @@ export default function RitaStreamingPage() {
   );
 
   return (
-    <div className="flex flex-col items-center gap-6 p-6">
-      <h1 className="text-2xl font-bold mb-4">Rita Avatars</h1>
-      
-      {/* All avatars grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {ritaAvatars.map((avatar) => (
-          <div 
-            key={avatar.id} 
-            className="flex flex-col items-center"
-          >
-            <div 
-              className={`relative w-[220px] h-[320px] rounded-lg overflow-hidden cursor-pointer group ${globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? 'ring-2 ring-blue-500' : ''}`}
-              onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.id, type: 'rita'})}
+    <div className="flex flex-col items-center w-full max-w-[1180px] py-8 gap-8 mx-auto">
+      {/* Categories Section */}
+      <div className="relative w-full overflow-hidden">
+        <div className="flex items-center gap-2 px-10 py-2 overflow-x-auto">
+          {categories.map((category, index) => (
+            <Badge
+              key={index}
+              className="px-6 py-2 cursor-pointer inline-block"
+              style={{ backgroundColor: category.color }}
             >
-              <Suspense fallback={<ImageLoading />}>
-                <Image
-                  src={`/${avatar.src}`}
-                  alt={avatar.name}
-                  fill
-                  sizes="220px"
-                  priority={avatar.id === 1 || (globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita')}
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4">
-                  <p className="text-white text-sm text-center">{avatar.prompt}</p>
+              <span className="font-bold font-['Montserrat',Helvetica] text-white text-base whitespace-nowrap">
+                {category.name}
+              </span>
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content Section */}
+      <div className="w-full px-10">
+        <h2 className="font-['Montserrat',Helvetica] font-bold text-black text-2xl text-left mb-4">
+          Explore Rita Avatars
+        </h2>
+      </div>
+
+      {/* Avatars Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-10 w-full">
+        {ritaAvatars.map((avatar) => (
+          <Card
+            key={avatar.id}
+            className={`relative w-full h-[320px] rounded-[5px] overflow-hidden p-0 cursor-pointer transition-transform duration-200 ease-in-out hover:scale-105 ${
+              globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? 'ring-2 ring-blue-500' : ''
+            }`}
+            onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.id, type: 'rita'})}
+          >
+            <Suspense fallback={<ImageLoading />}>
+              <Image
+                src={`/${avatar.src}`}
+                alt={avatar.name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                priority={avatar.id === 1 || (globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita')}
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4">
+                <div className="backdrop-blur-sm bg-black bg-opacity-30 p-4 rounded-lg">
+                  <h3 className="text-white text-sm font-semibold">{avatar.name}</h3>
+                  <p className="text-white text-xs">{avatar.prompt}</p>
                 </div>
-              </Suspense>
-            </div>
-            <span className="mt-1 text-sm">{avatar.name}</span>
-          </div>
+              </div>
+            </Suspense>
+          </Card>
         ))}
       </div>
+
       <AvatarPopup
         avatar={selectedAvatar ? {
           avatar_id: selectedAvatar.id.toString(),
