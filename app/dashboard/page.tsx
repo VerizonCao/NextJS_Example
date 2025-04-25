@@ -26,6 +26,21 @@ const categories = [
   { name: "Ghost", color: "#ba7ec8" },
 ];
 
+// This function will be called at build time and revalidated every 60 seconds
+export async function generateStaticParams() {
+  // In the future, you can replace this with your database query
+  // const imageUris = await fetchImageUrisFromDatabase();
+  // const signedUrls = await Promise.all(imageUris.map(getPresignedUrl));
+  
+  return {
+    props: {
+      ritaAvatars,
+      categories,
+    },
+    revalidate: 60, // Revalidate every 60 seconds
+  };
+}
+
 export default function RitaStreamingPage() {
   return <HomepageAvatars ritaAvatars={ritaAvatars} categories={categories} />;
 }
