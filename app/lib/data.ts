@@ -12,7 +12,13 @@ import { formatCurrency } from './utils';
 
 import { Redis } from '@upstash/redis'
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, { 
+  ssl: 'require',
+  max: 10, // Maximum number of connections in the pool
+  idle_timeout: 20, // Close idle connections after 20 seconds
+  connect_timeout: 10, // Timeout for establishing a connection
+  max_lifetime: 60 * 30, // Maximum lifetime of a connection (30 minutes)
+});
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
