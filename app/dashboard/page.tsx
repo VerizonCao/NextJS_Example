@@ -13,12 +13,10 @@ const categories = [
   { name: "Ghost", color: "#ba7ec8" },
 ];
 
-export const dynamic = 'force-dynamic';
-
-export default async function RitaStreamingPage() {
+// This function will be called at build time and revalidated every 60 seconds
+export async function generateStaticParams() {
   const result = await loadPublicAvatars();
-
-  // If we have avatars, fetch their presigned URLs
+  
   if (result.success && result.avatars) {
     const avatarUrls = await Promise.all(
       result.avatars.map(async (avatar) => {
@@ -38,19 +36,31 @@ export default async function RitaStreamingPage() {
       })
     );
 
-    return (
-      <div className="flex flex-col items-center gap-6 p-6">
-        <div className="w-full">
-          <HomepageAvatars initialAvatars={{ ...result, avatars: avatarUrls }} categories={categories} />
-        </div>
-      </div>
-    );
+    return {
+      props: {
+        initialAvatars: { ...result, avatars: avatarUrls },
+        categories,
+      },
+      revalidate: 60, // Revalidate every 60 seconds
+    };
   }
 
+  return {
+    props: {
+      initialAvatars: result,
+      categories,
+    },
+    revalidate: 60, // Revalidate every 60 seconds
+  };
+}
+
+export default async function RitaStreamingPage() {
+  const { props } = await generateStaticParams();
+  
   return (
     <div className="flex flex-col items-center gap-6 p-6">
       <div className="w-full">
-        <HomepageAvatars initialAvatars={result} categories={categories} />
+        <HomepageAvatars initialAvatars={props.initialAvatars} categories={props.categories} />
       </div>
     </div>
   );
