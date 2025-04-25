@@ -2,7 +2,7 @@ import { loadUserAvatars, getPresignedUrl } from '@/app/lib/actions';
 import MyAvatars from '@/app/ui/rita/my-avatars';
 import { auth } from '@/auth';
 
-export const revalidate = 60; // Revalidate every minute
+export const dynamic = 'force-dynamic';
 
 export default async function MyAvatarsPage() {
   const session = await auth();
