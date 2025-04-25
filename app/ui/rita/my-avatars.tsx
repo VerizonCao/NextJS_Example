@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import { loadUserAvatars, getPresignedUrl } from '@/app/lib/actions';
 import { useRouter } from 'next/navigation';
 import { startStreamingSession } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
-import { Stick_No_Bills } from 'next/font/google';
+import { useSession } from 'next-auth/react';
 import AvatarPopup from './avatar-popup';
 
 // Loading component for images
@@ -25,70 +24,23 @@ type UserAvatar = {
   agent_bio?: string;
   scene_prompt?: string;
   voice_id?: string;
+  presignedUrl?: string;
 };
 
 export type { UserAvatar };
 
 type MyAvatarsProps = {
-  session: any; // Using any for now since we don't have the exact Session type
-  globalSelectedAvatar: {id: string | number, type: 'rita' | 'my'} | null;
-  setGlobalSelectedAvatar: React.Dispatch<React.SetStateAction<{id: string | number, type: 'rita' | 'my'} | null>>;
+  initialAvatars: {
+    success: boolean;
+    avatars: UserAvatar[] | null;
+    message: string;
+  };
 };
 
-export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSelectedAvatar }: MyAvatarsProps) {
+export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
   const router = useRouter();
-  const [avatars, setAvatars] = useState<UserAvatar[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [avatarUrls, setAvatarUrls] = useState<Record<string, string>>({});
-  const [loadedAvatars, setLoadedAvatars] = useState<Record<string, boolean>>({});
-  const userEmail = session?.user?.email || '';
-
-  useEffect(() => {
-    const fetchAvatars = async () => {
-      try {
-        setLoading(true);
-        
-        console.log('userEmail1', userEmail);
-        const result = await loadUserAvatars(userEmail);
-        
-        if (result.success && result.avatars) {
-          setAvatars(result.avatars);
-          
-          // Load presigned URLs sequentially
-          for (const avatar of result.avatars) {
-            if (avatar.image_uri) {
-              try {
-                const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
-                setAvatarUrls(prev => ({
-                  ...prev,
-                  [avatar.avatar_id]: presignedUrl
-                }));
-              } catch (err) {
-                console.error(`Failed to get presigned URL for avatar ${avatar.avatar_id}:`, err);
-              }
-            }
-          }
-        } else {
-          setError(result.message || 'Failed to load avatars');
-        }
-      } catch (err) {
-        console.error('Error fetching avatars:', err);
-        setError('An error occurred while loading your avatars');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAvatars();
-  }, [userEmail]);
-
-  const handleImageLoad = (avatarId: string) => {
-    setLoadedAvatars(prev => ({
-      ...prev,
-      [avatarId]: true
-    }));
-  };
+  const { data: session } = useSession();
+  const [selectedAvatar, setSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
 
   const handleStream = async (avatar: UserAvatar) => {
     if (!avatar.image_uri) {
@@ -97,20 +49,6 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
     }
     
     const roomName = generateRoomId();
-    const presignedUrl = avatarUrls[avatar.avatar_id];
-    
-    // Print all avatar information
-    console.log('Starting streaming session with avatar:', {
-      avatar_id: avatar.avatar_id,
-      avatar_name: avatar.avatar_name,
-      image_uri: avatar.image_uri,
-      prompt: avatar.prompt,
-      scene_prompt: avatar.scene_prompt,
-      agent_bio: avatar.agent_bio,
-      voice_id: avatar.voice_id,
-      create_time: avatar.create_time
-    });
-
     
     try {
       await startStreamingSession({
@@ -126,48 +64,29 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
         llmConversationContext: avatar.scene_prompt,
         ttsVoiceIdCartesia: avatar.voice_id,
       });
-      router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars&presignedUrl=${encodeURIComponent(presignedUrl)}`);
+      router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars&presignedUrl=${encodeURIComponent(avatar.presignedUrl || '')}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
-      // You might want to show an error message to the user here
     }
   };
 
-  const selectedAvatar = avatars.find(avatar => 
-    globalSelectedAvatar?.id === avatar.avatar_id && 
-    globalSelectedAvatar?.type === 'my'
+  const currentSelectedAvatar = initialAvatars.avatars?.find(avatar => 
+    selectedAvatar?.id === avatar.avatar_id && 
+    selectedAvatar?.type === 'my'
   );
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center gap-6 p-6">
-        <h2 className="text-xl font-semibold mb-4">My Avatars</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div className="relative w-[220px] h-[320px] rounded-lg overflow-hidden">
-                <ImageLoading />
-              </div>
-              <span className="mt-1 text-sm">Loading...</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
+  if (!initialAvatars.success || !initialAvatars.avatars) {
     return (
       <div className="flex flex-col items-center gap-6 p-6">
         <h2 className="text-xl font-semibold mb-4">My Avatars</h2>
         <div className="p-4 bg-red-100 text-red-700 rounded-lg">
-          {error}
+          {initialAvatars.message}
         </div>
       </div>
     );
   }
 
-  if (avatars.length === 0) {
+  if (initialAvatars.avatars.length === 0) {
     return (
       <div className="flex flex-col items-center gap-6 p-6">
         <h2 className="text-xl font-semibold mb-4">My Avatars</h2>
@@ -182,25 +101,24 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
     <div className="flex flex-col items-center gap-6 p-6">
       <h2 className="text-xl font-semibold mb-4">My Avatars</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {avatars.map((avatar) => (
+        {initialAvatars.avatars.map((avatar) => (
           <div 
             key={avatar.avatar_id} 
             className="flex flex-col items-center"
           >
             <div 
-              className={`relative w-[220px] h-[320px] rounded-lg overflow-hidden cursor-pointer group ${globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'my' ? 'ring-2 ring-blue-500' : ''}`}
-              onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'my' ? null : {id: avatar.avatar_id, type: 'my'})}
+              className={`relative w-[220px] h-[320px] rounded-lg overflow-hidden cursor-pointer group ${selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => setSelectedAvatar(selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? null : {id: avatar.avatar_id, type: 'my'})}
             >
-              {avatarUrls[avatar.avatar_id] ? (
+              {avatar.presignedUrl ? (
                 <>
                   <Image
-                    src={avatarUrls[avatar.avatar_id]}
+                    src={avatar.presignedUrl}
                     alt={avatar.avatar_name}
                     fill
                     sizes="220px"
-                    loading={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'my' ? "eager" : "lazy"}
+                    loading={selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? "eager" : "lazy"}
                     className="object-cover"
-                    onLoad={() => handleImageLoad(avatar.avatar_id)}
                   />
                   {avatar.agent_bio && (
                     <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4">
@@ -217,9 +135,9 @@ export default function MyAvatars({ session, globalSelectedAvatar, setGlobalSele
         ))}
       </div>
       <AvatarPopup
-        avatar={selectedAvatar || null}
+        avatar={currentSelectedAvatar || null}
         onStream={handleStream}
-        onClose={() => setGlobalSelectedAvatar(null)}
+        onClose={() => setSelectedAvatar(null)}
       />
     </div>
   );

@@ -1,21 +1,37 @@
-'use client';
-
-import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { loadUserAvatars, getPresignedUrl } from '@/app/lib/actions';
 import MyAvatars from '@/app/ui/rita/my-avatars';
+import { auth } from '@/auth';
 
-export default function MyAvatarsPage() {
-  const { data: session, status } = useSession();
-  const [localSelectedAvatar, setLocalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
+export const revalidate = 60; // Revalidate every minute
 
-  // Show loading state while session is loading or if there's no userEmail
-  if (status === 'loading' || !session?.user?.email) {
+export default async function MyAvatarsPage() {
+  const session = await auth();
+  const result = await loadUserAvatars(session?.user?.email || '');
+
+  // If we have avatars, fetch their presigned URLs
+  if (result.success && result.avatars) {
+    const avatarUrls = await Promise.all(
+      result.avatars.map(async (avatar) => {
+        if (avatar.image_uri) {
+          try {
+            const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+            return {
+              ...avatar,
+              presignedUrl
+            };
+          } catch (error) {
+            console.error(`Failed to get presigned URL for avatar ${avatar.avatar_id}:`, error);
+            return avatar;
+          }
+        }
+        return avatar;
+      })
+    );
+
     return (
       <div className="flex flex-col items-center gap-6 p-6">
         <div className="w-full">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-          </div>
+          <MyAvatars initialAvatars={{ ...result, avatars: avatarUrls }} />
         </div>
       </div>
     );
@@ -24,11 +40,7 @@ export default function MyAvatarsPage() {
   return (
     <div className="flex flex-col items-center gap-6 p-6">
       <div className="w-full">
-        <MyAvatars 
-          session={session}
-          globalSelectedAvatar={localSelectedAvatar}
-          setGlobalSelectedAvatar={setLocalSelectedAvatar}
-        />
+        <MyAvatars initialAvatars={result} />
       </div>
     </div>
   );
