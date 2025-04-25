@@ -1,7 +1,10 @@
 import { loadPublicAvatars, getPresignedUrl } from '@/app/lib/actions';
 import HomepageAvatars from './homepage-avatars';
 
-// Define category data for mapping
+// This makes the page use ISR and revalidate every 60 seconds
+export const revalidate = 60;
+
+// Static category list
 const categories = [
   { name: "Girl", color: "#7e8dc8" },
   { name: "OC", color: "#837ec8" },
@@ -13,54 +16,26 @@ const categories = [
   { name: "Ghost", color: "#ba7ec8" },
 ];
 
-// This function will be called at build time and revalidated every 60 seconds
-export async function generateStaticParams() {
-  const result = await loadPublicAvatars();
-  
-  if (result.success && result.avatars) {
-    const avatarUrls = await Promise.all(
-      result.avatars.map(async (avatar) => {
-        if (avatar.image_uri) {
-          try {
-            const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
-            return {
-              ...avatar,
-              presignedUrl
-            };
-          } catch (error) {
-            console.error(`Failed to get presigned URL for avatar ${avatar.avatar_id}:`, error);
-            return avatar;
-          }
-        }
-        return avatar;
-      })
-    );
-
-    return {
-      props: {
-        initialAvatars: { ...result, avatars: avatarUrls },
-        categories,
-      },
-      revalidate: 60, // Revalidate every 60 seconds
-    };
-  }
-
-  return {
-    props: {
-      initialAvatars: result,
-      categories,
-    },
-    revalidate: 60, // Revalidate every 60 seconds
-  };
-}
-
 export default async function RitaStreamingPage() {
-  const { props } = await generateStaticParams();
-  
+  const result = await loadPublicAvatars();
+
+  const avatars = await Promise.all(
+    (result.avatars ?? []).map(async (avatar) => {
+      if (!avatar.image_uri) return avatar;
+      try {
+        const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+        return { ...avatar, presignedUrl };
+      } catch (e) {
+        console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
+        return avatar;
+      }
+    })
+  );
+
   return (
     <div className="flex flex-col items-center gap-6 p-6">
       <div className="w-full">
-        <HomepageAvatars initialAvatars={props.initialAvatars} categories={props.categories} />
+        <HomepageAvatars initialAvatars={{ ...result, avatars }} categories={categories} />
       </div>
     </div>
   );
