@@ -1,18 +1,5 @@
+import { loadPublicAvatars, getPresignedUrl } from '@/app/lib/actions';
 import HomepageAvatars from './homepage-avatars';
-
-// List of all Rita avatars
-const ritaAvatars = [
-  { id: 1, src: 'rita-avatars-test/1.png', name: 'Rita 1', prompt: 'friendly talking assistant' },
-  { id: 2, src: 'rita-avatars-test/deepspace.png', name: 'Deep Space', prompt: 'friendly talking assistant' },
-  { id: 3, src: 'rita-avatars-test/rest_4_crop.png', name: 'Rest 4', prompt: 'friendly talking assistant' },
-  { id: 4, src: 'rita-avatars-test/rest_5_square.png', name: 'Rest 5', prompt: 'friendly talking assistant' },
-  { id: 5, src: 'rita-avatars-test/rest_8_square.png', name: 'Rest 8', prompt: 'friendly talking assistant' },
-  { id: 6, src: 'rita-avatars-test/t13.png', name: 'T13', prompt: 'friendly talking assistant' },
-  { id: 7, src: 'rita-avatars-test/tifa_3.png', name: 'Tifa 3', prompt: 'friendly talking assistant' },
-  { id: 8, src: 'rita-avatars-test/girl_white.png', name: 'cute girl 1', prompt: 'friendly talking assistant' },
-  { id: 9, src: 'rita-avatars-test/girl_red.png', name: 'cute girl 2', prompt: 'friendly talking assistant' },
-  { id: 10, src: 'rita-avatars-test/mingren.png', name: 'mingren', prompt: 'friendly talking assistant' },
-];
 
 // Define category data for mapping
 const categories = [
@@ -26,21 +13,45 @@ const categories = [
   { name: "Ghost", color: "#ba7ec8" },
 ];
 
-// This function will be called at build time and revalidated every 60 seconds
-export async function generateStaticParams() {
-  // In the future, you can replace this with your database query
-  // const imageUris = await fetchImageUrisFromDatabase();
-  // const signedUrls = await Promise.all(imageUris.map(getPresignedUrl));
-  
-  return {
-    props: {
-      ritaAvatars,
-      categories,
-    },
-    revalidate: 60, // Revalidate every 60 seconds
-  };
-}
+export const dynamic = 'force-dynamic';
 
-export default function RitaStreamingPage() {
-  return <HomepageAvatars ritaAvatars={ritaAvatars} categories={categories} />;
+export default async function RitaStreamingPage() {
+  const result = await loadPublicAvatars();
+
+  // If we have avatars, fetch their presigned URLs
+  if (result.success && result.avatars) {
+    const avatarUrls = await Promise.all(
+      result.avatars.map(async (avatar) => {
+        if (avatar.image_uri) {
+          try {
+            const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+            return {
+              ...avatar,
+              presignedUrl
+            };
+          } catch (error) {
+            console.error(`Failed to get presigned URL for avatar ${avatar.avatar_id}:`, error);
+            return avatar;
+          }
+        }
+        return avatar;
+      })
+    );
+
+    return (
+      <div className="flex flex-col items-center gap-6 p-6">
+        <div className="w-full">
+          <HomepageAvatars initialAvatars={{ ...result, avatars: avatarUrls }} categories={categories} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-6 p-6">
+      <div className="w-full">
+        <HomepageAvatars initialAvatars={result} categories={categories} />
+      </div>
+    </div>
+  );
 }

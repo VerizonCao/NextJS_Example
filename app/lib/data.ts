@@ -330,6 +330,7 @@ export async function saveAvatar(avatarData: {
   voice_id?: string;
   owner_id: string;
   image_uri?: string;
+  is_public?: boolean;
 }): Promise<boolean> {
   try {
     const result = await sql`
@@ -341,7 +342,8 @@ export async function saveAvatar(avatarData: {
         agent_bio,
         voice_id,
         owner_id, 
-        image_uri
+        image_uri,
+        is_public
       )
       VALUES (
         ${avatarData.avatar_id}, 
@@ -351,7 +353,8 @@ export async function saveAvatar(avatarData: {
         ${avatarData.agent_bio || null},
         ${avatarData.voice_id || null},
         ${avatarData.owner_id}, 
-        ${avatarData.image_uri || null}
+        ${avatarData.image_uri || null},
+        ${avatarData.is_public || false}
       )
     `;
     return true;
@@ -431,6 +434,37 @@ export async function loadAvatarsByOwner(ownerId: string): Promise<Avatar[]> {
     return result;
   } catch (error) {
     console.error('Error loading avatars by owner:', error);
+    return [];
+  }
+}
+
+/**
+ * Load all public avatars
+ * @returns Promise<Avatar[]> Array of public avatar objects, limited to 20
+ */
+export async function loadPublicAvatars(): Promise<Avatar[]> {
+  try {
+    const result = await sql<Avatar[]>`
+      SELECT 
+        avatar_id, 
+        avatar_name, 
+        prompt,
+        scene_prompt,
+        agent_bio,
+        voice_id,
+        owner_id, 
+        image_uri, 
+        create_time, 
+        update_time
+      FROM avatars 
+      WHERE is_public = true
+      ORDER BY create_time DESC
+      LIMIT 20
+    `;
+    
+    return result;
+  } catch (error) {
+    console.error('Error loading public avatars:', error);
     return [];
   }
 }

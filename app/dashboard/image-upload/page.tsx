@@ -24,6 +24,7 @@ export default function ImageUploadPage() {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [showVoiceSection, setShowVoiceSection] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -140,7 +141,8 @@ export default function ImageUploadPage() {
               agent_bio: bio,
               owner_email: owner_email,
               image_uri: key,
-              voice_id: selectedVoice
+              voice_id: selectedVoice,
+              is_public: isPublic
             });
             
             if (result.success) {
@@ -332,6 +334,18 @@ export default function ImageUploadPage() {
                   </div>
                 </div>
                 
+                <div className="mt-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={isPublic}
+                      onChange={(e) => setIsPublic(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Make this agent public</span>
+                  </label>
+                </div>
+
                 <div className="mt-4">
                   <button
                     onClick={handleGenerateAvatar}

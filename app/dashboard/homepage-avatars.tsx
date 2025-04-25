@@ -17,56 +17,83 @@ function ImageLoading() {
   );
 }
 
-interface RitaAvatar {
-  id: number;
-  src: string;
-  name: string;
-  prompt: string;
-}
-
 interface Category {
   name: string;
   color: string;
 }
 
 interface HomepageAvatarsProps {
-  ritaAvatars: RitaAvatar[];
+  initialAvatars: {
+    success: boolean;
+    avatars: {
+      avatar_id: string;
+      avatar_name: string;
+      image_uri: string;
+      prompt: string;
+      presignedUrl?: string;
+    }[] | null;
+    message: string;
+  };
   categories: Category[];
 }
 
-export default function HomepageAvatars({ ritaAvatars, categories }: HomepageAvatarsProps) {
+export default function HomepageAvatars({ initialAvatars, categories }: HomepageAvatarsProps) {
   const router = useRouter();
   const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
   const { data: session } = useSession();
  
-  const handleStream = async (avatarId: number) => {
+  const handleStream = async (avatarId: string) => {
     const roomName = generateRoomId();
-    const avatar = ritaAvatars.find(a => a.id === avatarId);
+    const avatar = initialAvatars.avatars?.find(a => a.avatar_id === avatarId);
+    
+    if (!avatar) return;
     
     try {
       await startStreamingSession({
         instruction: "test",
         seconds: 300,
         room: roomName,
-        avatarSource: avatar?.src || '',
+        avatarSource: avatar.image_uri,
         llmUserNickname: session?.user?.name || 'Friend',
         llmUserBio: 'a friend',
-        llmAssistantNickname: avatar?.name,
-        llmAssistantBio: avatar?.prompt,
-        llmAssistantAdditionalCharacteristics: avatar?.prompt,
+        llmAssistantNickname: avatar.avatar_name,
+        llmAssistantBio: avatar.prompt,
+        llmAssistantAdditionalCharacteristics: avatar.prompt,
         llmConversationContext: null,
         ttsVoiceIdCartesia: null,
       });
-      router.push(`/rooms/${roomName}?returnPath=/dashboard&presignedUrl=/${avatar?.src}`);
+      router.push(`/rooms/${roomName}?returnPath=/dashboard&presignedUrl=${encodeURIComponent(avatar.presignedUrl || '')}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
     }
   };
 
-  const selectedAvatar = ritaAvatars.find(avatar => 
-    globalSelectedAvatar?.id === avatar.id && 
+  const selectedAvatar = initialAvatars.avatars?.find(avatar => 
+    globalSelectedAvatar?.id === avatar.avatar_id && 
     globalSelectedAvatar?.type === 'rita'
   );
+
+  if (!initialAvatars.success || !initialAvatars.avatars) {
+    return (
+      <div className="flex flex-col items-center gap-6 p-6">
+        <h2 className="text-xl font-semibold mb-4">Explore Rita Avatars</h2>
+        <div className="p-4 bg-red-100 text-red-700 rounded-lg">
+          {initialAvatars.message}
+        </div>
+      </div>
+    );
+  }
+
+  if (initialAvatars.avatars.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-6 p-6">
+        <h2 className="text-xl font-semibold mb-4">Explore Rita Avatars</h2>
+        <div className="p-4 bg-gray-100 text-gray-700 rounded-lg">
+          No public avatars available at the moment.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center w-full max-w-[1180px] py-8 gap-8 mx-auto">
@@ -96,29 +123,35 @@ export default function HomepageAvatars({ ritaAvatars, categories }: HomepageAva
 
       {/* Avatars Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-10 w-full">
-        {ritaAvatars.map((avatar) => (
+        {initialAvatars.avatars.map((avatar) => (
           <Card
-            key={avatar.id}
+            key={avatar.avatar_id}
             className={`relative w-full h-[320px] rounded-[5px] overflow-hidden p-0 cursor-pointer transition-transform duration-200 ease-in-out hover:scale-105 ${
-              globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? 'ring-2 ring-blue-500' : ''
+              globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? 'ring-2 ring-blue-500' : ''
             }`}
-            onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.id, type: 'rita'})}
+            onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
           >
             <Suspense fallback={<ImageLoading />}>
-              <Image
-                src={`/${avatar.src}`}
-                alt={avatar.name}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                priority={avatar.id === 1 || (globalSelectedAvatar?.id === avatar.id && globalSelectedAvatar?.type === 'rita')}
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4">
-                <div className="backdrop-blur-sm bg-black bg-opacity-30 p-4 rounded-lg">
-                  <h3 className="text-white text-sm font-semibold">{avatar.name}</h3>
-                  <p className="text-white text-xs">{avatar.prompt}</p>
-                </div>
-              </div>
+              {avatar.presignedUrl ? (
+                <>
+                  <Image
+                    src={avatar.presignedUrl}
+                    alt={avatar.avatar_name}
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                    priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4">
+                    <div className="backdrop-blur-sm bg-black bg-opacity-30 p-4 rounded-lg">
+                      <h3 className="text-white text-sm font-semibold">{avatar.avatar_name}</h3>
+                      <p className="text-white text-xs">{avatar.prompt}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <ImageLoading />
+              )}
             </Suspense>
           </Card>
         ))}
@@ -126,14 +159,14 @@ export default function HomepageAvatars({ ritaAvatars, categories }: HomepageAva
 
       <AvatarPopup
         avatar={selectedAvatar ? {
-          avatar_id: selectedAvatar.id.toString(),
-          avatar_name: selectedAvatar.name,
-          image_uri: `/${selectedAvatar.src}`,
+          avatar_id: selectedAvatar.avatar_id,
+          avatar_name: selectedAvatar.avatar_name,
+          image_uri: selectedAvatar.image_uri,
           create_time: new Date(),
           prompt: selectedAvatar.prompt,
           agent_bio: selectedAvatar.prompt,
         } : null}
-        onStream={() => selectedAvatar && handleStream(selectedAvatar.id)}
+        onStream={() => selectedAvatar && handleStream(selectedAvatar.avatar_id)}
         onClose={() => setGlobalSelectedAvatar(null)}
       />
     </div>

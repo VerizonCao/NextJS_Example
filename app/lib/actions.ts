@@ -16,6 +16,7 @@ import {
   setPresignedUrlRedis, 
   loadAvatar as loadAvatarFromDb, 
   updateAvatarData as updateAvatarDataFromDb,
+  loadPublicAvatars as loadPublicAvatarsFromDb,
   Avatar 
 } from './data';
 
@@ -188,6 +189,7 @@ export async function saveAvatarData(avatarData: {
   owner_email: string;
   image_uri?: string;
   voice_id?: string;
+  is_public?: boolean;
 }): Promise<{ success: boolean; message: string }> {
   try {
     const owner_id = await getUserByIdEmail(avatarData.owner_email);
@@ -248,6 +250,33 @@ export async function loadUserAvatars(userEmail: string): Promise<{
       success: false, 
       avatars: null, 
       message: 'An error occurred while loading avatars' 
+    };
+  }
+}
+
+/**
+ * Server action to load all public avatars
+ */
+export async function loadPublicAvatars(): Promise<{ 
+  success: boolean; 
+  avatars: any[] | null; 
+  message: string 
+}> {
+  try {
+    // Load all public avatars
+    const avatars = await loadPublicAvatarsFromDb();
+    
+    return { 
+      success: true, 
+      avatars, 
+      message: 'Public avatars loaded successfully' 
+    };
+  } catch (error) {
+    console.error('Error in loadPublicAvatars action:', error);
+    return { 
+      success: false, 
+      avatars: null, 
+      message: 'An error occurred while loading public avatars' 
     };
   }
 }
