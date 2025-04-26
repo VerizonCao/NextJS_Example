@@ -8,6 +8,8 @@ import postgres from 'postgres';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { getPresignedGetUrl, getPresignedPutUrl } from './s3';
+import { avatarServeCounter } from './metrics';
+import { avatarRequestCounter, attributes } from './metrics2';
 import { 
   saveAvatar, 
   getUserByIdEmail, 
@@ -390,3 +392,59 @@ export async function updateAvatarData(
   }
 }
 
+
+/**
+ * Server action to increment the avatar serve counter
+ * @returns Promise<{ success: boolean; message: string }> Response indicating if the counter was incremented
+ */
+export async function incrementAvatarServeCounter(): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    avatarServeCounter.add(1,
+      {
+        route: '/api/avatar'
+      }
+    );
+
+
+    avatarRequestCounter.add(1, attributes);
+
+    return { 
+      success: true, 
+      message: 'Avatar serve counter incremented' 
+    };
+  } catch (error) {
+    console.error('Error incrementing avatar serve counter:', error);
+    return { 
+      success: false, 
+      message: 'Failed to increment avatar serve counter' 
+    };
+  }
+}
+
+/**
+ * Server action to increment the avatar request counter for a specific avatar
+ * @param avatarId The ID of the avatar to increment the counter for
+ * @returns Promise<{ success: boolean; message: string }> Response indicating if the counter was incremented
+ */
+export async function incrementAvatarRequestCounter(avatarId: string): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    avatarRequestCounter.add(1, { avatar_id: avatarId });
+
+    return { 
+      success: true, 
+      message: 'Avatar request counter incremented' 
+    };
+  } catch (error) {
+    console.error('Error incrementing avatar request counter:', error);
+    return { 
+      success: false, 
+      message: 'Failed to increment avatar request counter' 
+    };
+  }
+}

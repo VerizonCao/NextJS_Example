@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { startStreamingSession } from '@/app/lib/actions';
+import { incrementAvatarRequestCounter } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useSession } from 'next-auth/react';
 import AvatarPopup from './avatar-popup';
@@ -64,6 +65,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
         llmConversationContext: avatar.scene_prompt,
         ttsVoiceIdCartesia: avatar.voice_id,
       });
+      await incrementAvatarRequestCounter(avatar.avatar_id);
       router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars&presignedUrl=${encodeURIComponent(avatar.presignedUrl || '')}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);

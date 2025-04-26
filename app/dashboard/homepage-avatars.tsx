@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { startStreamingSession } from '@/app/lib/actions';
+import { startStreamingSession, incrementAvatarServeCounter, incrementAvatarRequestCounter } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
@@ -62,6 +62,7 @@ export default function HomepageAvatars({ initialAvatars, categories }: Homepage
         llmConversationContext: null,
         ttsVoiceIdCartesia: null,
       });
+      await incrementAvatarRequestCounter(avatarId);
       router.push(`/rooms/${roomName}?returnPath=/dashboard&presignedUrl=${encodeURIComponent(avatar.presignedUrl || '')}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
