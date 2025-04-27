@@ -216,6 +216,19 @@ export default function EditAvatarPage({
               </div>
             )}
           </div>
+
+          <div className="mt-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Studio Edit</h2>
+              <a 
+                href={`/dashboard/avatar-studio/${avatarId}?avatar_uri=${encodeURIComponent(avatar.image_uri || '')}`}
+                className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600"
+              >
+                Open Studio
+              </a>
+            </div>
+            <p className="text-gray-600 mt-2">Edit your avatar in the studio environment</p>
+          </div>
         </div>
       </div>
     </div>
