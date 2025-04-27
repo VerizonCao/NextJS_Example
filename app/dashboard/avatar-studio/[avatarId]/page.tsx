@@ -11,14 +11,15 @@ interface AvatarStudioPageProps {
   params: Promise<{
     avatarId: string
   }>
-  searchParams: {
+  searchParams: Promise<{
     avatar_uri?: string
-  }
+  }>
 }
 
 export default function AvatarStudioPage({ params, searchParams }: AvatarStudioPageProps) {
   const { avatarId } = use(params);
-  const decodedAvatarUri = searchParams.avatar_uri ? decodeURIComponent(searchParams.avatar_uri) : undefined;
+  const { avatar_uri } = use(searchParams);
+  const decodedAvatarUri = avatar_uri ? decodeURIComponent(avatar_uri) : undefined;
   
   return (
     <div className="flex flex-col gap-4 p-4">
