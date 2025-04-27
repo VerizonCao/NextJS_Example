@@ -258,7 +258,11 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       <div className="w-[800px] bg-white rounded-lg shadow p-4 flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Live Stream</h2>
         <div className="w-full h-[800px] bg-black rounded overflow-hidden">
-          {!preJoinChoices || !room || !connectionDetails ? (
+          {!isStreaming ? (
+            <div className="w-full h-full flex items-center justify-center bg-black">
+              <div className="text-white text-lg">Click Start Streaming to begin</div>
+            </div>
+          ) : !preJoinChoices || !room || !connectionDetails ? (
             <div className="w-full h-full flex items-center justify-center">
               <CustomPreJoin />
             </div>
