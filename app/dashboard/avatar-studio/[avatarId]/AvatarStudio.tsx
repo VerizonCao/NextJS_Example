@@ -175,10 +175,46 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       }
     };
 
+    // Handle incoming data messages
+    const handleDataMessage = (payload: Uint8Array) => {
+      try {
+        const data = JSON.parse(new TextDecoder().decode(payload));
+        
+        if (data.type === 'initial_categories_and_expressions') {
+          if (data.error) {
+            console.error('Error receiving initial categories:', data.error);
+            addLog(`Error receiving initial categories: ${data.error}`);
+            return;
+          }
+
+          // Update expression library with received data
+          setExpressionLibrary(data.expressions);
+          addLog(`Received expression library with ${Object.keys(data.expressions).length} categories`);
+
+          // Select the first category by default
+          const categories = Object.keys(data.expressions).sort();
+          if (categories.length > 0) {
+            const neutralCategory = categories.find(cat => cat.toLowerCase() === 'neutral');
+            const categoryToSelect = neutralCategory || categories[0];
+            setSelectedCategory(categoryToSelect);
+            
+            // Select the first expression in the category
+            const expressions = data.expressions[categoryToSelect];
+            if (expressions && expressions.length > 0) {
+              setSelectedExpression(expressions[0]);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error processing data message:', error);
+        addLog(`Error processing data message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    };
+
     // Only start sending data when room is connected
     const handleRoomConnected = () => {
       sendExpressionData();
-      const interval = setInterval(sendExpressionData, 100); // 10fps = 100ms interval
+      const interval = setInterval(sendExpressionData, 40); // 10fps = 100ms interval
       return () => clearInterval(interval);
     };
 
@@ -199,10 +235,14 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       }
     });
 
+    // Add data message listener
+    room.on('dataReceived', handleDataMessage);
+
     return () => {
       if (cleanup) {
         cleanup();
       }
+      room.off('dataReceived', handleDataMessage);
     };
   }, [room, expValues, isDirty]);
 
