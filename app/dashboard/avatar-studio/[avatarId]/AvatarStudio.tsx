@@ -81,6 +81,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [selectedExpression, setSelectedExpression] = useState<string>('')
   const [isDirty, setIsDirty] = useState(false)
+  const [editingTransitionDuration, setEditingTransitionDuration] = useState(10)
+  const [editingSpeechMouthRatio, setEditingSpeechMouthRatio] = useState(0.15)
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
@@ -135,12 +137,12 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
 
       // Start streaming session
       try {
-        await startStreamingSession({
-          instruction: "test",
-          seconds: 300,
-          room: `${avatarId}-room`,
-          avatarSource: avatarUri,
-        });
+        // await startStreamingSession({
+        //   instruction: "test",
+        //   seconds: 300,
+        //   room: `${avatarId}-room`,
+        //   avatarSource: avatarUri,
+        // });
         addLog('Streaming session started successfully');
       } catch (error) {
         console.error('Error starting streaming session:', error);
@@ -165,24 +167,89 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
     }
   }
 
-  const handleExpressionSelect = (category: string, expressionName: string) => {
-    setSelectedCategory(category)
-    setSelectedExpression(expressionName)
-    const categoryData = expressionLibrary[category]
-    if (categoryData) {
-      const expressionData = categoryData[expressionName]
-      if (expressionData) {
-        setExpValues(expressionData.exp_values)
-        setDefaultExpValues(expressionData.exp_values)
-        setExpressionInfo(expressionData.info)
-      }
+  const handleExpressionSelect = (
+    category: string,
+    expressionName: string,
+    expressionDataFromState?: ExpressionData // optional
+  ) => {
+    setSelectedCategory(category);
+    setSelectedExpression(expressionName);
+    
+    const categoryData = expressionLibrary[category];
+    const expressionData = expressionDataFromState ?? (categoryData && categoryData[expressionName]);
+
+    if (expressionData) {
+      setExpValues(expressionData.exp_values);
+      setDefaultExpValues(expressionData.exp_values);
+      setExpressionInfo({
+        category: category,
+        name: expressionName,
+        description: expressionData.info.description,
+        transition_duration: expressionData.info.transition_duration,
+        speech_mouth_ratio: expressionData.info.speech_mouth_ratio
+      });
+      setEditingTransitionDuration(expressionData.info.transition_duration);
+      setEditingSpeechMouthRatio(expressionData.info.speech_mouth_ratio);
     }
-  }
+  };
 
   const handleDataMessage = (payload: Uint8Array) => {
     try {
       const data = JSON.parse(new TextDecoder().decode(payload));
-      if (data.type === 'initial_categories_and_expressions') {
+      
+      if (data.type === 'expression_save_response') {
+        if (data.success) {
+          addLog(data.message);
+          setIsDirty(false);
+        
+          const updatedInfo = {
+            ...expressionInfo, // local latest edits
+            transition_duration: expressionInfo.transition_duration,
+            speech_mouth_ratio: expressionInfo.speech_mouth_ratio,
+          };
+        
+          if (isAddingNewExpression) {
+            setIsAddingNewExpression(false);
+            const newExpression = {
+              info: updatedInfo,
+              exp_values: [...expValues],
+            };
+        
+            setExpressionLibrary(prev => {
+              const newLibrary = { ...prev };
+              if (!newLibrary[updatedInfo.category]) {
+                newLibrary[updatedInfo.category] = {};
+              }
+              newLibrary[updatedInfo.category][updatedInfo.name] = newExpression;
+              return newLibrary;
+            });
+        
+            // Select the newly created expression
+            setSelectedCategory(updatedInfo.category);
+            setSelectedExpression(updatedInfo.name);
+            setDefaultExpValues([...expValues]);
+            setExpressionInfo(updatedInfo); // 🔥 important: refresh info
+        
+          } else {
+            setExpressionLibrary(prev => {
+              const newLibrary = { ...prev };
+              if (newLibrary[selectedCategory] && newLibrary[selectedCategory][selectedExpression]) {
+                newLibrary[selectedCategory][selectedExpression] = {
+                  ...newLibrary[selectedCategory][selectedExpression],
+                  info: updatedInfo,
+                  exp_values: [...expValues],
+                  // info: { ...updatedInfo },  // 🔥 Only trust updatedInfo
+                  // exp_values: [...expValues] // 🔥 Always trust latest exp_values
+                };
+              }
+              return newLibrary;
+            });
+        
+            setDefaultExpValues([...expValues]);
+            setExpressionInfo(updatedInfo); // 🔥 important: refresh info
+          }
+        }        
+      } else if (data.type === 'initial_categories_and_expressions') {
         if (data.error) {
           console.error('Error receiving initial categories:', data.error);
           addLog(`Error receiving initial categories: ${data.error}`);
@@ -282,11 +349,103 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
     addLog('Expression values reset to default')
   }
 
-  const saveExpression = () => {
-    setDefaultExpValues([...expValues])
-    setIsDirty(false)
-    addLog('Expression changes saved successfully')
-  }
+  const saveExpression = async () => {
+    if (!room || room.state !== 'connected') {
+      addLog('Error: Not connected to room');
+      return;
+    }
+
+    try {
+      // First update the local state
+      const updatedInfo = {
+        ...expressionInfo,
+        transition_duration: editingTransitionDuration,
+        speech_mouth_ratio: editingSpeechMouthRatio,
+      };
+
+      console.log("current expression info:", expressionInfo);
+      console.log("update expression info:", updatedInfo);
+
+      if (isAddingNewExpression) {
+        // Update local state for new expression
+        setExpressionLibrary(prev => {
+          const newLibrary = { ...prev };
+          if (!newLibrary[updatedInfo.category]) {
+            newLibrary[updatedInfo.category] = {};
+          }
+          newLibrary[updatedInfo.category][updatedInfo.name] = {
+            info: updatedInfo,
+            exp_values: [...expValues]
+          };
+          return newLibrary;
+        });
+        handleExpressionSelect(updatedInfo.category, updatedInfo.name, {
+          info: updatedInfo,
+          exp_values: [...expValues]
+        });
+      } else {
+        // Update local state for existing expression
+        setExpressionLibrary(prev => {
+          const newLibrary = { ...prev };
+          console.log("updated expression value 2:", updatedInfo);
+          if (newLibrary[selectedCategory] && newLibrary[selectedCategory][selectedExpression]) {
+            newLibrary[selectedCategory][selectedExpression] = {
+              ...newLibrary[selectedCategory][selectedExpression],
+              info: updatedInfo,
+              exp_values: [...expValues]
+            };
+          }
+          console.log("new library:", newLibrary);
+          return newLibrary;
+        });
+        handleExpressionSelect(selectedCategory, selectedExpression, {
+          info: updatedInfo,
+          exp_values: [...expValues]
+        });
+      }
+
+      // Then send the data to server
+      if (isAddingNewExpression) {
+        const newExpressionData = {
+          type: 'save_new_expression',
+          data: {
+            category: updatedInfo.category,
+            name: updatedInfo.name,
+            description: updatedInfo.description,
+            transition_duration: updatedInfo.transition_duration,
+            speech_mouth_ratio: updatedInfo.speech_mouth_ratio,
+            exp_values: expValues
+          }
+        };
+
+        room.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(newExpressionData)),
+          { reliable: true }
+        );
+        addLog('Sending new expression data...');
+      } else {
+        const editedExpressionData = {
+          type: 'save_edited_expression',
+          data: {
+            category: selectedCategory,
+            name: selectedExpression,
+            transition_duration: updatedInfo.transition_duration,
+            speech_mouth_ratio: updatedInfo.speech_mouth_ratio,
+            exp_values: expValues
+          }
+        };
+
+        room.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(editedExpressionData)),
+          { reliable: true }
+        );
+        addLog('Sending edited expression data...');
+      }
+    } catch (error) {
+      console.error('Error saving expression:', error);
+      addLog(`Error saving expression: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
 
   const addNewExpression = () => {
     setIsAddingNewExpression(true)
@@ -471,8 +630,9 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                 type="number"
                 min="1"
                 max="30"
-                value={expressionInfo.transition_duration}
-                onChange={(e) => setExpressionInfo(prev => ({ ...prev, transition_duration: Number(e.target.value) }))}
+                value={editingTransitionDuration}
+                onChange={(e) => setEditingTransitionDuration(Number(e.target.value))}
+                onWheel={(e) => (e.target as HTMLElement).blur()}
                 className="w-full p-2 border rounded"
               />
             </div>
@@ -483,8 +643,9 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                 min="0.05"
                 max="0.3"
                 step="0.01"
-                value={expressionInfo.speech_mouth_ratio}
-                onChange={(e) => setExpressionInfo(prev => ({ ...prev, speech_mouth_ratio: Number(e.target.value) }))}
+                value={editingSpeechMouthRatio}
+                onChange={(e) => setEditingSpeechMouthRatio(Number(e.target.value))}
+                onWheel={(e) => (e.target as HTMLElement).blur()}
                 className="w-full p-2 border rounded"
               />
             </div>
