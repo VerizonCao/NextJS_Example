@@ -26,11 +26,22 @@ const latentDescription = [
 ]
 
 interface ExpressionInfo {
-  category: string
-  name: string
-  description: string
-  transitionDuration: number
-  speechMouthRatio: number
+  category: string;
+  name: string;
+  description: string;
+  transition_duration: number;
+  speech_mouth_ratio: number;
+}
+
+interface ExpressionData {
+  info: ExpressionInfo;
+  exp_values: number[];
+}
+
+interface ExpressionLibrary {
+  [category: string]: {
+    [expressionName: string]: ExpressionData;
+  };
 }
 
 const CONN_DETAILS_ENDPOINT = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details'
@@ -62,16 +73,15 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
     category: '',
     name: '',
     description: '',
-    transitionDuration: 10,
-    speechMouthRatio: 0.15
+    transition_duration: 10,
+    speech_mouth_ratio: 0.15
   })
   const [isAddingNewExpression, setIsAddingNewExpression] = useState(false)
-  const [expressionLibrary, setExpressionLibrary] = useState<Record<string, string[]>>({})
+  const [expressionLibrary, setExpressionLibrary] = useState<ExpressionLibrary>({})
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [selectedExpression, setSelectedExpression] = useState<string>('')
   const [isDirty, setIsDirty] = useState(false)
 
-  // Add log message
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
     setLogs(prev => [...prev, `${timestamp} - ${message}`])
@@ -80,7 +90,6 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
     }
   }
 
-  // Handle start streaming
   const handleStartStreaming = async () => {
     try {
       setStatus('Connecting...')
@@ -98,25 +107,20 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin)
       url.searchParams.append('roomName', `${avatarId}-room`)
       url.searchParams.append('participantName', preJoinDefaults.username)
-      
+
       const connectionDetailsResp = await fetch(url.toString())
       const connectionDetailsData = await connectionDetailsResp.json()
       setConnectionDetails(connectionDetailsData)
 
       const roomOptions: RoomOptions = {
-        videoCaptureDefaults: {
-          deviceId: preJoinDefaults.videoDeviceId,
-          resolution: VideoPresets.h720,
-        },
+        videoCaptureDefaults: { deviceId: preJoinDefaults.videoDeviceId, resolution: VideoPresets.h720 },
         publishDefaults: {
           dtx: false,
           videoSimulcastLayers: [VideoPresets.h540, VideoPresets.h216],
           red: true,
           videoCodec: 'VP8' as VideoCodec,
         },
-        audioCaptureDefaults: {
-          deviceId: preJoinDefaults.audioDeviceId,
-        },
+        audioCaptureDefaults: { deviceId: preJoinDefaults.audioDeviceId },
         adaptiveStream: { pixelDensity: 'screen' },
         dynacast: true,
       }
@@ -142,6 +146,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
         console.error('Error starting streaming session:', error);
         addLog(`Error starting streaming session: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
+
     } catch (error) {
       console.error('Error setting up LiveKit:', error)
       setStatus('Error - Connection Failed')
@@ -149,104 +154,119 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
     }
   }
 
-  // Add data publishing functionality
-  React.useEffect(() => {
-    if (!room) return;
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+    const expressions = expressionLibrary[category];
+    if (expressions) {
+      const expressionNames = Object.keys(expressions);
+      if (expressionNames.length > 0) {
+        handleExpressionSelect(category, expressionNames[0]);
+      }
+    }
+  }
+
+  const handleExpressionSelect = (category: string, expressionName: string) => {
+    setSelectedCategory(category)
+    setSelectedExpression(expressionName)
+    const categoryData = expressionLibrary[category]
+    if (categoryData) {
+      const expressionData = categoryData[expressionName]
+      if (expressionData) {
+        setExpValues(expressionData.exp_values)
+        setDefaultExpValues(expressionData.exp_values)
+        setExpressionInfo(expressionData.info)
+      }
+    }
+  }
+
+  const handleDataMessage = (payload: Uint8Array) => {
+    try {
+      const data = JSON.parse(new TextDecoder().decode(payload));
+      if (data.type === 'initial_categories_and_expressions') {
+        if (data.error) {
+          console.error('Error receiving initial categories:', data.error);
+          addLog(`Error receiving initial categories: ${data.error}`);
+          return;
+        }
+  
+        console.log("Received expression library!!:", data.expressions);
+        setExpressionLibrary(data.expressions); // async update, DON'T rely on it immediately
+        
+        const categories = Object.keys(data.expressions).sort();
+        if (categories.length > 0) {
+          const neutralCategory = categories.find(cat => cat.toLowerCase() === 'neutral');
+          const categoryToSelect = neutralCategory || categories[0];
+  
+          const expressions = data.expressions[categoryToSelect];
+          if (expressions) {
+            const expressionNames = Object.keys(expressions);
+            if (expressionNames.length > 0) {
+              const firstExpression = expressionNames[0];
+              // ** directly call handleExpressionSelect using data.expressions, not expressionLibrary **
+              setSelectedCategory(categoryToSelect);
+              setSelectedExpression(firstExpression);
+              const expressionData = expressions[firstExpression];
+              if (expressionData) {
+                setExpValues(expressionData.exp_values);
+                setDefaultExpValues(expressionData.exp_values);
+                setExpressionInfo(expressionData.info);
+                setIsDirty(false);
+                addLog(`Auto selected ${categoryToSelect}/${firstExpression}`);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error processing data message:', error);
+      addLog(`Error processing data message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  useEffect(() => {
+    if (!room) return
 
     const sendExpressionData = () => {
-      // Only send data if room is connected and values are dirty
-      if (room.state !== 'connected' || !isDirty) {
-        return;
-      }
-
+      if (room.state !== 'connected' || !isDirty) return
+      setIsDirty(false)
       try {
-        setIsDirty(false); // Reset dirty flag after successful send
-        // Send expression values to all participants
         room.localParticipant.publishData(
           new TextEncoder().encode(JSON.stringify({
             type: 'expression_values',
             values: expValues,
             timestamp: Date.now()
           })),
-          { reliable: true } // ensure data delivery
-        );
+          { reliable: true }
+        )
       } catch (error) {
-        console.error('Error sending expression data:', error);
+        console.error('Error sending expression data:', error)
       }
-    };
+    }
 
-    // Handle incoming data messages
-    const handleDataMessage = (payload: Uint8Array) => {
-      try {
-        const data = JSON.parse(new TextDecoder().decode(payload));
-        
-        if (data.type === 'initial_categories_and_expressions') {
-          if (data.error) {
-            console.error('Error receiving initial categories:', data.error);
-            addLog(`Error receiving initial categories: ${data.error}`);
-            return;
-          }
-
-          // Update expression library with received data
-          setExpressionLibrary(data.expressions);
-          addLog(`Received expression library with ${Object.keys(data.expressions).length} categories`);
-
-          // Select the first category by default
-          const categories = Object.keys(data.expressions).sort();
-          if (categories.length > 0) {
-            const neutralCategory = categories.find(cat => cat.toLowerCase() === 'neutral');
-            const categoryToSelect = neutralCategory || categories[0];
-            setSelectedCategory(categoryToSelect);
-            
-            // Select the first expression in the category
-            const expressions = data.expressions[categoryToSelect];
-            if (expressions && expressions.length > 0) {
-              setSelectedExpression(expressions[0]);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error processing data message:', error);
-        addLog(`Error processing data message: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    };
-
-    // Only start sending data when room is connected
-    const handleRoomConnected = () => {
-      sendExpressionData();
-      const interval = setInterval(sendExpressionData, 40); // 10fps = 100ms interval
-      return () => clearInterval(interval);
-    };
-
-    let cleanup: (() => void) | undefined;
+    let cleanup: (() => void) | undefined
 
     if (room.state === 'connected') {
-      cleanup = handleRoomConnected();
+      const interval = setInterval(sendExpressionData, 40)
+      cleanup = () => clearInterval(interval)
     }
 
     room.on('connected', () => {
-      cleanup = handleRoomConnected();
-    });
+      const interval = setInterval(sendExpressionData, 40)
+      cleanup = () => clearInterval(interval)
+    })
 
     room.on('disconnected', () => {
-      if (cleanup) {
-        cleanup();
-        cleanup = undefined;
-      }
-    });
+      if (cleanup) cleanup()
+    })
 
-    // Add data message listener
-    room.on('dataReceived', handleDataMessage);
+    room.on('dataReceived', handleDataMessage)
 
     return () => {
-      if (cleanup) {
-        cleanup();
-      }
-      room.off('dataReceived', handleDataMessage);
-    };
-  }, [room, expValues, isDirty]);
+      if (cleanup) cleanup()
+      room.off('dataReceived', handleDataMessage)
+    }
+  }, [room, expValues, isDirty])
 
-  // Handle expression value changes
   const handleExpressionChange = (index: number, value: number) => {
     setExpValues(prev => {
       const newValues = [...prev]
@@ -256,38 +276,26 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
     setIsDirty(true)
   }
 
-  // Reset expression values
   const resetExpression = () => {
     setExpValues([...defaultExpValues])
     setIsDirty(true)
     addLog('Expression values reset to default')
   }
 
-  // Save expression changes
-  const saveExpression = async () => {
-    try {
-      addLog('Saving expression changes...')
-      setStatus('Saving...')
-      // TODO: Implement save to backend via LiveKit
-      setDefaultExpValues([...expValues])
-      addLog('Expression changes saved successfully')
-      setStatus('Changes Saved')
-    } catch (error) {
-      console.error('Error saving expression:', error)
-      setStatus('Error - Failed to save changes')
-      addLog(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
+  const saveExpression = () => {
+    setDefaultExpValues([...expValues])
+    setIsDirty(false)
+    addLog('Expression changes saved successfully')
   }
 
-  // Add new expression
   const addNewExpression = () => {
     setIsAddingNewExpression(true)
     setExpressionInfo({
       category: '',
       name: '',
       description: '',
-      transitionDuration: 10,
-      speechMouthRatio: 0.15
+      transition_duration: 10,
+      speech_mouth_ratio: 0.15
     })
     addLog('Preparing to add new expression')
   }
@@ -374,13 +382,13 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
             <div className="border-r bg-gray-50">
               <h3 className="p-2 bg-gray-100 border-b">Categories</h3>
               <div className="overflow-y-auto h-[calc(100%-2.5rem)]">
-                {Object.keys(expressionLibrary).map(category => (
+                {Object.keys(expressionLibrary).map((category) => (
                   <div
                     key={category}
                     className={`p-2 cursor-pointer hover:bg-gray-100 ${
                       selectedCategory === category ? 'bg-green-100' : ''
                     }`}
-                    onClick={() => setSelectedCategory(category)}
+                    onClick={() => handleCategorySelect(category)}
                   >
                     {category}
                   </div>
@@ -390,17 +398,18 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
             <div className="col-span-2">
               <h3 className="p-2 bg-gray-100 border-b">Expressions</h3>
               <div className="overflow-y-auto h-[calc(100%-2.5rem)]">
-                {selectedCategory && expressionLibrary[selectedCategory]?.map(expression => (
-                  <div
-                    key={expression}
-                    className={`p-2 cursor-pointer hover:bg-gray-100 ${
-                      selectedExpression === expression ? 'bg-green-100' : ''
-                    }`}
-                    onClick={() => setSelectedExpression(expression)}
-                  >
-                    {expression}
-                  </div>
-                ))}
+                {selectedCategory && expressionLibrary[selectedCategory] && 
+                  Object.keys(expressionLibrary[selectedCategory]).map((expressionName) => (
+                    <div
+                      key={expressionName}
+                      className={`p-2 cursor-pointer hover:bg-gray-100 ${
+                        selectedExpression === expressionName ? 'bg-green-100' : ''
+                      }`}
+                      onClick={() => handleExpressionSelect(selectedCategory, expressionName)}
+                    >
+                      {expressionName}
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
@@ -462,8 +471,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                 type="number"
                 min="1"
                 max="30"
-                value={expressionInfo.transitionDuration}
-                onChange={(e) => setExpressionInfo(prev => ({ ...prev, transitionDuration: Number(e.target.value) }))}
+                value={expressionInfo.transition_duration}
+                onChange={(e) => setExpressionInfo(prev => ({ ...prev, transition_duration: Number(e.target.value) }))}
                 className="w-full p-2 border rounded"
               />
             </div>
@@ -474,8 +483,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                 min="0.05"
                 max="0.3"
                 step="0.01"
-                value={expressionInfo.speechMouthRatio}
-                onChange={(e) => setExpressionInfo(prev => ({ ...prev, speechMouthRatio: Number(e.target.value) }))}
+                value={expressionInfo.speech_mouth_ratio}
+                onChange={(e) => setExpressionInfo(prev => ({ ...prev, speech_mouth_ratio: Number(e.target.value) }))}
                 className="w-full p-2 border rounded"
               />
             </div>
