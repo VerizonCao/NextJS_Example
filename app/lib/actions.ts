@@ -94,6 +94,7 @@ export async function startStreamingSession({
   seconds,
   room = "my-room",
   avatarSource = "",
+  avatar_id = null,
   llmUserNickname = null,
   llmUserBio = null,
   llmAssistantNickname = null,
@@ -106,6 +107,7 @@ export async function startStreamingSession({
   seconds: number;
   room?: string;
   avatarSource?: string;
+  avatar_id?: string | null;
   llmUserNickname?: string | null;
   llmUserBio?: string | null;
   llmAssistantNickname?: string | null;
@@ -123,6 +125,7 @@ export async function startStreamingSession({
     };
 
     // Only add fields that are not null
+    if (avatar_id !== null) input.avatar_id = avatar_id;
     if (llmUserNickname !== null) input.llm_user_nickname = llmUserNickname;
     if (llmUserBio !== null) input.llm_user_bio = llmUserBio;
     if (llmAssistantNickname !== null) input.llm_assistant_nickname = llmAssistantNickname;

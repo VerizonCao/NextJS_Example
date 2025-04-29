@@ -54,6 +54,7 @@ export default function HomepageAvatars({ initialAvatars, categories }: Homepage
         seconds: 300,
         room: roomName,
         avatarSource: avatar.image_uri,
+        avatar_id: avatar.avatar_id,
         llmUserNickname: session?.user?.name || 'Friend',
         llmUserBio: 'a friend',
         llmAssistantNickname: avatar.avatar_name,

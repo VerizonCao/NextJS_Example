@@ -142,6 +142,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
           seconds: 300,
           room: `${avatarId}-room`,
           avatarSource: avatarUri,
+          avatar_id: avatarId,
         });
         addLog('Streaming session started successfully');
       } catch (error) {
@@ -249,6 +250,59 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
             setExpressionInfo(updatedInfo); // 🔥 important: refresh info
           }
         }        
+      } else if (data.type === 'expression_delete_response') {
+        if (data.success) {
+          addLog(data.message);
+      
+          setExpressionLibrary(prev => {
+            const newLibrary = { ...prev };
+            if (newLibrary[selectedCategory]) {
+              delete newLibrary[selectedCategory][selectedExpression];
+              if (Object.keys(newLibrary[selectedCategory]).length === 0) {
+                delete newLibrary[selectedCategory];
+              }
+            }
+            return newLibrary;
+          });
+      
+          // After deletion, try to auto-select a new valid expression
+          setTimeout(() => {
+            const updatedLibrary = expressionLibrary; // ← careful: this needs to be fresh if setExpressionLibrary is async
+      
+            const categories = Object.keys(updatedLibrary).sort();
+            if (categories.length > 0) {
+              const categoryToSelect = categories[0];
+              const expressions = updatedLibrary[categoryToSelect];
+              if (expressions) {
+                const expressionNames = Object.keys(expressions);
+                if (expressionNames.length > 0) {
+                  const firstExpression = expressionNames[0];
+                  handleExpressionSelect(categoryToSelect, firstExpression);
+                  addLog(`Auto selected ${categoryToSelect}/${firstExpression} after deletion`);
+                  return;
+                }
+              }
+            }
+      
+            // No expressions left
+            setSelectedCategory('');
+            setSelectedExpression('');
+            setExpValues(new Array(totalMaskSize).fill(0));
+            setDefaultExpValues(new Array(totalMaskSize).fill(0));
+            setExpressionInfo({
+              category: '',
+              name: '',
+              description: '',
+              transition_duration: 10,
+              speech_mouth_ratio: 0.15,
+            });
+            addLog('All expressions deleted, reset to blank');
+          }, 0);
+      
+        } else {
+          console.error('Error deleting expression:', data.error);
+          addLog(`Error deleting expression: ${data.error}`);
+        }
       } else if (data.type === 'initial_categories_and_expressions') {
         if (data.error) {
           console.error('Error receiving initial categories:', data.error);
@@ -459,6 +513,37 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
     addLog('Preparing to add new expression')
   }
 
+  const deleteExpression = async () => {
+    if (!room || room.state !== 'connected') {
+      addLog('Error: Not connected to room');
+      return;
+    }
+
+    if (!selectedCategory || !selectedExpression) {
+      addLog('Error: No expression selected');
+      return;
+    }
+
+    try {
+      const deleteData = {
+        type: 'delete_expression',
+        data: {
+          category: selectedCategory,
+          name: selectedExpression
+        }
+      };
+
+      room.localParticipant.publishData(
+        new TextEncoder().encode(JSON.stringify(deleteData)),
+        { reliable: true }
+      );
+      addLog('Sending delete request...');
+    } catch (error) {
+      console.error('Error sending delete request:', error);
+      addLog(`Error sending delete request: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   return (
     <div className="flex gap-4">
       {/* Left Panel - Video Stream */}
@@ -586,6 +671,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                 Add New
               </button>
               <button
+                onClick={deleteExpression}
                 className="bg-red-500 text-white px-3 py-1 rounded text-sm"
                 style={{ display: selectedCategory && selectedExpression ? 'block' : 'none' }}
               >
