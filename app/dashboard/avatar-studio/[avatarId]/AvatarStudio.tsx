@@ -137,13 +137,13 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
 
       // Start streaming session
       try {
-        await startStreamingSession({
-          instruction: "test",
-          seconds: 300,
-          room: `${avatarId}-room`,
-          avatarSource: avatarUri,
-          avatar_id: avatarId,
-        });
+        // await startStreamingSession({
+        //   instruction: "test",
+        //   seconds: 300,
+        //   room: `${avatarId}-room`,
+        //   avatarSource: avatarUri,
+        //   avatar_id: avatarId,
+        // });
         addLog('Streaming session started successfully');
       } catch (error) {
         console.error('Error starting streaming session:', error);
@@ -192,13 +192,42 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       setEditingTransitionDuration(expressionData.info.transition_duration);
       setEditingSpeechMouthRatio(expressionData.info.speech_mouth_ratio);
     }
+
+    // Send selection data to backend
+    if (room && room.state === 'connected') {
+      try {
+        const selectData = {
+          type: 'select_expression',
+          data: {
+            category: category,
+            name: expressionName
+          }
+        };
+
+        room.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(selectData)),
+          { reliable: true }
+        );
+        addLog(`Selecting expression: ${category}/${expressionName}`);
+      } catch (error) {
+        console.error('Error sending expression selection:', error);
+        addLog(`Error sending expression selection: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
   };
 
   const handleDataMessage = (payload: Uint8Array) => {
     try {
       const data = JSON.parse(new TextDecoder().decode(payload));
       
-      if (data.type === 'expression_save_response') {
+      if (data.type === 'expression_select_response') {
+        if (data.success) {
+          addLog(data.message);
+        } else {
+          console.error('Error selecting expression:', data.error);
+          addLog(`Error selecting expression: ${data.error}`);
+        }
+      } else if (data.type === 'expression_save_response') {
         if (data.success) {
           addLog(data.message);
           setIsDirty(false);
