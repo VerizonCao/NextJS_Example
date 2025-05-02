@@ -10,19 +10,37 @@ import { startStreamingSession } from '@/app/lib/actions'
 import React from 'react'
 
 // Constants
-const totalMaskSize = 44
+const totalMaskSize = 29
 const latentDescription = [
-  "index 0", "index 1", "index 3", "Gaze 1", "Eyebrow tight Left/Right",
-  "Eyebrow tight Up/Down", "index 9", "index 10", "index 12", "index 13",
-  "Head Move Left/Right", "Head Move Up/Down", "index 18", "index 19",
-  "index 21", "Right Mouth Corner", "index 24", "index 25", "index 27",
-  "index 28", "index 30", "index 31", "index 32", "Left Eye Left/Right",
-  "Left Eye Blink", "index 39", "Left Eye Roll Up/Down", "index 42",
-  "Smile / Displease", "Right Eye Left/Right", "Right Eye Blink", "index 48",
-  "Right Eye Up/Down", "Left Mouth Corner", "Show Teeth / Tongue",
-  "Mouth Shape 1", "index 54", "index 55", "Lower Lip Left/Right",
-  "Lower Lip Up/Down", "Lower Lip In/Out", "Upper Lip Left/Right",
-  "Upper Lip Up/Down", "Mouth Shape2"
+    "Gaze & eyebrow 1", // 4
+    "Eyebrow tight Left/Right", // 6
+    "Eyebrow tight Up/Down", // 7
+    "Left cheek", // 9
+    "Shoulder Balance adjustment", // 10
+    "Right head width", // 12
+    "Head Move Left/Right", // 15
+    "Head Move Up/Down", // 16
+    "Right cheek", // 21
+    "Right Mouth Corner", // 22
+    "Left head width", // 30
+    "Left Eye Left/Right", // 33
+    "Left Eye Blink",    // 34
+    "Left eye adjustment", // 39
+    "Left Eye Roll Up/Down", // 40
+    "Smile / Displease", // 43
+    "Right Eye Left/Right", // 45
+    "Right Eye Blink", // 46
+    "Right eye adjustment", // 48
+    "Right Eye Up/Down", // 49
+    "Left Mouth Corner ", // 51
+    "Show Teeth / Tongue", // 52
+    "Mouth Shape 1", // 53
+    "Lower Lip Left/Right", // 57
+    "Lower Lip Up/Down", // 58
+    "Lower Lip In/Out", // 59
+    "Upper Lip Left/Right", // 60
+    "Upper Lip Up/Down", // 61
+    "Mouth Shape 2", // 62
 ]
 
 interface ExpressionInfo {
