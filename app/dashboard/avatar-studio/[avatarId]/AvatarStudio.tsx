@@ -414,12 +414,12 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
     let cleanup: (() => void) | undefined
 
     if (room.state === 'connected') {
-      const interval = setInterval(sendExpressionData, 40)
+      const interval = setInterval(sendExpressionData, 20)
       cleanup = () => clearInterval(interval)
     }
 
     room.on('connected', () => {
-      const interval = setInterval(sendExpressionData, 40)
+      const interval = setInterval(sendExpressionData, 20)
       cleanup = () => clearInterval(interval)
     })
 
