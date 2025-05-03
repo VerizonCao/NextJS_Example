@@ -31,6 +31,8 @@ interface HomepageAvatarsProps {
       image_uri: string;
       prompt: string;
       presignedUrl?: string;
+      scene_prompt?: string;
+      voice_id?: string;
     }[] | null;
     message: string;
   };
@@ -60,8 +62,8 @@ export default function HomepageAvatars({ initialAvatars, categories }: Homepage
         llmAssistantNickname: avatar.avatar_name,
         llmAssistantBio: avatar.prompt,
         llmAssistantAdditionalCharacteristics: avatar.prompt,
-        llmConversationContext: null,
-        ttsVoiceIdCartesia: null,
+        llmConversationContext: avatar.scene_prompt,
+        ttsVoiceIdCartesia: avatar.voice_id,
       });
       await incrementAvatarRequestCounter(avatarId);
       router.push(`/rooms/${roomName}?returnPath=/dashboard&presignedUrl=${encodeURIComponent(avatar.presignedUrl || '')}`);
