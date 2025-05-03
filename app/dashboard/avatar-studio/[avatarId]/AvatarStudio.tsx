@@ -155,13 +155,13 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
 
       // Start streaming session
       try {
-        // await startStreamingSession({
-        //   instruction: "test",
-        //   seconds: 300,
-        //   room: `${avatarId}-room`,
-        //   avatarSource: avatarUri,
-        //   avatar_id: avatarId,
-        // });
+        await startStreamingSession({
+          instruction: "test",
+          seconds: 300,
+          room: `${avatarId}-room`,
+          avatarSource: avatarUri,
+          avatar_id: avatarId,
+        });
         addLog('Streaming session started successfully');
       } catch (error) {
         console.error('Error starting streaming session:', error);
