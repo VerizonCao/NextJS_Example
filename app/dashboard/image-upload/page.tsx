@@ -32,24 +32,20 @@ export default function ImageUploadPage() {
     // Load local audio samples
     const audioSamples: VoiceSample[] = [
       {
-        id: '4242ea4d2ec74cb7867eef98e9c55fb7',
-        audioUrl: '/audio_samples/4242ea4d2ec74cb7867eef98e9c55fb7.mp3'
+        id: '6f84f4b8-58a2-430c-8c79-688dad597532',
+        audioUrl: '/audio_samples/6f84f4b8-58a2-430c-8c79-688dad597532.wav'
       },
       {
-        id: 'e34c486929524d41b88646b4ac2f382f',
-        audioUrl: '/audio_samples/e34c486929524d41b88646b4ac2f382f.mp3'
+        id: '794f9389-aac1-45b6-b726-9d9369183238',
+        audioUrl: '/audio_samples/794f9389-aac1-45b6-b726-9d9369183238.wav'
       },
       {
-        id: '4575dfa5b64148ad8b48542a5ebd0749',
-        audioUrl: '/audio_samples/4575dfa5b64148ad8b48542a5ebd0749.mp3'
+        id: 'c99d36f3-5ffd-4253-803a-535c1bc9c306',
+        audioUrl: '/audio_samples/c99d36f3-5ffd-4253-803a-535c1bc9c306.wav'
       },
       {
-        id: '9ab5d9df251341b5a43c64575acd8aae',
-        audioUrl: '/audio_samples/9ab5d9df251341b5a43c64575acd8aae.mp3'
-      },
-      {
-        id: 'f2f6d6783ff64172a0f2af8ce12a0501',
-        audioUrl: '/audio_samples/f2f6d6783ff64172a0f2af8ce12a0501.mp3'
+        id: 'd3b22900-ec95-4344-a548-2d34e9b842b7',
+        audioUrl: '/audio_samples/d3b22900-ec95-4344-a548-2d34e9b842b7.wav'
       }
     ];
     setVoices(audioSamples);

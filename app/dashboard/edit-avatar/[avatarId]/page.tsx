@@ -15,6 +15,7 @@ export default function EditAvatarPage({
   }) {
   const { avatarId } = use(params); // ← unwrap with `use`
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingVoice, setIsEditingVoice] = useState(false);
   const [avatar, setAvatar] = useState<any>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,7 +23,8 @@ export default function EditAvatarPage({
     avatar_name: '',
     agent_bio: '',
     prompt: '',
-    scene_prompt: ''
+    scene_prompt: '',
+    voice_id: ''
   });
 
   // Load avatar data
@@ -37,7 +39,8 @@ export default function EditAvatarPage({
             avatar_name: response.avatar.avatar_name,
             agent_bio: response.avatar.agent_bio || '',
             prompt: response.avatar.prompt || '',
-            scene_prompt: response.avatar.scene_prompt || ''
+            scene_prompt: response.avatar.scene_prompt || '',
+            voice_id: response.avatar.voice_id || ''
           });
           if (response.avatar.image_uri) {
             try {
@@ -81,6 +84,7 @@ export default function EditAvatarPage({
       const response = await updateAvatarData(avatarId, formData);
       if (response.success) {
         setIsEditing(false);
+        setIsEditingVoice(false);
         // Reload the avatar data to show updated values
         const updatedResponse = await loadAvatar(avatarId);
         if (updatedResponse.success && updatedResponse.avatar) {
@@ -205,16 +209,44 @@ export default function EditAvatarPage({
           <div className="mt-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Voice</h2>
-              <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-                Edit
-              </button>
+              {!isEditingVoice ? (
+                <button 
+                  onClick={() => setIsEditingVoice(true)}
+                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Edit
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleSave}
+                    className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                  >
+                    Save
+                  </button>
+                  <button 
+                    onClick={() => setIsEditingVoice(false)}
+                    className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
-            {avatar.voice_id && (
-              <div className="mt-2">
-                <p className="text-gray-600">Voice ID:</p>
-                <p className="font-medium">{avatar.voice_id}</p>
-              </div>
-            )}
+            <div className="mt-2">
+              <p className="text-gray-600">Voice ID:</p>
+              {isEditingVoice ? (
+                <input
+                  type="text"
+                  value={formData.voice_id}
+                  onChange={(e) => handleInputChange('voice_id', e.target.value)}
+                  className="w-full p-2 border rounded"
+                  placeholder="Enter voice ID"
+                />
+              ) : (
+                <p className="font-medium">{avatar.voice_id || 'No voice ID set'}</p>
+              )}
+            </div>
           </div>
 
           <div className="mt-4">
