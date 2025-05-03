@@ -594,9 +594,9 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
   return (
     <div className="flex gap-4">
       {/* Left Panel - Video Stream */}
-      <div className="w-[800px] bg-white rounded-lg shadow p-4 flex flex-col gap-4">
+      <div className="w-[33.33%] bg-white rounded-lg shadow p-4 flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Live Stream</h2>
-        <div className="w-full h-[800px] bg-black rounded overflow-hidden">
+        <div className="w-full aspect-square bg-black rounded overflow-hidden">
           {!isStreaming ? (
             <div className="w-full h-full flex items-center justify-center bg-black">
               <div className="text-white text-lg">Click Start Streaming to begin</div>
@@ -614,12 +614,22 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                 video={preJoinChoices.videoEnabled}
                 audio={preJoinChoices.audioEnabled}
               >
-                <div className="flex w-[600px] h-full">
+                <div className="w-[500px] h-full">
                   <VideoConferenceCustom />
                 </div>
               </LiveKitRoom>
             </div>
           )}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-gray-50 p-2 rounded text-center">
+            <div className="text-sm text-gray-600">Video FPS</div>
+            <div className="text-lg font-medium">{videoFps.toFixed(1)}</div>
+          </div>
+          <div className="bg-gray-50 p-2 rounded text-center">
+            <div className="text-sm text-gray-600">Audio FPS</div>
+            <div className="text-lg font-medium">{audioFps.toFixed(1)}</div>
+          </div>
         </div>
         <div className="flex gap-2">
           <button
@@ -640,16 +650,6 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
             Stop Streaming
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-2 rounded text-center">
-            <div className="text-sm text-gray-600">Video FPS</div>
-            <div className="text-lg font-medium">{videoFps.toFixed(1)}</div>
-          </div>
-          <div className="bg-gray-50 p-2 rounded text-center">
-            <div className="text-sm text-gray-600">Audio FPS</div>
-            <div className="text-lg font-medium">{audioFps.toFixed(1)}</div>
-          </div>
-        </div>
         <div className="bg-gray-50 p-2 rounded">
           <div className="text-sm font-medium">Status: {status}</div>
         </div>
@@ -667,128 +667,142 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       <div className="flex-1 bg-white rounded-lg shadow p-4 flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Expression Editor</h2>
         
-        {/* Expression Browser */}
-        <div className="border rounded-lg overflow-hidden">
-          <div className="grid grid-cols-3 h-48">
-            <div className="border-r bg-gray-50">
-              <h3 className="p-2 bg-gray-100 border-b">Categories</h3>
-              <div className="overflow-y-auto h-[calc(100%-2.5rem)]">
-                {Object.keys(expressionLibrary).map((category) => (
-                  <div
-                    key={category}
-                    className={`p-2 cursor-pointer hover:bg-gray-100 ${
-                      selectedCategory === category ? 'bg-green-100' : ''
-                    }`}
-                    onClick={() => handleCategorySelect(category)}
-                  >
-                    {category}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="col-span-2">
-              <h3 className="p-2 bg-gray-100 border-b">Expressions</h3>
-              <div className="overflow-y-auto h-[calc(100%-2.5rem)]">
-                {selectedCategory && expressionLibrary[selectedCategory] && 
-                  Object.keys(expressionLibrary[selectedCategory]).map((expressionName) => (
-                    <div
-                      key={expressionName}
+        {/* Top Row - Expression Browser and Info */}
+        <div className="flex gap-4 mb-4">
+          {/* Left Column - Expression Library */}
+          <div className="flex-1">
+            <h3 className="text-lg font-medium mb-2">Expression library</h3>
+            <div className="border rounded-lg overflow-hidden flex h-[250px]">
+              <div className="flex-1 border-r bg-gray-50 overflow-y-auto">
+                <h3 className="p-2 bg-gray-100 border-b">Categories</h3>
+                <ul className="list-none p-0 m-0">
+                  {Object.keys(expressionLibrary).map((category) => (
+                    <li
+                      key={category}
                       className={`p-2 cursor-pointer hover:bg-gray-100 ${
-                        selectedExpression === expressionName ? 'bg-green-100' : ''
+                        selectedCategory === category ? 'bg-green-100' : ''
                       }`}
-                      onClick={() => handleExpressionSelect(selectedCategory, expressionName)}
+                      onClick={() => handleCategorySelect(category)}
                     >
-                      {expressionName}
-                    </div>
+                      {category}
+                    </li>
                   ))}
+                </ul>
+              </div>
+              <div className="flex-2 overflow-y-auto">
+                <h3 className="p-2 bg-gray-100 border-b">Expressions</h3>
+                <ul className="list-none p-0 m-0">
+                  {selectedCategory && expressionLibrary[selectedCategory] && 
+                    Object.keys(expressionLibrary[selectedCategory]).map((expressionName) => (
+                      <li
+                        key={expressionName}
+                        className={`p-2 cursor-pointer hover:bg-gray-100 ${
+                          selectedExpression === expressionName ? 'bg-green-100' : ''
+                        }`}
+                        onClick={() => handleExpressionSelect(selectedCategory, expressionName)}
+                      >
+                        {expressionName}
+                      </li>
+                    ))}
+                </ul>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Expression Info */}
-        <div className="border rounded-lg p-4 bg-gray-50">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">Expression Info</h3>
-            <div className="flex gap-2">
-              <button
-                onClick={addNewExpression}
-                className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-              >
-                Add New
-              </button>
-              <button
-                onClick={deleteExpression}
-                className="bg-red-500 text-white px-3 py-1 rounded text-sm"
-                style={{ display: selectedCategory && selectedExpression ? 'block' : 'none' }}
-              >
-                Delete Expression
-              </button>
+          {/* Right Column - Expression Info */}
+          <div className="flex-1">
+            <div className="flex justify-between items-center mb-2">
+              <h3 id="expressionInfoHeading" className="text-lg font-medium">Expression Info</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={addNewExpression}
+                  className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
+                >
+                  Add New
+                </button>
+                <button
+                  onClick={deleteExpression}
+                  className="bg-red-500 text-white px-3 py-1 rounded text-sm"
+                  style={{ display: selectedCategory && selectedExpression ? 'block' : 'none' }}
+                >
+                  Delete Expression
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="grid gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Category:</label>
-              <input
-                type="text"
-                value={expressionInfo.category}
-                onChange={(e) => setExpressionInfo(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full p-2 border rounded"
-                disabled={!isAddingNewExpression}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Name:</label>
-              <input
-                type="text"
-                value={expressionInfo.name}
-                onChange={(e) => setExpressionInfo(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full p-2 border rounded"
-                disabled={!isAddingNewExpression}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Description:</label>
-              <textarea
-                value={expressionInfo.description}
-                onChange={(e) => setExpressionInfo(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full p-2 border rounded"
-                rows={3}
-                disabled={!isAddingNewExpression}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Transition Duration (1-30):</label>
-              <input
-                type="number"
-                min="1"
-                max="30"
-                value={editingTransitionDuration}
-                onChange={(e) => setEditingTransitionDuration(Number(e.target.value))}
-                onWheel={(e) => (e.target as HTMLElement).blur()}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Speech Mouth Ratio (0.05-0.3):</label>
-              <input
-                type="number"
-                min="0.05"
-                max="0.3"
-                step="0.01"
-                value={editingSpeechMouthRatio}
-                onChange={(e) => setEditingSpeechMouthRatio(Number(e.target.value))}
-                onWheel={(e) => (e.target as HTMLElement).blur()}
-                className="w-full p-2 border rounded"
-              />
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium mb-1">Category:</label>
+                    <input
+                      type="text"
+                      id="expCategoryInput"
+                      value={expressionInfo.category}
+                      onChange={(e) => setExpressionInfo(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full p-2 border rounded"
+                      disabled={!isAddingNewExpression}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium mb-1">Name:</label>
+                    <input
+                      type="text"
+                      id="expNameInput"
+                      value={expressionInfo.name}
+                      onChange={(e) => setExpressionInfo(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full p-2 border rounded"
+                      disabled={!isAddingNewExpression}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description:</label>
+                  <textarea
+                    id="expDescriptionInput"
+                    value={expressionInfo.description}
+                    onChange={(e) => setExpressionInfo(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full p-2 border rounded"
+                    rows={1}
+                    disabled={!isAddingNewExpression}
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium mb-1">Transition Duration (1-30):</label>
+                    <input
+                      type="number"
+                      id="expTransitionDuration"
+                      min="1"
+                      max="30"
+                      value={editingTransitionDuration}
+                      onChange={(e) => setEditingTransitionDuration(Number(e.target.value))}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium mb-1">Speech Mouth Ratio (0.05-0.3):</label>
+                    <input
+                      type="number"
+                      id="expSpeechMouthRatio"
+                      min="0.05"
+                      max="0.3"
+                      step="0.01"
+                      value={editingSpeechMouthRatio}
+                      onChange={(e) => setEditingSpeechMouthRatio(Number(e.target.value))}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Expression Controls */}
-        <div className="border rounded-lg p-4">
-          <h3 className="text-lg font-medium mb-4">Expression Controls</h3>
+        <div>
+          <h3 className="text-lg font-medium mb-2">Expression Controls</h3>
           <button
+            id="loadDefaultExpButton"
             onClick={() => {
               setExpValues(new Array(totalMaskSize).fill(0))
               setIsDirty(true)
@@ -820,12 +834,14 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
           </div>
           <div className="flex gap-2 mt-4">
             <button
+              id="resetExpButton"
               onClick={resetExpression}
               className="flex-1 bg-gray-500 text-white px-4 py-2 rounded"
             >
               Discard Changes
             </button>
             <button
+              id="saveExpButton"
               onClick={saveExpression}
               className="flex-1 bg-green-500 text-white px-4 py-2 rounded"
             >
