@@ -206,10 +206,10 @@ export function ControlBarCustom({
       }
       {visibleControls.leave && (
         <DisconnectButton
-          className="relative w-14 h-14 bg-[rgba(36,36,40,0.75)] rounded-full flex items-center justify-center"
-        >
-          <LogOut className="w-7 h-7 text-white" />
-        </DisconnectButton>
+        className="relative w-14 h-14 bg-[rgba(36,36,40,0.75)] rounded-full flex items-center justify-center border border-transparent"
+      >
+        <LogOut className="w-7 h-7 text-white" />
+      </DisconnectButton>
       )}
       <StartMediaButton />
     </div>

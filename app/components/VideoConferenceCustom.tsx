@@ -27,9 +27,6 @@ import {
 import { ParticipantTileCustom } from './PaticipantTileCustom';
 import { ControlBarCustom } from './ControlBarCustom';
 
-
-
-
 /**
  * @public
  */
@@ -71,7 +68,6 @@ export function VideoConferenceCustom({
     unreadMessages: 0,
     showSettings: false,
   });
-  const lastAutoFocusedScreenShareTrack = React.useRef<TrackReferenceOrPlaceholder | null>(null);
 
   const tracks = useTracks(
     [
@@ -88,60 +84,11 @@ export function VideoConferenceCustom({
 
   const layoutContext = useCreateLayoutContext();
 
-  const screenShareTracks = tracks
-    .filter(isTrackReference)
-    .filter((track) => track.publication.source === Track.Source.ScreenShare);
-
-  const focusTrack = usePinnedTracks(layoutContext)?.[0];
-  const carouselTracks = tracks.filter((track) => !isEqualTrackRef(track, focusTrack));
-
-  React.useEffect(() => {
-    // If screen share tracks are published, and no pin is set explicitly, auto set the screen share.
-    if (
-      screenShareTracks.some((track) => track.publication.isSubscribed) &&
-      lastAutoFocusedScreenShareTrack.current === null
-    ) {
-      log.debug('Auto set screen share focus:', { newScreenShareTrack: screenShareTracks[0] });
-      layoutContext.pin.dispatch?.({ msg: 'set_pin', trackReference: screenShareTracks[0] });
-      lastAutoFocusedScreenShareTrack.current = screenShareTracks[0];
-    } else if (
-      lastAutoFocusedScreenShareTrack.current &&
-      !screenShareTracks.some(
-        (track) =>
-          track.publication.trackSid ===
-          lastAutoFocusedScreenShareTrack.current?.publication?.trackSid,
-      )
-    ) {
-      log.debug('Auto clearing screen share focus.');
-      layoutContext.pin.dispatch?.({ msg: 'clear_pin' });
-      lastAutoFocusedScreenShareTrack.current = null;
-    }
-    if (focusTrack && !isTrackReference(focusTrack)) {
-      const updatedFocusTrack = tracks.find(
-        (tr) =>
-          tr.participant.identity === focusTrack.participant.identity &&
-          tr.source === focusTrack.source,
-      );
-      if (updatedFocusTrack !== focusTrack && isTrackReference(updatedFocusTrack)) {
-        layoutContext.pin.dispatch?.({ msg: 'set_pin', trackReference: updatedFocusTrack });
-      }
-    }
-  }, [
-    screenShareTracks
-      .map((ref) => `${ref.publication.trackSid}_${ref.publication.isSubscribed}`)
-      .join(),
-    focusTrack?.publication?.trackSid,
-    tracks,
-  ]);
-
-  // useWarnAboutMissingStyles();
-
   return (
     <div className="lk-video-conference" {...props}>
       {isWeb() && (
         <LayoutContextProvider
           value={layoutContext}
-          // onPinChange={handleFocusStateChange}
           onWidgetChange={widgetUpdate}
         >
           <div className="lk-video-conference-inner" style={{ position: 'relative' }}>
@@ -159,28 +106,15 @@ export function VideoConferenceCustom({
             }}>
               <ControlBarCustom controls={{ chat: true, settings: !!SettingsComponent }} />
             </div>
-            {!focusTrack ? (
-              <div className="lk-grid-layout-wrapper">
-                <GridLayout tracks={tracks}>
-                  <ParticipantTileCustom />
-                </GridLayout>
-              </div>
-            ) : (
-              <div className="lk-focus-layout-wrapper">
-                <FocusLayoutContainer>
-                  <CarouselLayout tracks={carouselTracks}>
-                    <ParticipantTileCustom />
-                  </CarouselLayout>
-                  {focusTrack && <FocusLayout trackRef={focusTrack} />}
-                </FocusLayoutContainer>
-              </div>
-            )}
+            <div className="lk-grid-layout-wrapper">
+              <GridLayout tracks={tracks}>
+                <ParticipantTileCustom />
+              </GridLayout>
+            </div>
           </div>
           <Chat
             style={{ display: widgetState.showChat ? 'grid' : 'none' }}
             messageFormatter={chatMessageFormatter}
-            // messageEncoder={chatMessageEncoder}
-            // messageDecoder={chatMessageDecoder}
           />
           {SettingsComponent && (
             <div
