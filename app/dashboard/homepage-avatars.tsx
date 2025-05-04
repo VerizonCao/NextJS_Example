@@ -67,7 +67,6 @@ export default function HomepageAvatars({ initialAvatars, categories }: Homepage
         ttsVoiceIdCartesia: avatar.voice_id,
       });
       await incrementAvatarRequestCounter(avatarId);
-      const roomName = 'myRoom'; // your dynamic room name
       const returnPath = '/dashboard';
       const presignedUrl = avatar.presignedUrl || '';
 

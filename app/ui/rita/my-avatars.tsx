@@ -49,7 +49,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
       return;
     }
     
-    const roomName = 'myRoom';
+    const roomName = generateRoomId();
     const returnPath = '/dashboard/my-avatars';
     const presignedUrl = avatar.presignedUrl || '';
 
