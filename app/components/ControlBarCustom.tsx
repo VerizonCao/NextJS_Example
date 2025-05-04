@@ -141,7 +141,7 @@ export function ControlBarCustom({
   );
 
   return (
-    <div className="flex flex-col items-end justify-end gap-8 absolute bottom-8 right-8">
+    <div className="flex flex-col items-end justify-end gap-8">
       {visibleControls.microphone && (
         <TrackToggle
           source={Track.Source.Microphone}

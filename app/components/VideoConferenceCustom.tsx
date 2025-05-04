@@ -4,58 +4,31 @@ import type {
   TrackReferenceOrPlaceholder,
   WidgetState,
 } from '@livekit/components-core';
-import { isEqualTrackRef, isTrackReference, isWeb, log } from '@livekit/components-core';
+import { isWeb, log } from '@livekit/components-core';
 import { RoomEvent, Track } from 'livekit-client';
 import * as React from 'react';
 import type { MessageFormatter } from '@livekit/components-react';
 import {
-  CarouselLayout,
+  Chat,
   ConnectionStateToast,
-  FocusLayout,
-  FocusLayoutContainer,
+  ControlBar,
   GridLayout,
   LayoutContextProvider,
-  ParticipantTile,
   RoomAudioRenderer,
-  Chat,
-  ControlBar,
   useCreateLayoutContext,
-  usePinnedTracks,
   useTracks,
 } from '@livekit/components-react';
 
 import { ParticipantTileCustom } from './PaticipantTileCustom';
 import { ControlBarCustom } from './ControlBarCustom';
 
-/**
- * @public
- */
 export interface VideoConferenceProps extends React.HTMLAttributes<HTMLDivElement> {
   chatMessageFormatter?: MessageFormatter;
   chatMessageEncoder?: MessageEncoder;
   chatMessageDecoder?: MessageDecoder;
-  /** @alpha */
   SettingsComponent?: React.ComponentType;
 }
 
-/**
- * The `VideoConference` ready-made component is your drop-in solution for a classic video conferencing application.
- * It provides functionality such as focusing on one participant, grid view with pagination to handle large numbers
- * of participants, basic non-persistent chat, screen sharing, and more.
- *
- * @remarks
- * The component is implemented with other LiveKit components like `FocusContextProvider`,
- * `GridLayout`, `ControlBar`, `FocusLayoutContainer` and `FocusLayout`.
- * You can use these components as a starting point for your own custom video conferencing application.
- *
- * @example
- * ```tsx
- * <LiveKitRoom>
- *   <VideoConference />
- * <LiveKitRoom>
- * ```
- * @public
- */
 export function VideoConferenceCustom({
   chatMessageFormatter,
   chatMessageDecoder,
@@ -69,6 +42,16 @@ export function VideoConferenceCustom({
     showSettings: false,
   });
 
+  const tileRef = React.useRef<HTMLDivElement | null>(null);
+  const [controlBarStyle, setControlBarStyle] = React.useState<React.CSSProperties>({
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    zIndex: 10,
+    transform: 'translate(-100%, -100%) scale(1.2)',
+    transformOrigin: 'bottom right',
+  });
+
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -77,10 +60,36 @@ export function VideoConferenceCustom({
     { updateOnlyOn: [RoomEvent.ActiveSpeakersChanged], onlySubscribed: false },
   );
 
-  const widgetUpdate = (state: WidgetState) => {
-    log.debug('updating widget state', state);
-    setWidgetState(state);
-  };
+  React.useEffect(() => {
+    const updatePosition = () => {
+      if (!tileRef.current) return;
+      const rect = tileRef.current.getBoundingClientRect();
+      setControlBarStyle({
+        position: 'absolute',
+        left: `${rect.right - 10}px`,
+        top: `${rect.bottom - 10}px`,
+        transform: 'translate(-100%, -100%) scale(1.2)',
+        transformOrigin: 'bottom right',
+        zIndex: 10,
+      });
+    };
+
+    const observer = new ResizeObserver(updatePosition);
+    if (tileRef.current) {
+      observer.observe(tileRef.current);
+    }
+
+    // Add a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(updatePosition, 100);
+    
+    window.addEventListener('resize', updatePosition);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updatePosition);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   const layoutContext = useCreateLayoutContext();
 
@@ -89,26 +98,18 @@ export function VideoConferenceCustom({
       {isWeb() && (
         <LayoutContextProvider
           value={layoutContext}
-          onWidgetChange={widgetUpdate}
+          onWidgetChange={(state) => {
+            log.debug('updating widget state', state);
+            setWidgetState(state);
+          }}
         >
           <div className="lk-video-conference-inner" style={{ position: 'relative' }}>
-            <div style={{ 
-              position: 'absolute',
-              bottom: 100,
-              right: 700,
-              display: 'flex', 
-              justifyContent: 'flex-end', 
-              width: 'auto',
-              padding: '10px',
-              zIndex: 10,
-              transform: 'scale(1.2)',
-              transformOrigin: 'bottom right'
-            }}>
+            <div style={controlBarStyle}>
               <ControlBarCustom controls={{ chat: true, settings: !!SettingsComponent }} />
             </div>
             <div className="lk-grid-layout-wrapper">
               <GridLayout tracks={tracks}>
-                <ParticipantTileCustom />
+                <ParticipantTileCustom ref={tileRef} />
               </GridLayout>
             </div>
           </div>
@@ -116,11 +117,8 @@ export function VideoConferenceCustom({
             style={{ display: widgetState.showChat ? 'grid' : 'none' }}
             messageFormatter={chatMessageFormatter}
           />
-          {SettingsComponent && (
-            <div
-              className="lk-settings-menu-modal"
-              style={{ display: widgetState.showSettings ? 'block' : 'none' }}
-            >
+          {SettingsComponent && widgetState.showSettings && (
+            <div className="lk-settings-menu-modal">
               <SettingsComponent />
             </div>
           )}
