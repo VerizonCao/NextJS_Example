@@ -43,6 +43,11 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
   const { data: session } = useSession();
  
   const handleStream = async (avatarId: string) => {
+    if (!session) {
+      setShowLoginPopup(true);
+      return;
+    }
+
     const roomName = generateRoomId();
     const avatar = initialAvatars.avatars?.find(a => a.avatar_id === avatarId);
     
