@@ -52,20 +52,20 @@ export default function HomepageAvatars({ initialAvatars, categories }: Homepage
     if (!avatar) return;
     
     try {
-      // await startStreamingSession({
-      //   instruction: "test",
-      //   seconds: 300,
-      //   room: roomName,
-      //   avatarSource: avatar.image_uri,
-      //   avatar_id: avatar.avatar_id,
-      //   llmUserNickname: session?.user?.name || 'Friend',
-      //   llmUserBio: 'a friend',
-      //   llmAssistantNickname: avatar.avatar_name,
-      //   llmAssistantBio: avatar.prompt,
-      //   llmAssistantAdditionalCharacteristics: avatar.prompt,
-      //   llmConversationContext: avatar.scene_prompt,
-      //   ttsVoiceIdCartesia: avatar.voice_id,
-      // });
+      await startStreamingSession({
+        instruction: "test",
+        seconds: 300,
+        room: roomName,
+        avatarSource: avatar.image_uri,
+        avatar_id: avatar.avatar_id,
+        llmUserNickname: session?.user?.name || 'Friend',
+        llmUserBio: 'a friend',
+        llmAssistantNickname: avatar.avatar_name,
+        llmAssistantBio: avatar.prompt,
+        llmAssistantAdditionalCharacteristics: avatar.prompt,
+        llmConversationContext: avatar.scene_prompt,
+        ttsVoiceIdCartesia: avatar.voice_id,
+      });
       await incrementAvatarRequestCounter(avatarId);
       const returnPath = '/dashboard';
       const presignedUrl = avatar.presignedUrl || '';

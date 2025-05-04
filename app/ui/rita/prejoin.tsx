@@ -32,7 +32,7 @@ export function CustomPreJoin({
     <div className="bg-[#121214] flex flex-row justify-center w-full h-full">
       <div className="bg-[#121214] w-full h-full relative">
         {/* Main Content */}
-        <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-[390px] py-[25px]">
+        <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0 py-[25px]">
           <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[90vh]">
             {/* Character Image */}
             {presignedUrl && (
