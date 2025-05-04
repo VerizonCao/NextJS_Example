@@ -60,20 +60,20 @@ export function VideoConferenceCustom({
     { updateOnlyOn: [RoomEvent.ActiveSpeakersChanged], onlySubscribed: false },
   );
 
-  React.useEffect(() => {
-    const updatePosition = () => {
-      if (!tileRef.current) return;
-      const rect = tileRef.current.getBoundingClientRect();
-      setControlBarStyle({
-        position: 'absolute',
-        left: `${rect.right - 10}px`,
-        top: `${rect.bottom - 10}px`,
-        transform: 'translate(-100%, -100%) scale(1.2)',
-        transformOrigin: 'bottom right',
-        zIndex: 10,
-      });
-    };
+  const updatePosition = React.useCallback(() => {
+    if (!tileRef.current) return;
+    const rect = tileRef.current.getBoundingClientRect();
+    setControlBarStyle({
+      position: 'absolute',
+      left: `${rect.right - 10}px`,
+      top: `${rect.bottom - 10}px`,
+      transform: 'translate(-100%, -100%) scale(1.2)',
+      transformOrigin: 'bottom right',
+      zIndex: 10,
+    });
+  }, []);
 
+  React.useEffect(() => {
     const observer = new ResizeObserver(updatePosition);
     if (tileRef.current) {
       observer.observe(tileRef.current);
@@ -89,7 +89,7 @@ export function VideoConferenceCustom({
       window.removeEventListener('resize', updatePosition);
       clearTimeout(timeoutId);
     };
-  }, []);
+  }, [updatePosition]);
 
   const layoutContext = useCreateLayoutContext();
 
@@ -101,6 +101,10 @@ export function VideoConferenceCustom({
           onWidgetChange={(state) => {
             log.debug('updating widget state', state);
             setWidgetState(state);
+            // Update position when chat state changes
+            if (state.showChat !== widgetState.showChat) {
+              setTimeout(updatePosition, 100);
+            }
           }}
         >
           <div className="lk-video-conference-inner" style={{ position: 'relative' }}>
