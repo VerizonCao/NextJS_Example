@@ -54,7 +54,7 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
           {/* Character Image */}
           {avatar.presignedUrl && (
             <div
-              className="relative w-full lg:w-[525.42px] h-[500px] lg:h-[937.44px] rounded-l-[5px] lg:rounded-r-none rounded-[5px] bg-cover bg-center"
+              className="relative w-full lg:w-[400px] h-[400px] lg:h-[714px] rounded-l-[5px] lg:rounded-r-none rounded-[5px] bg-cover bg-center"
               style={{
                 backgroundImage: `url(${avatar.presignedUrl})`,
               }}
@@ -62,7 +62,7 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
           )}
           
           {/* Character Info Card */}
-          <Card className="flex flex-col w-full lg:w-[613.7px] h-auto lg:h-[937.44px] bg-[#1a1a1e] rounded-r-[5px] lg:rounded-l-none rounded-[5px] border-none">
+          <Card className="flex flex-col w-full lg:w-[467px] h-auto lg:h-[714px] bg-[#1a1a1e] rounded-r-[5px] lg:rounded-l-none rounded-[5px] border-none">
             <CardContent className="flex flex-col justify-between h-full p-4 lg:p-[15.12px]">
               {/* Top Section */}
               <div className="flex flex-col gap-4 lg:gap-[16.2px]">
