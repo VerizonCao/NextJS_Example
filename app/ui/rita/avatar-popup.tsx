@@ -19,7 +19,13 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.refresh();
+    }
+  }, [status, router]);
 
   useEffect(() => {
     if (avatar) {

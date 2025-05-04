@@ -1,8 +1,10 @@
 import Link from 'next/link';
-import { PlusSquareIcon, PowerIcon } from 'lucide-react';
+import { PlusSquareIcon } from 'lucide-react';
 import AcmeLogo from '@/app/ui/acme-logo';
 import { auth } from '@/auth';
-import { signOut } from '@/auth';
+import CreateButton from '@/app/ui/dashboard/sidenav-buttons/create-button';
+import AuthButton from '@/app/ui/dashboard/sidenav-buttons/auth-button';
+import SignOutButton from '@/app/ui/dashboard/sidenav-buttons/signout-button';
 
 type NavButton = {
   label: string;
@@ -34,22 +36,17 @@ export default async function SideNav() {
         label: "Sign Out", 
         href: "#",
         className: "bg-[#4f46e5] hover:bg-[#3c34b5] text-white hover:text-white",
-        isForm: true,
-        icon: <PowerIcon className="w-6" />,
-        formAction: async () => {
-          'use server';
-          await signOut({ redirectTo: '/' });
-        }
+        isForm: true
       }
     ] : [
       { 
         label: "Login", 
-        href: "/login",
+        href: "#",
         className: "hover:bg-[#1d1d1e] text-white hover:text-white" 
       },
       { 
         label: "Sign Up", 
-        href: "/signup",
+        href: "#",
         className: "bg-[#4f46e5] hover:bg-[#3c34b5] text-white hover:text-white" 
       }
     ])
@@ -66,16 +63,12 @@ export default async function SideNav() {
       <div className="flex items-center">
         {navButtons.map((button, index) => (
           <div key={button.label} className="flex items-center">
-            {button.isForm ? (
-              <form action={button.formAction}>
-                <button
-                  type="submit"
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${button.className}`}
-                >
-                  {button.icon}
-                  {button.label}
-                </button>
-              </form>
+            {button.label === "Sign Out" ? (
+              <SignOutButton className={button.className} />
+            ) : button.label === "Create" ? (
+              <CreateButton button={button} />
+            ) : !session && (button.label === "Login" || button.label === "Sign Up") ? (
+              <AuthButton button={button} />
             ) : (
               <Link
                 href={button.href}
