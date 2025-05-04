@@ -8,8 +8,7 @@ import postgres from 'postgres';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { getPresignedGetUrl, getPresignedPutUrl } from './s3';
-import { avatarServeCounter } from './metrics';
-import { avatarRequestCounter, attributes } from './metrics2';
+import { avatarRequestCounter, attributes, avatarServeTimeCounter} from './metrics';
 import { 
   saveAvatar, 
   getUserByIdEmail, 
@@ -397,37 +396,6 @@ export async function updateAvatarData(
 
 
 /**
- * Server action to increment the avatar serve counter
- * @returns Promise<{ success: boolean; message: string }> Response indicating if the counter was incremented
- */
-export async function incrementAvatarServeCounter(): Promise<{ 
-  success: boolean; 
-  message: string 
-}> {
-  try {
-    avatarServeCounter.add(1,
-      {
-        route: '/api/avatar'
-      }
-    );
-
-
-    avatarRequestCounter.add(1, attributes);
-
-    return { 
-      success: true, 
-      message: 'Avatar serve counter incremented' 
-    };
-  } catch (error) {
-    console.error('Error incrementing avatar serve counter:', error);
-    return { 
-      success: false, 
-      message: 'Failed to increment avatar serve counter' 
-    };
-  }
-}
-
-/**
  * Server action to increment the avatar request counter for a specific avatar
  * @param avatarId The ID of the avatar to increment the counter for
  * @returns Promise<{ success: boolean; message: string }> Response indicating if the counter was incremented
@@ -448,6 +416,40 @@ export async function incrementAvatarRequestCounter(avatarId: string): Promise<{
     return { 
       success: false, 
       message: 'Failed to increment avatar request counter' 
+    };
+  }
+}
+
+/**
+ * Server action to report avatar serve time
+ * @param avatarId The ID of the avatar being served
+ * @param userId The ID of the user requesting the avatar
+ * @param serveTime The time taken to serve the avatar in milliseconds
+ * @returns Promise<{ success: boolean; message: string }> Response indicating if the metric was recorded
+ */
+export async function reportAvatarServeTime(
+  avatarId: string,
+  userId: string,
+  serveTime: number
+): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    avatarServeTimeCounter.add(serveTime, { 
+      avatar_id: avatarId,
+      user_id: userId
+    });
+
+    return { 
+      success: true, 
+      message: 'Avatar serve time recorded' 
+    };
+  } catch (error) {
+    console.error('Error recording avatar serve time:', error);
+    return { 
+      success: false, 
+      message: 'Failed to record avatar serve time' 
     };
   }
 }

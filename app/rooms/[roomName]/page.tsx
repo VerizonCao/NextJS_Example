@@ -14,6 +14,10 @@ export default async function Page({
     codec?: string;
     returnPath?: string;
     presignedUrl?: string;
+    prompt?: string;
+    scene?: string;
+    bio?: string;
+    avatar_name?: string;
   }>;
 }) {
   // Await both params and searchParams
@@ -34,6 +38,10 @@ export default async function Page({
       codec={codec}
       returnPath={resolvedSearchParams.returnPath}
       presignedUrl={resolvedSearchParams.presignedUrl}
+      prompt={resolvedSearchParams.prompt}
+      scene={resolvedSearchParams.scene}
+      bio={resolvedSearchParams.bio}
+      avatar_name={resolvedSearchParams.avatar_name}
     />
   );
 }

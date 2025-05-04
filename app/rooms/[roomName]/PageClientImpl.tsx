@@ -37,6 +37,10 @@ export function PageClientImpl(props: {
   codec: VideoCodec;
   returnPath?: string;
   presignedUrl?: string;
+  prompt?: string;
+  scene?: string;
+  bio?: string;
+  avatar_name?: string;
 }) {
 
   // console.log('PageClientImpl props', props);
@@ -118,7 +122,14 @@ export function PageClientImpl(props: {
     <main data-lk-theme="default" style={{ height: '100vh', backgroundColor: '#000' }}>
       {!preJoinChoices || !room || !connectionDetails ? (
         <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-          <CustomPreJoin returnPath={props.returnPath} presignedUrl={props.presignedUrl}/>
+          <CustomPreJoin 
+            returnPath={props.returnPath} 
+            presignedUrl={props.presignedUrl}
+            prompt={props.prompt}
+            scene={props.scene}
+            bio={props.bio}
+            avatar_name={props.avatar_name}
+          />
         </div>
       ) : (
         <LiveKitRoom
@@ -146,6 +157,10 @@ export function PageClientImpl(props: {
             onRemoteJoin={() => setHadRemoteParticipant(true)}
             returnPath={props.returnPath}
             presignedUrl={props.presignedUrl}
+            prompt={props.prompt}
+            scene={props.scene}
+            bio={props.bio}
+            avatar_name={props.avatar_name}
           />
         </LiveKitRoom>
       )}
@@ -163,6 +178,10 @@ function RoomContent(props: {
   onRemoteJoin: () => void;
   returnPath?: string;
   presignedUrl?: string;
+  prompt?: string;
+  scene?: string;
+  bio?: string;
+  avatar_name?: string;
 }) {
   const remoteParticipants = useRemoteParticipants();
   const hasRemoteParticipant = remoteParticipants.length > 0;
@@ -249,7 +268,14 @@ function RoomContent(props: {
         />
       ) : (
         <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-          <CustomPreJoin returnPath={props.returnPath} presignedUrl={props.presignedUrl}/>
+          <CustomPreJoin 
+            returnPath={props.returnPath} 
+            presignedUrl={props.presignedUrl}
+            prompt={props.prompt}
+            scene={props.scene}
+            bio={props.bio}
+            avatar_name={props.avatar_name}
+          />
         </div>
       )}
       <DebugMode />

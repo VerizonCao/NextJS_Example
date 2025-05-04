@@ -49,8 +49,19 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
       return;
     }
     
-    const roomName = generateRoomId();
-    
+    const roomName = 'myRoom';
+    const returnPath = '/dashboard/my-avatars';
+    const presignedUrl = avatar.presignedUrl || '';
+
+    const query = new URLSearchParams({
+      returnPath,
+      presignedUrl,
+      prompt: avatar.prompt || '',
+      scene: avatar.scene_prompt || '',
+      bio: avatar.agent_bio || '',
+      avatar_name: avatar.avatar_name || '',
+    }).toString();
+
     try {
       await startStreamingSession({
         instruction: "test",
@@ -67,7 +78,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
         ttsVoiceIdCartesia: avatar.voice_id,
       });
       await incrementAvatarRequestCounter(avatar.avatar_id);
-      router.push(`/rooms/${roomName}?returnPath=/dashboard/my-avatars&presignedUrl=${encodeURIComponent(avatar.presignedUrl || '')}`);
+      router.push(`/rooms/${roomName}?${query}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
     }

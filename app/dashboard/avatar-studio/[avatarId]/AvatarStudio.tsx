@@ -7,6 +7,7 @@ import { CustomPreJoin } from '@/app/ui/rita/prejoin'
 import { ConnectionDetails } from '@/lib/types'
 import { VideoConferenceCustom } from '@/app/components/VideoConferenceCustom'
 import { startStreamingSession } from '@/app/lib/actions'
+import { incrementAvatarRequestCounter } from '@/app/lib/actions';
 import React from 'react'
 
 // Constants
@@ -162,6 +163,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
           avatarSource: avatarUri,
           avatar_id: avatarId,
         });
+        await incrementAvatarRequestCounter(avatarId);
         addLog('Streaming session started successfully');
       } catch (error) {
         console.error('Error starting streaming session:', error);

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { startStreamingSession, incrementAvatarServeCounter, incrementAvatarRequestCounter } from '@/app/lib/actions';
+import { startStreamingSession, incrementAvatarRequestCounter } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
@@ -33,6 +33,7 @@ interface HomepageAvatarsProps {
       presignedUrl?: string;
       scene_prompt?: string;
       voice_id?: string;
+      agent_bio?: string;
     }[] | null;
     message: string;
   };
@@ -66,7 +67,20 @@ export default function HomepageAvatars({ initialAvatars, categories }: Homepage
         ttsVoiceIdCartesia: avatar.voice_id,
       });
       await incrementAvatarRequestCounter(avatarId);
-      router.push(`/rooms/${roomName}?returnPath=/dashboard&presignedUrl=${encodeURIComponent(avatar.presignedUrl || '')}`);
+      const roomName = 'myRoom'; // your dynamic room name
+      const returnPath = '/dashboard';
+      const presignedUrl = avatar.presignedUrl || '';
+
+      const query = new URLSearchParams({
+        returnPath,
+        presignedUrl,
+        prompt: avatar.prompt || '',
+        scene: avatar.scene_prompt || '',
+        bio: avatar.agent_bio || '',
+        avatar_name: avatar.avatar_name || '',
+      }).toString();
+
+      router.push(`/rooms/${roomName}?${query}`);
     } catch (error) {
       console.error('Failed to start streaming session:', error);
     }
@@ -168,7 +182,8 @@ export default function HomepageAvatars({ initialAvatars, categories }: Homepage
           image_uri: selectedAvatar.image_uri,
           create_time: new Date(),
           prompt: selectedAvatar.prompt,
-          agent_bio: selectedAvatar.prompt,
+          agent_bio: selectedAvatar.agent_bio,
+          presignedUrl: selectedAvatar.presignedUrl,
         } : null}
         onStream={() => selectedAvatar && handleStream(selectedAvatar.avatar_id)}
         onClose={() => setGlobalSelectedAvatar(null)}
