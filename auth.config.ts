@@ -76,6 +76,9 @@ export const authConfig = {
       const isOnDashboard = pathname.startsWith('/dashboard');
       const isRoom = pathname.startsWith('/rooms');
       const isAudioSample = pathname.startsWith('/audio_samples');
+      const isEditAvatar = pathname.startsWith('/dashboard/edit-avatar');
+      const isMyAvatars = pathname.startsWith('/dashboard/my-avatars');
+      const isAvatarStudio = pathname.startsWith('/dashboard/avatar-studio');
     
       // ✅ Allow audio file requests to go through without redirect
       if (isAudioSample) {
@@ -88,7 +91,10 @@ export const authConfig = {
       }
     
       if (isOnDashboard) {
-        return true; // Allow access to dashboard without login
+        if ((isEditAvatar || isMyAvatars || isAvatarStudio) && !isLoggedIn) {
+          return false; // Block access to avatar-related routes if not logged in
+        }
+        return true; // Allow access to other dashboard routes without login
       } else if (isRoom) {
         if (isLoggedIn) return true;
         return false;
