@@ -8,6 +8,7 @@ import { incrementAvatarRequestCounter } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useSession } from 'next-auth/react';
 import AvatarPopup from './avatar-popup';
+import LoginPopup from './login-popup';
 import { Card } from '@/app/components/card';
 
 // Loading component for images
@@ -43,15 +44,22 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const [selectedAvatar, setSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const handleStream = async (avatar: UserAvatar) => {
+    if (!session) {
+      setShowLoginPopup(true);
+      setSelectedAvatar(null);
+      return;
+    }
+
     if (!avatar.image_uri) {
       console.error('No image URI available for this avatar');
       return;
     }
     
     const roomName = generateRoomId();
-    const returnPath = '/dashboard/my-avatars';
+    const returnPath = '/dashboard';
     const presignedUrl = avatar.presignedUrl || '';
 
     const query = new URLSearchParams({
@@ -147,10 +155,22 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
           )}
         </Card>
       ))}
+      {/* Create card - temporarily commented out
+      <Card
+        className="relative w-[15%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh] bg-[#1A56DB] flex items-center justify-center"
+        onClick={() => router.push('/dashboard/create')}
+      >
+        <div className="text-4xl text-white">+</div>
+      </Card>
+      */}
       <AvatarPopup
         avatar={currentSelectedAvatar || null}
         onStream={handleStream}
         onClose={() => setSelectedAvatar(null)}
+      />
+      <LoginPopup 
+        isOpen={showLoginPopup} 
+        onClose={() => setShowLoginPopup(false)} 
       />
     </div>
   );

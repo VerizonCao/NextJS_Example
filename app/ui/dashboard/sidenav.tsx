@@ -3,8 +3,12 @@ import NavLinks from '@/app/ui/dashboard/nav-links';
 import AcmeLogo from '@/app/ui/acme-logo';
 import { PowerIcon } from '@heroicons/react/24/outline';
 import { signOut } from '@/auth';
+import { auth } from '@/auth';
 
-export default function SideNav() {
+export default async function SideNav() {
+  const session = await auth();
+  const userName = session?.user?.name || session?.user?.email;
+
   return (
     <div className="flex h-full flex-col px-3 py-4 md:px-2">
       <Link
@@ -17,7 +21,16 @@ export default function SideNav() {
       </Link>
       <div className="flex grow flex-row justify-between space-x-2 md:flex-col md:space-x-0 md:space-y-2">
         <NavLinks />
-        <div className="hidden h-auto w-full grow rounded-md bg-gray-50 md:block"></div>
+        <div className="hidden h-auto w-full grow rounded-md bg-gray-50 md:block">
+          {userName && (
+            <div className="flex items-center gap-2 p-4 text-sm font-medium">
+              <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <span className="truncate">{userName}</span>
+            </div>
+          )}
+        </div>
         <form
         action={async () => {
           'use server';

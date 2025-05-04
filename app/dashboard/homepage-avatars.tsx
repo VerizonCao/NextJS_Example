@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { startStreamingSession, incrementAvatarRequestCounter } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
-import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import AvatarPopup from '@/app/ui/rita/avatar-popup';
+import LoginPopup from '@/app/ui/rita/login-popup';
 import { Card } from '@/app/components/card';
 import MyAvatars from '@/app/ui/rita/my-avatars';
 
@@ -39,6 +39,7 @@ interface HomepageAvatarsProps {
 export default function HomepageAvatars({ initialAvatars, userAvatars }: HomepageAvatarsProps) {
   const router = useRouter();
   const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
   const { data: session } = useSession();
  
   const handleStream = async (avatarId: string) => {
@@ -179,6 +180,11 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
         } : null}
         onStream={() => selectedAvatar && handleStream(selectedAvatar.avatar_id)}
         onClose={() => setGlobalSelectedAvatar(null)}
+      />
+
+      <LoginPopup 
+        isOpen={showLoginPopup} 
+        onClose={() => setShowLoginPopup(false)} 
       />
     </div>
   );

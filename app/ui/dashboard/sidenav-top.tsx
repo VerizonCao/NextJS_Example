@@ -1,25 +1,58 @@
 import Link from 'next/link';
-import { PlusSquareIcon } from 'lucide-react';
+import { PlusSquareIcon, PowerIcon } from 'lucide-react';
 import AcmeLogo from '@/app/ui/acme-logo';
+import { auth } from '@/auth';
+import { signOut } from '@/auth';
 
-export default function SideNav() {
-  const navButtons = [
+type NavButton = {
+  label: string;
+  href: string;
+  className: string;
+  icon?: React.ReactNode;
+  isForm?: boolean;
+  formAction?: () => Promise<void>;
+};
+
+export default async function SideNav() {
+  const session = await auth();
+  const userName = session?.user?.name || session?.user?.email;
+
+  const navButtons: NavButton[] = [
     {
       label: "Create",
       icon: <PlusSquareIcon className="w-6 h-6" />,
       href: "/dashboard/image-upload",
       className: "hover:bg-[#1d1d1e] text-white hover:text-white",
     },
-    { 
-      label: "Login", 
-      href: "#",
-      className: "hover:bg-[#1d1d1e] text-white hover:text-white" 
-    },
-    { 
-      label: "Sign Up", 
-      href: "#",
-      className: "bg-[#4f46e5] hover:bg-[#3c34b5] text-white hover:text-white" 
-    },
+    ...(session ? [
+      { 
+        label: userName || "Profile", 
+        href: "/dashboard",
+        className: "hover:bg-[#1d1d1e] text-white hover:text-white" 
+      },
+      { 
+        label: "Sign Out", 
+        href: "#",
+        className: "bg-[#4f46e5] hover:bg-[#3c34b5] text-white hover:text-white",
+        isForm: true,
+        icon: <PowerIcon className="w-6" />,
+        formAction: async () => {
+          'use server';
+          await signOut({ redirectTo: '/' });
+        }
+      }
+    ] : [
+      { 
+        label: "Login", 
+        href: "/login",
+        className: "hover:bg-[#1d1d1e] text-white hover:text-white" 
+      },
+      { 
+        label: "Sign Up", 
+        href: "/signup",
+        className: "bg-[#4f46e5] hover:bg-[#3c34b5] text-white hover:text-white" 
+      }
+    ])
   ];
 
   return (
@@ -33,15 +66,27 @@ export default function SideNav() {
       <div className="flex items-center">
         {navButtons.map((button, index) => (
           <div key={button.label} className="flex items-center">
-            <Link
-              href={button.href}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${button.className}`}
-            >
-              {button.icon && <span className="mr-2">{button.icon}</span>}
-              {button.label}
-            </Link>
+            {button.isForm ? (
+              <form action={button.formAction}>
+                <button
+                  type="submit"
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${button.className}`}
+                >
+                  {button.icon}
+                  {button.label}
+                </button>
+              </form>
+            ) : (
+              <Link
+                href={button.href}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${button.className}`}
+              >
+                {button.icon && <span className="mr-2">{button.icon}</span>}
+                {button.label}
+              </Link>
+            )}
 
-            {index < 2 && (
+            {index < navButtons.length - 1 && (
               <div className="h-6 w-[1px] mx-2 bg-[#1d1d1e]" />
             )}
           </div>

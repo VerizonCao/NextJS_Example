@@ -75,7 +75,6 @@ export const authConfig = {
     
       const isOnDashboard = pathname.startsWith('/dashboard');
       const isRoom = pathname.startsWith('/rooms');
-      const isRitaStreaming = pathname.startsWith('/rita-streaming');
       const isAudioSample = pathname.startsWith('/audio_samples');
     
       // ✅ Allow audio file requests to go through without redirect
@@ -83,13 +82,14 @@ export const authConfig = {
         return true;
       }
     
+      // Redirect from / to /dashboard
+      if (pathname === '/') {
+        return Response.redirect(new URL('/dashboard', nextUrl));
+      }
+    
       if (isOnDashboard) {
-        if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
+        return true; // Allow access to dashboard without login
       } else if (isRoom) {
-        if (isLoggedIn) return true;
-        return false;
-      } else if (isRitaStreaming) {
         if (isLoggedIn) return true;
         return false;
       }
