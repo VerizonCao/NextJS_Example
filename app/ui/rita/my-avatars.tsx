@@ -8,6 +8,7 @@ import { incrementAvatarRequestCounter } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useSession } from 'next-auth/react';
 import AvatarPopup from './avatar-popup';
+import { Card } from '@/app/components/card';
 
 // Loading component for images
 function ImageLoading() {
@@ -112,42 +113,40 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 p-6">
-      <h2 className="text-xl font-semibold mb-4">My Avatars</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {initialAvatars.avatars.map((avatar) => (
-          <div 
-            key={avatar.avatar_id} 
-            className="flex flex-col items-center"
-          >
-            <div 
-              className={`relative w-[220px] h-[320px] rounded-lg overflow-hidden cursor-pointer group ${selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? 'ring-2 ring-blue-500' : ''}`}
-              onClick={() => setSelectedAvatar(selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? null : {id: avatar.avatar_id, type: 'my'})}
-            >
-              {avatar.presignedUrl ? (
-                <>
-                  <Image
-                    src={avatar.presignedUrl}
-                    alt={avatar.avatar_name}
-                    fill
-                    sizes="220px"
-                    loading={selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? "eager" : "lazy"}
-                    className="object-cover"
-                  />
-                  {avatar.agent_bio && (
-                    <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4">
-                      <p className="text-white text-sm text-center">{avatar.agent_bio}</p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <ImageLoading />
-              )}
-            </div>
-            <span className="mt-1 text-sm">{avatar.avatar_name}</span>
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-wrap justify-start gap-x-[1.5%] gap-y-[2vh] w-full max-w-[90vw]">
+      {initialAvatars.avatars.map((avatar) => (
+        <Card
+          key={avatar.avatar_id}
+          className="relative w-[15%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
+          onClick={() => setSelectedAvatar(selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? null : {id: avatar.avatar_id, type: 'my'})}
+        >
+          {avatar.presignedUrl ? (
+            <>
+              <Image
+                src={avatar.presignedUrl}
+                alt={avatar.avatar_name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                priority={selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my'}
+                className="object-cover"
+              />
+              <div className="absolute w-full bottom-0 left-0">
+                <div className="relative w-full h-[30%] bg-[#00000080] blur-[9px]"></div>
+                <div className="absolute bottom-0 left-0 flex flex-col w-full items-start gap-[0.5%] p-[2%]">
+                  <div className="relative self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-[0.7vw] tracking-[0] leading-[normal]">
+                    {avatar.avatar_name}
+                  </div>
+                  <div className="relative self-stretch font-['Montserrat',Helvetica] font-normal text-white text-[0.5vw] tracking-[0] leading-[normal]">
+                    {avatar.prompt}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <ImageLoading />
+          )}
+        </Card>
+      ))}
       <AvatarPopup
         avatar={currentSelectedAvatar || null}
         onStream={handleStream}

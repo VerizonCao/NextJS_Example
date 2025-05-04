@@ -1,30 +1,25 @@
-import { loadPublicAvatars, getPresignedUrl } from '@/app/lib/actions';
+import { loadPublicAvatars, getPresignedUrl, loadUserAvatars } from '@/app/lib/actions';
 import HomepageAvatars from './homepage-avatars';
+import { auth } from '@/auth';
 
 // This makes the page use ISR and revalidate every 60 seconds
 export const revalidate = 60;
 
-// Static category list
-const categories = [
-  { name: "Girl", color: "#7e8dc8" },
-  { name: "OC", color: "#837ec8" },
-  { name: "BlueArchive", color: "#c8917e" },
-  { name: "fanart", color: "#7ec8bb" },
-  { name: "VTuber", color: "#c8b87e" },
-  { name: "NEWGAME!", color: "#c87e92" },
-  { name: "Helltaker", color: "#c8807e" },
-  { name: "Ghost", color: "#ba7ec8" },
-];
-
 export default async function RitaStreamingPage() {
-  const result = await loadPublicAvatars();
-
-  const avatars = await Promise.all(
-    (result.avatars ?? []).map(async (avatar) => {
+  const session = await auth();
+  
+  // Load public avatars
+  const publicResult = await loadPublicAvatars();
+  const publicAvatars = await Promise.all(
+    (publicResult.avatars ?? []).map(async (avatar) => {
       if (!avatar.image_uri) return avatar;
       try {
         const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
-        return { ...avatar, presignedUrl };
+        return { 
+          ...avatar,
+          create_time: new Date(avatar.create_time),
+          presignedUrl 
+        };
       } catch (e) {
         console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
         return avatar;
@@ -32,11 +27,39 @@ export default async function RitaStreamingPage() {
     })
   );
 
+  // Load user avatars if logged in
+  let userAvatars = null;
+  if (session?.user?.email) {
+    const userResult = await loadUserAvatars(session.user.email);
+    if (userResult.success && userResult.avatars) {
+      userAvatars = await Promise.all(
+        userResult.avatars.map(async (avatar) => {
+          if (avatar.image_uri) {
+            try {
+              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+              return {
+                ...avatar,
+                create_time: new Date(avatar.create_time),
+                presignedUrl
+              };
+            } catch (error) {
+              console.error(`Failed to get presigned URL for avatar ${avatar.avatar_id}:`, error);
+              return avatar;
+            }
+          }
+          return avatar;
+        })
+      );
+      userAvatars = { ...userResult, avatars: userAvatars };
+    } else {
+      userAvatars = userResult;
+    }
+  }
+
   return (
-    <div className="flex flex-col items-center gap-6 p-6">
-      <div className="w-full">
-        <HomepageAvatars initialAvatars={{ ...result, avatars }} categories={categories} />
-      </div>
-    </div>
+    <HomepageAvatars 
+      initialAvatars={{ ...publicResult, avatars: publicAvatars }}
+      userAvatars={userAvatars}
+    />
   );
 }

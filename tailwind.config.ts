@@ -2,10 +2,9 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/**/*.{html,js,ts,jsx,tsx}',
+    "./src/**/*.{html,js,ts,jsx,tsx}",
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
   ],
   darkMode: ["class"],
   theme: {
@@ -15,15 +14,9 @@ const config: Config = {
       screens: { "2xl": "1400px" }
     },
     extend: {
-      gridTemplateColumns: {
-        '13': 'repeat(13, minmax(0, 1fr))',
-      },
       colors: {
-        blue: {
-          400: '#2589FE',
-          500: '#0070F3',
-          600: '#2F6FEB',
-        },
+        "gray-80": "var(--gray-80)",
+        "primary-700": "var(--primary-700)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -65,6 +58,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
+          "Montserrat",
           "ui-sans-serif",
           "system-ui",
           "sans-serif",
@@ -75,11 +69,6 @@ const config: Config = {
         ],
       },
       keyframes: {
-        shimmer: {
-          '100%': {
-            transform: 'translateX(100%)',
-          },
-        },
         "accordion-down": {
           from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
@@ -95,7 +84,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('@tailwindcss/forms')],
+  plugins: [],
 };
 
 export default config;

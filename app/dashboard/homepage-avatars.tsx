@@ -1,46 +1,42 @@
 'use client';
 
+import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { startStreamingSession, incrementAvatarRequestCounter } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
-import { useState, Suspense } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import AvatarPopup from '@/app/ui/rita/avatar-popup';
-import { Badge } from '@/app/components/badge';
 import { Card } from '@/app/components/card';
+import MyAvatars from '@/app/ui/rita/my-avatars';
 
-// Loading component for images
-function ImageLoading() {
-  return (
-    <div className="w-full h-full bg-gray-200 animate-pulse rounded-lg" />
-  );
-}
-
-interface Category {
-  name: string;
-  color: string;
-}
+type UserAvatar = {
+  avatar_id: string;
+  avatar_name: string;
+  image_uri: string;
+  create_time: Date;
+  prompt: string;
+  presignedUrl?: string;
+  scene_prompt?: string;
+  voice_id?: string;
+  agent_bio?: string;
+};
 
 interface HomepageAvatarsProps {
   initialAvatars: {
     success: boolean;
-    avatars: {
-      avatar_id: string;
-      avatar_name: string;
-      image_uri: string;
-      prompt: string;
-      presignedUrl?: string;
-      scene_prompt?: string;
-      voice_id?: string;
-      agent_bio?: string;
-    }[] | null;
+    avatars: UserAvatar[] | null;
     message: string;
   };
-  categories: Category[];
+  userAvatars: {
+    success: boolean;
+    avatars: UserAvatar[] | null;
+    message: string;
+  } | null;
 }
 
-export default function HomepageAvatars({ initialAvatars, categories }: HomepageAvatarsProps) {
+export default function HomepageAvatars({ initialAvatars, userAvatars }: HomepageAvatarsProps) {
   const router = useRouter();
   const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
   const { data: session } = useSession();
@@ -101,55 +97,32 @@ export default function HomepageAvatars({ initialAvatars, categories }: Homepage
     );
   }
 
-  if (initialAvatars.avatars.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-6 p-6">
-        <h2 className="text-xl font-semibold mb-4">Explore Rita Avatars</h2>
-        <div className="p-4 bg-gray-100 text-gray-700 rounded-lg">
-          No public avatars available at the moment.
+  const sections = [
+    {
+      id: 1,
+      title: "My Avatars",
+      component: userAvatars ? (
+        <div className="w-full">
+          <MyAvatars initialAvatars={userAvatars} />
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center w-full max-w-[1180px] py-8 gap-8 mx-auto">
-      {/* Categories Section */}
-      <div className="relative w-full overflow-hidden">
-        <div className="flex items-center gap-2 px-10 py-2 overflow-x-auto">
-          {categories.map((category, index) => (
-            <Badge
-              key={index}
-              className="px-6 py-2 cursor-pointer inline-block"
-              style={{ backgroundColor: category.color }}
+      ) : (
+        <div className="flex items-center justify-center h-32">
+          <div className="text-white">Please sign in to view your avatars</div>
+        </div>
+      ),
+    },
+    {
+      id: 2,
+      title: "Explore Trending Avatars",
+      component: (
+        <div className="flex flex-wrap justify-start gap-x-[1.5%] gap-y-[2vh] w-full max-w-[90vw]">
+          {initialAvatars.avatars.map((avatar) => (
+            <Card
+              key={avatar.avatar_id}
+              className="relative w-[15%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
+              onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
             >
-              <span className="font-bold font-['Montserrat',Helvetica] text-white text-base whitespace-nowrap">
-                {category.name}
-              </span>
-            </Badge>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content Section */}
-      <div className="w-full px-10">
-        <h2 className="font-['Montserrat',Helvetica] font-bold text-black text-2xl text-left mb-4">
-          Explore Rita Avatars
-        </h2>
-      </div>
-
-      {/* Avatars Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-10 w-full">
-        {initialAvatars.avatars.map((avatar) => (
-          <Card
-            key={avatar.avatar_id}
-            className={`relative w-full h-[320px] rounded-[5px] overflow-hidden p-0 cursor-pointer transition-transform duration-200 ease-in-out hover:scale-105 ${
-              globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? 'ring-2 ring-blue-500' : ''
-            }`}
-            onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
-          >
-            <Suspense fallback={<ImageLoading />}>
-              {avatar.presignedUrl ? (
+              {avatar.presignedUrl && (
                 <>
                   <Image
                     src={avatar.presignedUrl}
@@ -159,27 +132,47 @@ export default function HomepageAvatars({ initialAvatars, categories }: Homepage
                     priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
                     className="object-cover"
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4">
-                    <div className="backdrop-blur-sm bg-black bg-opacity-30 p-4 rounded-lg">
-                      <h3 className="text-white text-sm font-semibold">{avatar.avatar_name}</h3>
-                      <p className="text-white text-xs">{avatar.prompt}</p>
+                  <div className="absolute w-full bottom-0 left-0">
+                    <div className="relative w-full h-[30%] bg-[#00000080] blur-[9px]"></div>
+                    <div className="absolute bottom-0 left-0 flex flex-col w-full items-start gap-[0.5%] p-[2%]">
+                      <div className="relative self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-[0.7vw] tracking-[0] leading-[normal]">
+                        {avatar.avatar_name}
+                      </div>
+                      <div className="relative self-stretch font-['Montserrat',Helvetica] font-normal text-white text-[0.5vw] tracking-[0] leading-[normal]">
+                        {avatar.prompt}
+                      </div>
                     </div>
                   </div>
                 </>
-              ) : (
-                <ImageLoading />
               )}
-            </Suspense>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex flex-col w-full items-center gap-[2vh] px-[110px] py-[2vh] mt-[70px]">
+      {sections.map((section) => (
+        <React.Fragment key={section.id}>
+          <div className="flex w-full max-w-[1148px] items-center justify-start gap-[1%] relative flex-[0_0_auto]">
+            <div className="relative flex-1 h-[3.3vh] [font-family:'Montserrat',Helvetica] font-bold text-white text-[1.5vw] tracking-[0] leading-[normal]">
+              {section.title}
+            </div>
+          </div>
+          <div className="w-full max-w-[1148px] flex justify-start mt-[1vh]">
+            {section.component}
+          </div>
+        </React.Fragment>
+      ))}
 
       <AvatarPopup
         avatar={selectedAvatar ? {
           avatar_id: selectedAvatar.avatar_id,
           avatar_name: selectedAvatar.avatar_name,
           image_uri: selectedAvatar.image_uri,
-          create_time: new Date(),
+          create_time: selectedAvatar.create_time,
           prompt: selectedAvatar.prompt,
           agent_bio: selectedAvatar.agent_bio,
           presignedUrl: selectedAvatar.presignedUrl,

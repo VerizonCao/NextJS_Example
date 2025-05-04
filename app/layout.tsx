@@ -2,7 +2,7 @@ import '@livekit/components-styles';
 import '@livekit/components-styles/prefabs';
 
 import '@/app/ui/global.css';
-import { inter } from '@/app/ui/fonts';
+import { montserrat } from '@/app/ui/fonts';
 import { Providers } from './providers';
 
 
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       {/* <body>{children}</body> */}
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${montserrat.className} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>
