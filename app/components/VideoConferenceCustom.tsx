@@ -25,6 +25,7 @@ import {
 } from '@livekit/components-react';
 
 import { ParticipantTileCustom } from './PaticipantTileCustom';
+import { ControlBarCustom } from './ControlBarCustom';
 
 
 
@@ -143,11 +144,24 @@ export function VideoConferenceCustom({
           // onPinChange={handleFocusStateChange}
           onWidgetChange={widgetUpdate}
         >
-          <div className="lk-video-conference-inner">
+          <div className="lk-video-conference-inner" style={{ position: 'relative' }}>
+            <div style={{ 
+              position: 'absolute',
+              bottom: 100,
+              right: 700,
+              display: 'flex', 
+              justifyContent: 'flex-end', 
+              width: 'auto',
+              padding: '10px',
+              zIndex: 10,
+              transform: 'scale(1.2)',
+              transformOrigin: 'bottom right'
+            }}>
+              <ControlBarCustom controls={{ chat: true, settings: !!SettingsComponent }} />
+            </div>
             {!focusTrack ? (
               <div className="lk-grid-layout-wrapper">
                 <GridLayout tracks={tracks}>
-                  {/* <ParticipantTile /> */}
                   <ParticipantTileCustom />
                 </GridLayout>
               </div>
@@ -155,14 +169,12 @@ export function VideoConferenceCustom({
               <div className="lk-focus-layout-wrapper">
                 <FocusLayoutContainer>
                   <CarouselLayout tracks={carouselTracks}>
-                    {/* <ParticipantTile /> */}
                     <ParticipantTileCustom />
                   </CarouselLayout>
                   {focusTrack && <FocusLayout trackRef={focusTrack} />}
                 </FocusLayoutContainer>
               </div>
             )}
-            <ControlBar controls={{ chat: true, settings: !!SettingsComponent }} />
           </div>
           <Chat
             style={{ display: widgetState.showChat ? 'grid' : 'none' }}
