@@ -169,14 +169,14 @@ export default function ImageUploadPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Image Upload</h1>
+      <h1 className="text-2xl font-bold mb-4 text-white font-['Montserrat',Helvetica]">Image Upload</h1>
 
       {/* <audio controls src="/audio_samples/6f84f4b8-58a2-430c-8c79-688dad597532.wav" /> */}
       
       <div className="mb-4">
         <label 
           htmlFor="image-upload" 
-          className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded cursor-pointer inline-block"
+          className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded cursor-pointer inline-block font-['Montserrat',Helvetica]"
         >
           Choose Image
         </label>
@@ -191,7 +191,7 @@ export default function ImageUploadPage() {
 
       {previewUrl && (
         <div className="mt-4">
-          <p className="mb-2">Selected image:</p>
+          <p className="mb-2 text-white font-['Montserrat',Helvetica]">Selected image:</p>
           <div className="relative max-w-md border border-gray-300 rounded overflow-hidden">
             <Image 
               src={previewUrl} 
@@ -204,7 +204,7 @@ export default function ImageUploadPage() {
           
           <div className="mt-6 space-y-4">
             <div>
-              <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="prompt" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
                 Agent Prompt
               </label>
               <textarea
@@ -212,13 +212,13 @@ export default function ImageUploadPage() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Enter your prompt here..."
-                className="w-full p-2 border border-gray-300 rounded-md h-32"
+                className="w-full p-2 border border-gray-300 rounded-md h-32 text-white font-['Montserrat',Helvetica] bg-transparent"
                 rows={4}
               />
             </div>
 
             <div>
-              <label htmlFor="scenePrompt" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="scenePrompt" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
                 Scene Prompt
               </label>
               <textarea
@@ -226,13 +226,13 @@ export default function ImageUploadPage() {
                 value={scenePrompt}
                 onChange={(e) => setScenePrompt(e.target.value)}
                 placeholder="Describe the scene or environment..."
-                className="w-full p-2 border border-gray-300 rounded-md h-32"
+                className="w-full p-2 border border-gray-300 rounded-md h-32 text-white font-['Montserrat',Helvetica] bg-transparent"
                 rows={4}
               />
             </div>
 
             <div>
-              <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="bio" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
                 Agent Bio
               </label>
               <textarea
@@ -240,22 +240,22 @@ export default function ImageUploadPage() {
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Enter a brief bio for your agent..."
-                className="w-full p-2 border border-gray-300 rounded-md h-24"
+                className="w-full p-2 border border-gray-300 rounded-md h-24 text-white font-['Montserrat',Helvetica] bg-transparent"
                 rows={3}
               />
             </div>
             
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
                 Agent Name
               </label>
               <input
-                id="name"
                 type="text"
+                id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter a name"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder="Enter agent name..."
+                className="w-full p-2 border border-gray-300 rounded-md text-white font-['Montserrat',Helvetica] bg-transparent"
               />
             </div>
 
@@ -276,54 +276,41 @@ export default function ImageUploadPage() {
             {showVoiceSection && (
               <>
                 <div>
-                  <label htmlFor="voice" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="voice" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
                     Select Voice
                   </label>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
                     {voices.map((voice) => (
                       <div
                         key={voice.id}
-                        className={`p-3 border rounded-md cursor-pointer ${
-                          selectedVoice === voice.id ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                        className={`p-4 border rounded-md cursor-pointer ${
+                          selectedVoice === voice.id
+                            ? 'border-blue-500 bg-blue-500/10'
+                            : 'border-gray-300'
                         }`}
                         onClick={() => setSelectedVoice(voice.id)}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (isPlaying === voice.id) {
-                                  handleStopAudio();
-                                } else {
-                                  handlePlayAudio(voice.id);
-                                }
-                              }}
-                              className="p-1 rounded-full hover:bg-gray-100"
-                            >
-                              {isPlaying === voice.id ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                              ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                                </svg>
-                              )}
-                            </button>
-                            <span className="text-sm">Voice Sample {voice.id.slice(0, 4)}...</span>
-                          </div>
-                          {selectedVoice === voice.id && (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
+                          <span className="text-white font-['Montserrat',Helvetica]">Voice {voice.id.slice(0, 4)}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isPlaying === voice.id) {
+                                handleStopAudio();
+                              } else {
+                                handlePlayAudio(voice.id);
+                              }
+                            }}
+                            className="text-white font-['Montserrat',Helvetica] hover:text-blue-500"
+                          >
+                            {isPlaying === voice.id ? 'Stop' : 'Play'}
+                          </button>
                         </div>
                         {isPlaying === voice.id && (
                           <div className="mt-2">
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
-                              <div 
-                                className="bg-blue-500 h-1.5 rounded-full" 
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-blue-500 h-2 rounded-full"
                                 style={{ width: `${(currentTime / duration) * 100}%` }}
                               ></div>
                             </div>
@@ -334,31 +321,30 @@ export default function ImageUploadPage() {
                   </div>
                 </div>
                 
-                <div className="mt-4">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={isPublic}
-                      onChange={(e) => setIsPublic(e.target.checked)}
-                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">Make this agent public</span>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isPublic"
+                    checked={isPublic}
+                    onChange={(e) => setIsPublic(e.target.checked)}
+                    className="rounded"
+                  />
+                  <label htmlFor="isPublic" className="text-white font-['Montserrat',Helvetica]">
+                    Make this avatar public
                   </label>
                 </div>
 
-                <div className="mt-4">
-                  <button
-                    onClick={handleGenerateAvatar}
-                    disabled={!isFormValid}
-                    className={`py-2 px-4 rounded font-medium ${
-                      isFormValid 
-                        ? 'bg-green-500 hover:bg-green-600 text-white' 
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    Generate Agent
-                  </button>
-                </div>
+                <button
+                  onClick={handleGenerateAvatar}
+                  disabled={!isFormValid}
+                  className={`w-full py-2 px-4 rounded-md ${
+                    isFormValid
+                      ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  } font-['Montserrat',Helvetica]`}
+                >
+                  Generate Avatar
+                </button>
               </>
             )}
           </div>
