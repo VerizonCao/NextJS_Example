@@ -85,7 +85,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
   const [isLoading, setIsLoading] = useState(true)
   const [videoFps, setVideoFps] = useState(0)
   const [audioFps, setAudioFps] = useState(0)
-  const [status, setStatus] = useState('Ready')
+  const [status, setStatus] = useState('Disconnected')
   const [logs, setLogs] = useState<string[]>(['Connection logs will appear here...'])
   const [expValues, setExpValues] = useState<number[]>(new Array(totalMaskSize).fill(0))
   const [defaultExpValues, setDefaultExpValues] = useState<number[]>(new Array(totalMaskSize).fill(0))
@@ -152,7 +152,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       setRoom(newRoom)
       setHasConnected(true)
       setIsStreaming(true)
-      setStatus('Connected')
+      setStatus('Loading Data...')
       addLog('LiveKit connection established')
 
       // Start streaming session
@@ -193,10 +193,11 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       setConnectionDetails(undefined)
       setHasConnected(false)
       setIsStreaming(false)
-      setStatus('Ready')
+      setStatus('Disconnected')
       setVideoFps(0)
       setAudioFps(0)
       setIsLoading(true)  // Set loading to true to lock controls
+      setLogs(['Connection logs will appear here...'])  // Reset logs to initial state
 
       // Reset expression-related states
       setExpValues(new Array(totalMaskSize).fill(0))
@@ -403,12 +404,14 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
         if (data.error) {
           console.error('Error receiving initial categories:', data.error);
           addLog(`Error receiving initial categories: ${data.error}`);
+          setStatus('Error - Data Load Failed');
           return;
         }
   
         console.log("Received expression library!!:", data.expressions);
         setExpressionLibrary(data.expressions); // async update, DON'T rely on it immediately
         setIsLoading(false); // Set loading to false when initial data is received
+        setStatus('Connected'); // Set status to Connected only after data is loaded
         
         const categories = Object.keys(data.expressions).sort();
         if (categories.length > 0) {
@@ -656,7 +659,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
               <CustomPreJoin />
             </div>
           ) : (
-            <div data-lk-theme="default" style={{ height: '120%', width: '100%', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'scale(0.8)' }}>
+            <div data-lk-theme="default" style={{ height: '140%', width: '100%', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'scale(0.7) translateY(-15%)' }}>
               <LiveKitRoom
                 room={room}
                 token={connectionDetails.participantToken}
@@ -822,7 +825,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                     onChange={(e) => setExpressionInfo(prev => ({ ...prev, description: e.target.value }))}
                     className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     rows={1}
-                    disabled={!isAddingNewExpression || isLoading}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="flex gap-4">
