@@ -106,7 +106,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
   const sections = [
     {
       id: 1,
-      title: "My Avatars",
+      title: "My characters",
       component: userAvatars ? (
         <div className="w-full">
           <MyAvatars initialAvatars={userAvatars} />
