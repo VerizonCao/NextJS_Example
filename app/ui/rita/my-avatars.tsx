@@ -101,7 +101,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
   if (!initialAvatars.success || !initialAvatars.avatars) {
     return (
       <div className="flex flex-col items-center gap-6 p-6">
-        <h2 className="text-xl font-semibold mb-4">My Avatars</h2>
+        <h2 className="text-xl font-semibold mb-4">My characters</h2>
         <div className="p-4 bg-red-100 text-red-700 rounded-lg">
           {initialAvatars.message}
         </div>
@@ -112,7 +112,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
   if (initialAvatars.avatars.length === 0) {
     return (
       <div className="flex flex-col items-center gap-6 p-6">
-        <h2 className="text-xl font-semibold mb-4">My Avatars</h2>
+        <h2 className="text-xl font-semibold mb-4">My characters</h2>
         <div className="p-4 bg-gray-100 text-gray-700 rounded-lg">
           You don't have any avatars yet. Create one to get started!
         </div>
