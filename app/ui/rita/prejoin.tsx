@@ -61,10 +61,10 @@ export function CustomPreJoin({
                       )}
 
                       <div className="flex flex-col gap-2 lg:gap-[7.56px] flex-1">
-                        <h2 className="font-bold text-white text-base lg:text-[14.4px]">
+                        <h2 className="font-bold text-white text-lg lg:text-[16.4px]">
                           {avatar_name || 'Unknown Avatar'}
                         </h2>
-                        <p className="font-medium text-white text-sm lg:text-[11.3px]">
+                        <p className="font-medium text-white text-base lg:text-[13.3px]">
                           {bio || 'No bio available'}
                         </p>
                       </div>
@@ -75,22 +75,22 @@ export function CustomPreJoin({
 
                   {/* About Section */}
                   <div className="flex flex-col gap-4 lg:gap-[16.2px]">
-                    <h3 className="font-bold text-white text-base">About</h3>
+                    <h3 className="font-bold text-white text-lg">About</h3>
 
                     <div>
-                      <h4 className="font-semibold text-white text-sm">
+                      <h4 className="font-semibold text-white text-base">
                         Prompt
                       </h4>
-                      <p className="font-medium text-white text-xs mt-2">
+                      <p className="font-medium text-white text-sm mt-2">
                         {prompt || 'No prompt available'}
                       </p>
                     </div>
 
                     <div>
-                      <h4 className="font-semibold text-white text-sm lg:text-[12.6px]">
+                      <h4 className="font-semibold text-white text-base lg:text-[14.6px]">
                         Scene
                       </h4>
-                      <p className="font-medium text-white text-xs lg:text-[10.8px] mt-2">
+                      <p className="font-medium text-white text-sm lg:text-[12.8px] mt-2">
                         {scene || 'No scene prompt available'}
                       </p>
                     </div>
@@ -105,7 +105,7 @@ export function CustomPreJoin({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <p className="text-white text-base lg:text-lg font-medium">Waiting for agent to join...</p>
+                    <p className="text-white text-lg lg:text-xl font-medium">Waiting for agent to join...</p>
                   </div>
 
                   {/* Leave Button */}

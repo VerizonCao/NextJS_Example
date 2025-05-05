@@ -185,6 +185,7 @@ function RoomContent(props: {
 }) {
   const remoteParticipants = useRemoteParticipants();
   const hasRemoteParticipant = remoteParticipants.length > 0;
+  const [showVideoConference, setShowVideoConference] = React.useState(false);
 
   // send data code start
   
@@ -255,13 +256,19 @@ function RoomContent(props: {
   React.useEffect(() => {
     if (hasRemoteParticipant) {
       props.onRemoteJoin();
+      // Add 2 second delay before showing video conference
+      const timer = setTimeout(() => {
+        setShowVideoConference(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowVideoConference(false);
     }
   }, [hasRemoteParticipant]);
 
   return (
     <>
-      {hasRemoteParticipant ? (
-        // <VideoConference
+      {showVideoConference ? (
         <VideoConferenceCustom
           chatMessageFormatter={formatChatMessageLinks}
           SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}

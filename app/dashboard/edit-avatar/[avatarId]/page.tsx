@@ -73,8 +73,8 @@ export default function EditAvatarPage({
   if (!avatar) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold text-red-600">Wrong Avatar ID</h1>
-        <p>The avatar with ID {avatarId} does not exist.</p>
+        <h1 className="text-2xl font-bold text-red-600 font-['Montserrat',Helvetica]">Wrong Avatar ID</h1>
+        <p className="font-['Montserrat',Helvetica] text-white">The avatar with ID {avatarId} does not exist.</p>
       </div>
     );
   }
@@ -111,11 +111,11 @@ export default function EditAvatarPage({
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Edit Avatar</h1>
+      <h1 className="text-2xl font-bold mb-4 font-['Montserrat',Helvetica] text-white">Edit Avatar</h1>
       <div className="flex gap-6 items-start">
         {imageUrl && (
           <div>
-            <h2 className="text-lg font-semibold mb-2">Image</h2>
+            <h2 className="text-lg font-semibold mb-2 font-['Montserrat',Helvetica] text-white">Image</h2>
             <img 
               src={imageUrl} 
               alt={avatar.avatar_name}
@@ -126,11 +126,11 @@ export default function EditAvatarPage({
         
         <div className="space-y-4 flex-1">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold">Avatar Details</h2>
+            <h2 className="text-lg font-semibold font-['Montserrat',Helvetica] text-white">Avatar Details</h2>
             {!isEditing ? (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-['Montserrat',Helvetica]"
               >
                 Edit
               </button>
@@ -138,13 +138,13 @@ export default function EditAvatarPage({
               <div className="flex gap-2">
                 <button 
                   onClick={handleSave}
-                  className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                  className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 font-['Montserrat',Helvetica]"
                 >
                   Save
                 </button>
                 <button 
                   onClick={handleCancel}
-                  className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 font-['Montserrat',Helvetica]"
                 >
                   Cancel
                 </button>
@@ -153,66 +153,66 @@ export default function EditAvatarPage({
           </div>
           <div className="grid grid-cols-2 gap-4 mt-2">
             <div>
-              <p className="text-gray-600">Name:</p>
+              <p className="text-gray-400 font-['Montserrat',Helvetica]">Name:</p>
               {isEditing ? (
                 <input
                   type="text"
                   value={formData.avatar_name}
                   onChange={(e) => handleInputChange('avatar_name', e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded font-['Montserrat',Helvetica] text-white bg-gray-800"
                 />
               ) : (
-                <p className="font-medium">{avatar.avatar_name}</p>
+                <p className="font-medium font-['Montserrat',Helvetica] text-white">{avatar.avatar_name}</p>
               )}
             </div>
             <div>
-              <p className="text-gray-600">Agent Bio:</p>
+              <p className="text-gray-400 font-['Montserrat',Helvetica]">Agent Bio:</p>
               {isEditing ? (
                 <input
                   type="text"
                   value={formData.agent_bio}
                   onChange={(e) => handleInputChange('agent_bio', e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded font-['Montserrat',Helvetica] text-white bg-gray-800"
                 />
               ) : (
-                <p className="font-medium">{avatar.agent_bio || 'No bio'}</p>
+                <p className="font-medium font-['Montserrat',Helvetica] text-white">{avatar.agent_bio || 'No bio'}</p>
               )}
             </div>
             <div>
-              <p className="text-gray-600">Prompt:</p>
+              <p className="text-gray-400 font-['Montserrat',Helvetica]">Prompt:</p>
               {isEditing ? (
                 <textarea
                   value={formData.prompt}
                   onChange={(e) => handleInputChange('prompt', e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded font-['Montserrat',Helvetica] text-white bg-gray-800"
                   rows={3}
                 />
               ) : (
-                <p className="font-medium">{avatar.prompt || 'No prompt'}</p>
+                <p className="font-medium font-['Montserrat',Helvetica] text-white">{avatar.prompt || 'No prompt'}</p>
               )}
             </div>
             <div>
-              <p className="text-gray-600">Scene Prompt:</p>
+              <p className="text-gray-400 font-['Montserrat',Helvetica]">Scene Prompt:</p>
               {isEditing ? (
                 <textarea
                   value={formData.scene_prompt}
                   onChange={(e) => handleInputChange('scene_prompt', e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded font-['Montserrat',Helvetica] text-white bg-gray-800"
                   rows={3}
                 />
               ) : (
-                <p className="font-medium">{avatar.scene_prompt || 'No scene prompt'}</p>
+                <p className="font-medium font-['Montserrat',Helvetica] text-white">{avatar.scene_prompt || 'No scene prompt'}</p>
               )}
             </div>
           </div>
 
           <div className="mt-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Voice</h2>
+              <h2 className="text-lg font-semibold font-['Montserrat',Helvetica] text-white">Voice</h2>
               {!isEditingVoice ? (
                 <button 
                   onClick={() => setIsEditingVoice(true)}
-                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 font-['Montserrat',Helvetica]"
                 >
                   Edit
                 </button>
@@ -220,13 +220,13 @@ export default function EditAvatarPage({
                 <div className="flex gap-2">
                   <button 
                     onClick={handleSave}
-                    className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                    className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 font-['Montserrat',Helvetica]"
                   >
                     Save
                   </button>
                   <button 
                     onClick={() => setIsEditingVoice(false)}
-                    className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                    className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 font-['Montserrat',Helvetica]"
                   >
                     Cancel
                   </button>
@@ -234,32 +234,32 @@ export default function EditAvatarPage({
               )}
             </div>
             <div className="mt-2">
-              <p className="text-gray-600">Voice ID:</p>
+              <p className="text-gray-400 font-['Montserrat',Helvetica]">Voice ID:</p>
               {isEditingVoice ? (
                 <input
                   type="text"
                   value={formData.voice_id}
                   onChange={(e) => handleInputChange('voice_id', e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded font-['Montserrat',Helvetica] text-white bg-gray-800"
                   placeholder="Enter voice ID"
                 />
               ) : (
-                <p className="font-medium">{avatar.voice_id || 'No voice ID set'}</p>
+                <p className="font-medium font-['Montserrat',Helvetica] text-white">{avatar.voice_id || 'No voice ID set'}</p>
               )}
             </div>
           </div>
 
           <div className="mt-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Studio Edit</h2>
+              <h2 className="text-lg font-semibold font-['Montserrat',Helvetica] text-white">Studio Edit</h2>
               <a 
                 href={`/dashboard/avatar-studio/${avatarId}?avatar_uri=${encodeURIComponent(avatar.image_uri || '')}`}
-                className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600"
+                className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600 font-['Montserrat',Helvetica]"
               >
                 Open Studio
               </a>
             </div>
-            <p className="text-gray-600 mt-2">Edit your avatar in the studio environment</p>
+            <p className="text-gray-400 font-['Montserrat',Helvetica] mt-2">Edit your avatar in the studio environment</p>
           </div>
         </div>
       </div>
