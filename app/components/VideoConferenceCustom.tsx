@@ -27,6 +27,7 @@ export interface VideoConferenceProps extends React.HTMLAttributes<HTMLDivElemen
   chatMessageEncoder?: MessageEncoder;
   chatMessageDecoder?: MessageDecoder;
   SettingsComponent?: React.ComponentType;
+  hideControlBar?: boolean;
 }
 
 export function VideoConferenceCustom({
@@ -34,6 +35,7 @@ export function VideoConferenceCustom({
   chatMessageDecoder,
   chatMessageEncoder,
   SettingsComponent,
+  hideControlBar = false,
   ...props
 }: VideoConferenceProps) {
   const [widgetState, setWidgetState] = React.useState<WidgetState>({
@@ -108,9 +110,11 @@ export function VideoConferenceCustom({
           }}
         >
           <div className="lk-video-conference-inner" style={{ position: 'relative' }}>
-            <div style={controlBarStyle}>
-              <ControlBarCustom controls={{ chat: true, settings: !!SettingsComponent }} />
-            </div>
+            {!hideControlBar && (
+              <div style={controlBarStyle}>
+                <ControlBarCustom controls={{ chat: true, settings: !!SettingsComponent }} />
+              </div>
+            )}
             <div className="lk-grid-layout-wrapper">
               <GridLayout tracks={tracks}>
                 <ParticipantTileCustom ref={tileRef} />

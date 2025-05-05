@@ -82,6 +82,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
   const [isStreaming, setIsStreaming] = useState(false)
 
   // Expression state
+  const [isLoading, setIsLoading] = useState(true)
   const [videoFps, setVideoFps] = useState(0)
   const [audioFps, setAudioFps] = useState(0)
   const [status, setStatus] = useState('Ready')
@@ -174,6 +175,52 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       console.error('Error setting up LiveKit:', error)
       setStatus('Error - Connection Failed')
       addLog(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleStopStreaming = async () => {
+    try {
+      setStatus('Disconnecting...')
+      addLog('Stopping stream connection...')
+
+      if (room) {
+        await room.disconnect()
+        setRoom(null)
+      }
+
+      // Reset all states
+      setPreJoinChoices(undefined)
+      setConnectionDetails(undefined)
+      setHasConnected(false)
+      setIsStreaming(false)
+      setStatus('Ready')
+      setVideoFps(0)
+      setAudioFps(0)
+      setIsLoading(true)  // Set loading to true to lock controls
+
+      // Reset expression-related states
+      setExpValues(new Array(totalMaskSize).fill(0))
+      setDefaultExpValues(new Array(totalMaskSize).fill(0))
+      setExpressionInfo({
+        category: '',
+        name: '',
+        description: '',
+        transition_duration: 10,
+        speech_mouth_ratio: 0.15
+      })
+      setEditingTransitionDuration(10)
+      setEditingSpeechMouthRatio(0.15)
+      setIsDirty(false)
+      setIsAddingNewExpression(false)
+      setSelectedCategory('')
+      setSelectedExpression('')
+      setExpressionLibrary({})  // Reset the expression library
+
+      addLog('Stream disconnected successfully')
+    } catch (error) {
+      console.error('Error stopping stream:', error)
+      setStatus('Error - Disconnection Failed')
+      addLog(`Error stopping stream: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -361,6 +408,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
   
         console.log("Received expression library!!:", data.expressions);
         setExpressionLibrary(data.expressions); // async update, DON'T rely on it immediately
+        setIsLoading(false); // Set loading to false when initial data is received
         
         const categories = Object.keys(data.expressions).sort();
         if (categories.length > 0) {
@@ -608,7 +656,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
               <CustomPreJoin />
             </div>
           ) : (
-            <div data-lk-theme="default" style={{ height: '100%', width: '100%', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div data-lk-theme="default" style={{ height: '120%', width: '100%', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'scale(0.8)' }}>
               <LiveKitRoom
                 room={room}
                 token={connectionDetails.participantToken}
@@ -616,8 +664,10 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                 video={preJoinChoices.videoEnabled}
                 audio={preJoinChoices.audioEnabled}
               >
-                <div className="w-[500px] h-full">
-                  <VideoConferenceCustom />
+                <div className="w-full h-full">
+                  <VideoConferenceCustom 
+                    hideControlBar={true}
+                  />
                 </div>
               </LiveKitRoom>
             </div>
@@ -646,8 +696,13 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
             {isStreaming ? 'Streaming...' : 'Start Streaming'}
           </button>
           <button
-            onClick={() => {}}
-            className="flex-1 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+            onClick={handleStopStreaming}
+            disabled={!isStreaming}
+            className={`flex-1 px-4 py-2 rounded transition-colors ${
+              !isStreaming 
+                ? 'bg-gray-500 text-white cursor-not-allowed' 
+                : 'bg-red-500 text-white hover:bg-red-600'
+            }`}
           >
             Stop Streaming
           </button>
@@ -683,8 +738,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                       key={category}
                       className={`p-2 cursor-pointer hover:bg-gray-100 ${
                         selectedCategory === category ? 'bg-green-100' : ''
-                      }`}
-                      onClick={() => handleCategorySelect(category)}
+                      } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => !isLoading && handleCategorySelect(category)}
                     >
                       {category}
                     </li>
@@ -700,8 +755,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                         key={expressionName}
                         className={`p-2 cursor-pointer hover:bg-gray-100 ${
                           selectedExpression === expressionName ? 'bg-green-100' : ''
-                        }`}
-                        onClick={() => handleExpressionSelect(selectedCategory, expressionName)}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={() => !isLoading && handleExpressionSelect(selectedCategory, expressionName)}
                       >
                         {expressionName}
                       </li>
@@ -718,14 +773,16 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
               <div className="flex gap-2">
                 <button
                   onClick={addNewExpression}
-                  className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
+                  className={`bg-blue-500 text-white px-3 py-1 rounded text-sm ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={isLoading}
                 >
                   Add New
                 </button>
                 <button
                   onClick={deleteExpression}
-                  className="bg-red-500 text-white px-3 py-1 rounded text-sm"
+                  className={`bg-red-500 text-white px-3 py-1 rounded text-sm ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   style={{ display: selectedCategory && selectedExpression ? 'block' : 'none' }}
+                  disabled={isLoading}
                 >
                   Delete Expression
                 </button>
@@ -741,8 +798,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                       id="expCategoryInput"
                       value={expressionInfo.category}
                       onChange={(e) => setExpressionInfo(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full p-2 border rounded"
-                      disabled={!isAddingNewExpression}
+                      className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={!isAddingNewExpression || isLoading}
                     />
                   </div>
                   <div className="flex-1">
@@ -752,8 +809,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                       id="expNameInput"
                       value={expressionInfo.name}
                       onChange={(e) => setExpressionInfo(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full p-2 border rounded"
-                      disabled={!isAddingNewExpression}
+                      className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={!isAddingNewExpression || isLoading}
                     />
                   </div>
                 </div>
@@ -763,9 +820,9 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                     id="expDescriptionInput"
                     value={expressionInfo.description}
                     onChange={(e) => setExpressionInfo(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full p-2 border rounded"
+                    className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     rows={1}
-                    disabled={!isAddingNewExpression}
+                    disabled={!isAddingNewExpression || isLoading}
                   />
                 </div>
                 <div className="flex gap-4">
@@ -778,7 +835,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                       max="30"
                       value={editingTransitionDuration}
                       onChange={(e) => setEditingTransitionDuration(Number(e.target.value))}
-                      className="w-full p-2 border rounded"
+                      className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="flex-1">
@@ -791,7 +849,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                       step="0.01"
                       value={editingSpeechMouthRatio}
                       onChange={(e) => setEditingSpeechMouthRatio(Number(e.target.value))}
-                      className="w-full p-2 border rounded"
+                      className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -809,7 +868,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
               setExpValues(new Array(totalMaskSize).fill(0))
               setIsDirty(true)
             }}
-            className="mb-4 bg-gray-500 text-white px-3 py-1 rounded text-sm"
+            className={`mb-4 bg-gray-500 text-white px-3 py-1 rounded text-sm ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={isLoading}
           >
             Load Default
           </button>
@@ -826,7 +886,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                   step="0.01"
                   value={value}
                   onChange={(e) => handleExpressionChange(index, Number(e.target.value))}
-                  className="w-full"
+                  className={`w-full ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={isLoading}
                 />
                 <div className="text-sm text-gray-600 text-center">
                   Value: {value.toFixed(3)}
@@ -838,14 +899,16 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
             <button
               id="resetExpButton"
               onClick={resetExpression}
-              className="flex-1 bg-gray-500 text-white px-4 py-2 rounded"
+              className={`flex-1 bg-gray-500 text-white px-4 py-2 rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={isLoading}
             >
               Discard Changes
             </button>
             <button
               id="saveExpButton"
               onClick={saveExpression}
-              className="flex-1 bg-green-500 text-white px-4 py-2 rounded"
+              className={`flex-1 bg-green-500 text-white px-4 py-2 rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={isLoading}
             >
               Save Expression Changes
             </button>

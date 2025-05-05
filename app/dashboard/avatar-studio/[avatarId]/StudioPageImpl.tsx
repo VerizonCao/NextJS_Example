@@ -181,6 +181,7 @@ function RoomContent(props: {
         <VideoConferenceCustom
           chatMessageFormatter={formatChatMessageLinks}
           SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
+          hideControlBar={true}
         />
       ) : (
         <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
