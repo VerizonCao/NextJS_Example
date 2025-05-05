@@ -645,276 +645,266 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
   };
 
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-4 h-screen p-4">
       {/* Left Panel - Video Stream */}
-      <div className="w-[33.33%] bg-white rounded-lg shadow p-4 flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Live Stream</h2>
-        <div className="w-full aspect-square bg-black rounded overflow-hidden">
-          {!isStreaming ? (
-            <div className="w-full h-full flex items-center justify-center bg-black">
-              <div className="text-white text-lg">Click Start Streaming to begin</div>
-            </div>
-          ) : !preJoinChoices || !room || !connectionDetails ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <CustomPreJoin />
-            </div>
-          ) : (
-            <div data-lk-theme="default" style={{ height: '140%', width: '100%', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'scale(0.7) translateY(-15%)' }}>
-              <LiveKitRoom
-                room={room}
-                token={connectionDetails.participantToken}
-                serverUrl={connectionDetails.serverUrl}
-                video={preJoinChoices.videoEnabled}
-                audio={preJoinChoices.audioEnabled}
-              >
-                <div className="w-full h-full">
-                  <VideoConferenceCustom 
-                    hideControlBar={true}
-                  />
-                </div>
-              </LiveKitRoom>
-            </div>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-2 rounded text-center">
-            <div className="text-sm text-gray-600">Video FPS</div>
-            <div className="text-lg font-medium">{videoFps.toFixed(1)}</div>
+      <div className="w-[33.33%] bg-black/40 rounded-lg shadow flex flex-col">
+        <div className="flex-1 p-2 flex flex-col">
+          <div className="w-[80%] mx-auto aspect-[9/16] bg-black rounded overflow-hidden">
+            {!isStreaming ? (
+              <div className="w-full h-full flex items-center justify-center bg-black">
+                <div className="text-white text-lg">Click Start Streaming to begin</div>
+              </div>
+            ) : !preJoinChoices || !room || !connectionDetails ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <CustomPreJoin />
+              </div>
+            ) : (
+              <div data-lk-theme="default" style={{ height: '100%', width: '100%', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <LiveKitRoom
+                  room={room}
+                  token={connectionDetails.participantToken}
+                  serverUrl={connectionDetails.serverUrl}
+                  video={preJoinChoices.videoEnabled}
+                  audio={preJoinChoices.audioEnabled}
+                >
+                  <div className="w-full h-full">
+                    <VideoConferenceCustom 
+                      hideControlBar={true}
+                    />
+                  </div>
+                </LiveKitRoom>
+              </div>
+            )}
           </div>
-          <div className="bg-gray-50 p-2 rounded text-center">
-            <div className="text-sm text-gray-600">Audio FPS</div>
-            <div className="text-lg font-medium">{audioFps.toFixed(1)}</div>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={handleStartStreaming}
+              disabled={isStreaming}
+              className={`flex-1 px-4 py-2 rounded transition-colors ${
+                isStreaming 
+                  ? 'bg-black/60 text-gray-300 cursor-not-allowed' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {isStreaming ? 'Streaming...' : 'Start Streaming'}
+            </button>
+            <button
+              onClick={handleStopStreaming}
+              disabled={!isStreaming}
+              className={`flex-1 px-4 py-2 rounded transition-colors ${
+                !isStreaming 
+                  ? 'bg-black/60 text-gray-300 cursor-not-allowed' 
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
+            >
+              Stop Streaming
+            </button>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleStartStreaming}
-            disabled={isStreaming}
-            className={`flex-1 px-4 py-2 rounded transition-colors ${
-              isStreaming 
-                ? 'bg-gray-500 text-white cursor-not-allowed' 
-                : 'bg-blue-500 text-white hover:bg-blue-600'
-            }`}
-          >
-            {isStreaming ? 'Streaming...' : 'Start Streaming'}
-          </button>
-          <button
-            onClick={handleStopStreaming}
-            disabled={!isStreaming}
-            className={`flex-1 px-4 py-2 rounded transition-colors ${
-              !isStreaming 
-                ? 'bg-gray-500 text-white cursor-not-allowed' 
-                : 'bg-red-500 text-white hover:bg-red-600'
-            }`}
-          >
-            Stop Streaming
-          </button>
-        </div>
-        <div className="bg-gray-50 p-2 rounded">
-          <div className="text-sm font-medium">Status: {status}</div>
-        </div>
-        <div
-          ref={logsRef}
-          className="flex-1 bg-gray-50 rounded p-2 overflow-y-auto font-mono text-sm"
-        >
-          {logs.map((log, index) => (
-            <p key={index}>{log}</p>
-          ))}
+          <div className="bg-black/40 p-2 rounded">
+            <div className="text-sm font-medium text-gray-200">Status: {status}</div>
+          </div>
         </div>
       </div>
 
       {/* Right Panel - Expression Editor */}
-      <div className="flex-1 bg-white rounded-lg shadow p-4 flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Expression Editor</h2>
-        
-        {/* Top Row - Expression Browser and Info */}
-        <div className="flex gap-4 mb-4">
-          {/* Left Column - Expression Library */}
-          <div className="flex-1">
-            <h3 className="text-lg font-medium mb-2">Expression library</h3>
-            <div className="border rounded-lg overflow-hidden flex h-[250px]">
-              <div className="flex-1 border-r bg-gray-50 overflow-y-auto">
-                <h3 className="p-2 bg-gray-100 border-b">Categories</h3>
-                <ul className="list-none p-0 m-0">
-                  {Object.keys(expressionLibrary).map((category) => (
-                    <li
-                      key={category}
-                      className={`p-2 cursor-pointer hover:bg-gray-100 ${
-                        selectedCategory === category ? 'bg-green-100' : ''
-                      } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      onClick={() => !isLoading && handleCategorySelect(category)}
-                    >
-                      {category}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="flex-2 overflow-y-auto">
-                <h3 className="p-2 bg-gray-100 border-b">Expressions</h3>
-                <ul className="list-none p-0 m-0">
-                  {selectedCategory && expressionLibrary[selectedCategory] && 
-                    Object.keys(expressionLibrary[selectedCategory]).map((expressionName) => (
+      <div className="flex-1 bg-black/40 rounded-lg shadow flex flex-col">
+        <div className="p-4 border-b border-white/10">
+          <h2 className="text-xl font-semibold text-white">Expression Editor</h2>
+        </div>
+        <div className="flex-1 p-4 flex flex-col gap-4 overflow-hidden">
+          {/* Top Row - Expression Browser and Info */}
+          <div className="flex gap-4">
+            {/* Left Column - Expression Library */}
+            <div className="flex-1">
+              <h3 className="text-lg font-medium mb-2 text-white">Expression library</h3>
+              <div className="border border-white/10 rounded-lg overflow-hidden flex h-[200px]">
+                <div className="flex-1 border-r border-white/10 bg-black/40 overflow-y-auto">
+                  <h3 className="p-2 bg-black/60 border-b border-white/10 text-white">Categories</h3>
+                  <ul className="list-none p-0 m-0">
+                    {Object.keys(expressionLibrary).map((category) => (
                       <li
-                        key={expressionName}
-                        className={`p-2 cursor-pointer hover:bg-gray-100 ${
-                          selectedExpression === expressionName ? 'bg-green-100' : ''
+                        key={category}
+                        className={`p-2 cursor-pointer hover:bg-black/60 text-gray-200 ${
+                          selectedCategory === category ? 'bg-blue-900/50' : ''
                         } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={() => !isLoading && handleExpressionSelect(selectedCategory, expressionName)}
+                        onClick={() => !isLoading && handleCategorySelect(category)}
                       >
-                        {expressionName}
+                        {category}
                       </li>
                     ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Expression Info */}
-          <div className="flex-1">
-            <div className="flex justify-between items-center mb-2">
-              <h3 id="expressionInfoHeading" className="text-lg font-medium">Expression Info</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={addNewExpression}
-                  className={`bg-blue-500 text-white px-3 py-1 rounded text-sm ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={isLoading}
-                >
-                  Add New
-                </button>
-                <button
-                  onClick={deleteExpression}
-                  className={`bg-red-500 text-white px-3 py-1 rounded text-sm ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  style={{ display: selectedCategory && selectedExpression ? 'block' : 'none' }}
-                  disabled={isLoading}
-                >
-                  Delete Expression
-                </button>
-              </div>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex flex-col gap-3">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium mb-1">Category:</label>
-                    <input
-                      type="text"
-                      id="expCategoryInput"
-                      value={expressionInfo.category}
-                      onChange={(e) => setExpressionInfo(prev => ({ ...prev, category: e.target.value }))}
-                      className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      disabled={!isAddingNewExpression || isLoading}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium mb-1">Name:</label>
-                    <input
-                      type="text"
-                      id="expNameInput"
-                      value={expressionInfo.name}
-                      onChange={(e) => setExpressionInfo(prev => ({ ...prev, name: e.target.value }))}
-                      className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      disabled={!isAddingNewExpression || isLoading}
-                    />
-                  </div>
+                  </ul>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Description:</label>
-                  <textarea
-                    id="expDescriptionInput"
-                    value={expressionInfo.description}
-                    onChange={(e) => setExpressionInfo(prev => ({ ...prev, description: e.target.value }))}
-                    className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    rows={1}
+                <div className="flex-2 overflow-y-auto">
+                  <h3 className="p-2 bg-black/60 border-b border-white/10 text-white">Expressions</h3>
+                  <ul className="list-none p-0 m-0">
+                    {selectedCategory && expressionLibrary[selectedCategory] && 
+                      Object.keys(expressionLibrary[selectedCategory]).map((expressionName) => (
+                        <li
+                          key={expressionName}
+                          className={`p-2 cursor-pointer hover:bg-black/60 text-gray-200 ${
+                            selectedExpression === expressionName ? 'bg-blue-900/50' : ''
+                          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => !isLoading && handleExpressionSelect(selectedCategory, expressionName)}
+                        >
+                          {expressionName}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Expression Info */}
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-2">
+                <h3 id="expressionInfoHeading" className="text-lg font-medium text-white">Expression Info</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={addNewExpression}
+                    className={`bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={isLoading}
-                  />
+                  >
+                    Add New
+                  </button>
+                  <button
+                    onClick={deleteExpression}
+                    className={`bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    style={{ display: selectedCategory && selectedExpression ? 'block' : 'none' }}
+                    disabled={isLoading}
+                  >
+                    Delete Expression
+                  </button>
                 </div>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium mb-1">Transition Duration (1-30):</label>
-                    <input
-                      type="number"
-                      id="expTransitionDuration"
-                      min="1"
-                      max="30"
-                      value={editingTransitionDuration}
-                      onChange={(e) => setEditingTransitionDuration(Number(e.target.value))}
-                      className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              </div>
+              <div className="bg-black/40 p-4 rounded-lg">
+                <div className="flex flex-col gap-3">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium mb-1 text-gray-200">Category:</label>
+                      <input
+                        type="text"
+                        id="expCategoryInput"
+                        value={expressionInfo.category}
+                        onChange={(e) => setExpressionInfo(prev => ({ ...prev, category: e.target.value }))}
+                        className={`w-full p-2 border border-white/10 rounded bg-black/60 text-white ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={!isAddingNewExpression || isLoading}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium mb-1 text-gray-200">Name:</label>
+                      <input
+                        type="text"
+                        id="expNameInput"
+                        value={expressionInfo.name}
+                        onChange={(e) => setExpressionInfo(prev => ({ ...prev, name: e.target.value }))}
+                        className={`w-full p-2 border border-white/10 rounded bg-black/60 text-white ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={!isAddingNewExpression || isLoading}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-200">Description:</label>
+                    <textarea
+                      id="expDescriptionInput"
+                      value={expressionInfo.description}
+                      onChange={(e) => setExpressionInfo(prev => ({ ...prev, description: e.target.value }))}
+                      className={`w-full p-2 border border-white/10 rounded bg-black/60 text-white ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      rows={1}
                       disabled={isLoading}
                     />
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium mb-1">Speech Mouth Ratio (0.05-0.3):</label>
-                    <input
-                      type="number"
-                      id="expSpeechMouthRatio"
-                      min="0.05"
-                      max="0.3"
-                      step="0.01"
-                      value={editingSpeechMouthRatio}
-                      onChange={(e) => setEditingSpeechMouthRatio(Number(e.target.value))}
-                      className={`w-full p-2 border rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      disabled={isLoading}
-                    />
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium mb-1 text-gray-200">Transition Duration (1-30):</label>
+                      <input
+                        type="number"
+                        id="expTransitionDuration"
+                        min="1"
+                        max="30"
+                        value={editingTransitionDuration}
+                        onChange={(e) => setEditingTransitionDuration(Number(e.target.value))}
+                        className={`w-full p-2 border border-white/10 rounded bg-black/60 text-white ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium mb-1 text-gray-200">Speech Mouth Ratio (0.05-0.3):</label>
+                      <input
+                        type="number"
+                        id="expSpeechMouthRatio"
+                        min="0.05"
+                        max="0.3"
+                        step="0.01"
+                        value={editingSpeechMouthRatio}
+                        onChange={(e) => setEditingSpeechMouthRatio(Number(e.target.value))}
+                        className={`w-full p-2 border border-white/10 rounded bg-black/60 text-white ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={isLoading}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Expression Controls */}
-        <div>
-          <h3 className="text-lg font-medium mb-2">Expression Controls</h3>
-          <button
-            id="loadDefaultExpButton"
-            onClick={() => {
-              setExpValues(new Array(totalMaskSize).fill(0))
-              setIsDirty(true)
-            }}
-            className={`mb-4 bg-gray-500 text-white px-3 py-1 rounded text-sm ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={isLoading}
-          >
-            Load Default
-          </button>
-          <div className="grid grid-cols-2 gap-4">
-            {expValues.map((value, index) => (
-              <div key={index} className="bg-gray-50 p-3 rounded">
-                <label className="block text-sm font-medium mb-1">
-                  {index < latentDescription.length ? latentDescription[index] : `Param ${index}`}
-                </label>
-                <input
-                  type="range"
-                  min="-1"
-                  max="1"
-                  step="0.01"
-                  value={value}
-                  onChange={(e) => handleExpressionChange(index, Number(e.target.value))}
-                  className={`w-full ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={isLoading}
-                />
-                <div className="text-sm text-gray-600 text-center">
-                  Value: {value.toFixed(3)}
-                </div>
+          {/* Expression Controls */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-medium text-white">Expression Controls</h3>
+              <button
+                id="loadDefaultExpButton"
+                onClick={() => {
+                  setExpValues(new Array(totalMaskSize).fill(0))
+                  setIsDirty(true)
+                }}
+                className={`bg-black/60 text-white px-3 py-1 rounded text-sm hover:bg-black/80 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isLoading}
+              >
+                Load Default
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 550px)' }}>
+              <div className="grid grid-cols-2 gap-4">
+                {expValues.map((value, index) => (
+                  <div key={index} className="bg-black/40 p-3 rounded">
+                    <label className="block text-sm font-medium mb-1 text-gray-200">
+                      {index < latentDescription.length ? latentDescription[index] : `Param ${index}`}
+                    </label>
+                    <input
+                      type="range"
+                      min="-1"
+                      max="1"
+                      step="0.01"
+                      value={value}
+                      onChange={(e) => handleExpressionChange(index, Number(e.target.value))}
+                      className={`w-full ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={isLoading}
+                    />
+                    <div className="text-sm text-gray-400 text-center">
+                      Value: {value.toFixed(3)}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="flex gap-2 mt-4">
-            <button
-              id="resetExpButton"
-              onClick={resetExpression}
-              className={`flex-1 bg-gray-500 text-white px-4 py-2 rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={isLoading}
-            >
-              Discard Changes
-            </button>
-            <button
-              id="saveExpButton"
-              onClick={saveExpression}
-              className={`flex-1 bg-green-500 text-white px-4 py-2 rounded ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={isLoading}
-            >
-              Save Expression Changes
-            </button>
+            </div>
+            <div className="flex gap-2 mt-4 pt-2 border-t border-white/10">
+              <button
+                id="resetExpButton"
+                onClick={resetExpression}
+                className={`flex-1 bg-black/60 text-white px-4 py-2 rounded hover:bg-black/80 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isLoading}
+              >
+                Discard Changes
+              </button>
+              <button
+                id="saveExpButton"
+                onClick={saveExpression}
+                className={`flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isLoading}
+              >
+                Save Expression Changes
+              </button>
+            </div>
           </div>
         </div>
       </div>
