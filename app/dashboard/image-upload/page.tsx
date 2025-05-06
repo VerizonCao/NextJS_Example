@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { saveAvatarData, generatePresignedUrl } from '@/app/lib/actions';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Cropper, { Area, Point } from 'react-easy-crop';
 
 interface VoiceSample {
   id: string;
@@ -14,6 +15,10 @@ interface VoiceSample {
 export default function ImageUploadPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
   const [scenePrompt, setScenePrompt] = useState('');
   const [bio, setBio] = useState('');
@@ -25,6 +30,7 @@ export default function ImageUploadPage() {
   const [duration, setDuration] = useState<number>(0);
   const [showVoiceSection, setShowVoiceSection] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [rotation, setRotation] = useState(0);
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -88,14 +94,59 @@ export default function ImageUploadPage() {
     });
   };
 
+  const onCropComplete = useCallback(async (croppedArea: Area, croppedAreaPixels: Area) => {
+    if (!selectedImage) return;
+
+    try {
+      const canvas = document.createElement('canvas');
+      const image = document.createElement('img');
+      image.src = URL.createObjectURL(selectedImage);
+      
+      await new Promise<void>((resolve) => {
+        image.onload = () => resolve();
+      });
+
+      const scaleX = image.naturalWidth / image.width;
+      const scaleY = image.naturalHeight / image.height;
+
+      canvas.width = croppedAreaPixels.width;
+      canvas.height = croppedAreaPixels.height;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) return;
+
+      ctx.drawImage(
+        image,
+        croppedAreaPixels.x * scaleX,
+        croppedAreaPixels.y * scaleY,
+        croppedAreaPixels.width * scaleX,
+        croppedAreaPixels.height * scaleY,
+        0,
+        0,
+        croppedAreaPixels.width,
+        croppedAreaPixels.height
+      );
+
+      const croppedImageUrl = canvas.toDataURL('image/jpeg');
+      setCroppedImage(croppedImageUrl);
+    } catch (e) {
+      console.error('Error cropping image:', e);
+    }
+  }, [selectedImage]);
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedImage(file);
-      
-      // Create a preview URL for the selected image
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+      setShowCropper(true);
+      setCroppedImage(null);
+    }
+  };
+
+  const handleApplyCrop = () => {
+    setShowCropper(false);
+    if (croppedImage) {
+      setPreviewUrl(croppedImage);
     }
   };
 
@@ -189,7 +240,85 @@ export default function ImageUploadPage() {
         />
       </div>
 
-      {previewUrl && (
+      {showCropper && selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
+          <div className="bg-gray-900 p-4 rounded-lg w-[90vw] h-[90vh] flex flex-col">
+            <div className="relative w-full h-[80vh]">
+              <Cropper
+                image={URL.createObjectURL(selectedImage)}
+                crop={crop}
+                zoom={zoom}
+                rotation={rotation}
+                aspect={9/16}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+                onRotationChange={setRotation}
+                minZoom={0.5}
+                maxZoom={3}
+                objectFit="contain"
+                showGrid={true}
+                restrictPosition={false}
+                style={{
+                  containerStyle: {
+                    backgroundColor: 'black',
+                  },
+                  mediaStyle: {
+                    backgroundColor: 'black',
+                  },
+                  cropAreaStyle: {
+                    border: '2px solid white',
+                  },
+                }}
+              />
+            </div>
+            <div className="mt-4 flex justify-between items-center">
+              <div className="flex items-center space-x-4">
+                <label className="text-white">
+                  Zoom:
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="3"
+                    step="0.1"
+                    value={zoom}
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="ml-2 w-32"
+                  />
+                </label>
+                <label className="text-white">
+                  Rotation:
+                  <input
+                    type="range"
+                    min="0"
+                    max="360"
+                    step="1"
+                    value={rotation}
+                    onChange={(e) => setRotation(Number(e.target.value))}
+                    className="ml-2 w-32"
+                  />
+                </label>
+              </div>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setShowCropper(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApplyCrop}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewUrl && !showCropper && (
         <div className="mt-4">
           <p className="mb-2 text-white font-['Montserrat',Helvetica]">Selected image:</p>
           <div className="relative max-w-md border border-gray-300 rounded overflow-hidden">
