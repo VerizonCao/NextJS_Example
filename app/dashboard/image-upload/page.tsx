@@ -323,7 +323,7 @@ export default function ImageUploadPage() {
 
                       {field.type === "input" ? (
                         <CustomInput
-                          className="h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-[#535a65] text-xs"
+                          className="h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65]"
                           placeholder={
                             field.id === "character-name"
                               ? "Enter the name for your character"
@@ -341,7 +341,7 @@ export default function ImageUploadPage() {
                       ) : (
                         <CustomTextarea
                           height={field.height}
-                          className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-[#535a65] text-xs"
+                          className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65]"
                           placeholder={
                             field.id === "description"
                               ? "In a third person perspective, how would your character describe themselves?"

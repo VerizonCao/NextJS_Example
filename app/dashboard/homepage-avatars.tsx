@@ -145,7 +145,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
                         {avatar.avatar_name}
                       </div>
                       <div className="relative self-stretch font-['Montserrat',Helvetica] font-normal text-white text-[0.5vw] tracking-[0] leading-[normal]">
-                        {avatar.prompt}
+                        {avatar.agent_bio}
                       </div>
                     </div>
                   </div>
