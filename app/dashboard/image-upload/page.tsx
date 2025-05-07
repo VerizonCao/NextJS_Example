@@ -509,20 +509,8 @@ export default function ImageUploadPage() {
                       value={zoom}
                       min={0.5}
                       max={3}
-                      step={0.1}
+                      step={0.03}
                       onChange={(e) => setZoom(Number(e.target.value))}
-                      className="w-full h-2 bg-[#5856d6] rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">Rotation:</span>
-                    <input
-                      type="range"
-                      value={rotation}
-                      min={0}
-                      max={360}
-                      step={1}
-                      onChange={(e) => setRotation(Number(e.target.value))}
                       className="w-full h-2 bg-[#5856d6] rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
