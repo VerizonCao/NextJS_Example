@@ -420,7 +420,11 @@ export default function ImageUploadPage() {
             <div className="flex items-center justify-between w-full">
               <Button
                 variant="ghost"
-                className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] text-white hover:bg-[#2a2a2e]"
+                className={`inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] ${
+                  currentStep === 1 
+                    ? "bg-[#5856d6] hover:bg-[#3c34b5] text-white" 
+                    : "text-white hover:bg-[#2a2a2e]"
+                }`}
                 onClick={currentStep === 1 ? () => setShowCropper(true) : handlePrevious}
                 disabled={currentStep === 1 && !selectedImage}
               >
@@ -499,6 +503,33 @@ export default function ImageUploadPage() {
                       },
                     }}
                   />
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-sm">Zoom:</span>
+                    <input
+                      type="range"
+                      value={zoom}
+                      min={0.5}
+                      max={3}
+                      step={0.1}
+                      onChange={(e) => setZoom(Number(e.target.value))}
+                      className="w-full h-2 bg-[#5856d6] rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-sm">Rotation:</span>
+                    <input
+                      type="range"
+                      value={rotation}
+                      min={0}
+                      max={360}
+                      step={1}
+                      onChange={(e) => setRotation(Number(e.target.value))}
+                      className="w-full h-2 bg-[#5856d6] rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-center gap-4">
