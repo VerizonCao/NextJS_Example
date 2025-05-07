@@ -420,11 +420,7 @@ export default function ImageUploadPage() {
             <div className="flex items-center justify-between w-full">
               <Button
                 variant="ghost"
-                className={`inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] ${
-                  currentStep === 1 
-                    ? "bg-[#5856d6] hover:bg-[#3c34b5] text-white" 
-                    : "text-white hover:bg-[#2a2a2e]"
-                }`}
+                className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] text-white hover:bg-[#2a2a2e]"
                 onClick={currentStep === 1 ? () => setShowCropper(true) : handlePrevious}
                 disabled={currentStep === 1 && !selectedImage}
               >
