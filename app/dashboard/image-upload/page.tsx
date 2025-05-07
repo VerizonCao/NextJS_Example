@@ -188,7 +188,7 @@ export default function ImageUploadPage() {
   };
 
   const handleGenerateAvatar = async () => {
-    if (selectedImage && prompt && name && selectedVoice && bio && scenePrompt) {
+    if (selectedImage && prompt && name && selectedVoice && bio) {
       try {
         // Create a unique key for the image using the name and timestamp
         const timestamp = new Date().getTime();
@@ -225,7 +225,7 @@ export default function ImageUploadPage() {
             const result = await saveAvatarData({
               avatar_name: name,
               prompt: prompt,
-              scene_prompt: scenePrompt,
+              scene_prompt: scenePrompt || undefined,
               agent_bio: bio,
               owner_email: owner_email,
               image_uri: key,
