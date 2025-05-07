@@ -240,8 +240,8 @@ export async function loadUserAvatars(userEmail: string): Promise<{
     // Load all avatars for this user
     const avatars = await loadAvatarsByOwner(userId);
     
-    // Limit to only 10 avatars
-    const limitedAvatars = avatars.slice(0, 10);
+    // Limit to only 20 avatars
+    const limitedAvatars = avatars.slice(0, 20);
     
     return { 
       success: true, 
