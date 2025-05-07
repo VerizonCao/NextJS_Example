@@ -1,11 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { saveAvatarData, generatePresignedUrl } from '@/app/lib/actions';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Cropper, { Area, Point } from 'react-easy-crop';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import DragDropImageUpload from '@/app/components/DragDropImageUpload';
+import { CustomInput } from '@/app/components/ui/custom-input';
+import { CustomTextarea } from '@/app/components/ui/custom-textarea';
+import { X, CheckCircle } from 'lucide-react';
 
 interface VoiceSample {
   id: string;
@@ -33,6 +40,30 @@ export default function ImageUploadPage() {
   const [rotation, setRotation] = useState(0);
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+
+  // Data for the tabs
+  const tabs = [
+    { id: "step-1", label: "1. Create Image" },
+    { id: "step-2", label: "2. Edit Profile" },
+    { id: "step-3", label: "3. Choose Voice" },
+  ];
+
+  // Form fields data
+  const formFields = [
+    { id: "character-name", label: "Character Name", type: "input", wordLimit: 20 },
+    { id: "tagline", label: "Tagline", type: "input", wordLimit: 50 },
+    {
+      id: "description",
+      label: "Description",
+      type: "textarea",
+      height: "h-[177px]",
+      wordLimit: 500,
+    },
+    { id: "scene", label: "Scene", type: "textarea", height: "h-[190px]", wordLimit: 500 },
+  ] as const;
 
   useEffect(() => {
     // Load local audio samples
@@ -58,11 +89,18 @@ export default function ImageUploadPage() {
   }, []);
 
   const handlePlayAudio = (voiceId: string) => {
+    // Stop any currently playing audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+
     setIsPlaying(voiceId);
     const voice = voices.find(v => v.id === voiceId);
     if (!voice) return;
     
     const audio = new Audio(voice.audioUrl);
+    setCurrentAudio(audio);
     
     audio.onloadedmetadata = () => {
       setDuration(audio.duration);
@@ -75,23 +113,31 @@ export default function ImageUploadPage() {
     audio.onended = () => {
       setIsPlaying(null);
       setCurrentTime(0);
+      setCurrentAudio(null);
     };
     
     audio.play().catch(error => {
       console.error('Error playing audio:', error);
       setIsPlaying(null);
       setCurrentTime(0);
+      setCurrentAudio(null);
     });
   };
 
   const handleStopAudio = () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+    }
     setIsPlaying(null);
     setCurrentTime(0);
-    // Stop all audio elements
-    document.querySelectorAll('audio').forEach(audio => {
-      audio.pause();
-      audio.currentTime = 0;
-    });
+  };
+
+  const handleImageUpload = (file: File) => {
+    setSelectedImage(file);
+    setShowCropper(true);
+    setCroppedImage(null);
   };
 
   const onCropComplete = useCallback(async (croppedArea: Area, croppedAreaPixels: Area) => {
@@ -133,15 +179,6 @@ export default function ImageUploadPage() {
       console.error('Error cropping image:', e);
     }
   }, [selectedImage]);
-
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      setShowCropper(true);
-      setCroppedImage(null);
-    }
-  };
 
   const handleApplyCrop = () => {
     setShowCropper(false);
@@ -218,264 +255,292 @@ export default function ImageUploadPage() {
   const isTextFieldsValid = prompt.trim() !== '' && scenePrompt.trim() !== '' && bio.trim() !== '' && name.trim() !== '';
   const isFormValid = selectedImage && isTextFieldsValid && selectedVoice !== '';
 
+  const isStep1Valid = selectedImage !== null;
+  const isStep2Valid = name.trim() !== '' && bio.trim() !== '' && prompt.trim() !== '';
+  const isStep3Valid = selectedVoice !== '';
+
+  const handleNext = () => {
+    if (currentStep === 1 && !isStep1Valid) {
+      return;
+    }
+    if (currentStep === 2 && !isStep2Valid) {
+      return;
+    }
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4 text-white font-['Montserrat',Helvetica]">Image Upload</h1>
+    <div className="bg-[#121214] min-h-screen">
+      <div className="max-w-[1920px] mx-auto px-10 py-6">
+        <div className="flex items-center justify-center gap-2 relative self-stretch w-full">
+          {/* Left Side - Drag and Drop Area */}
+          <DragDropImageUpload 
+            onImageUpload={handleImageUpload} 
+            croppedImageUrl={croppedImage}
+          />
 
-      {/* <audio controls src="/audio_samples/6f84f4b8-58a2-430c-8c79-688dad597532.wav" /> */}
-      
-      <div className="mb-4">
-        <label 
-          htmlFor="image-upload" 
-          className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded cursor-pointer inline-block font-['Montserrat',Helvetica]"
-        >
-          Choose Image
-        </label>
-        <input
-          id="image-upload"
-          type="file"
-          accept="image/png, image/jpeg"
-          onChange={handleImageChange}
-          className="hidden"
-        />
-      </div>
+          {/* Right Side - Form Section */}
+          <div className="flex flex-col w-[613.7px] h-[937.44px] items-center justify-between p-8 relative bg-[#1a1a1e] rounded-[4.72px]">
+            <div className="flex flex-col items-center gap-6 relative self-stretch w-full flex-[0_0_auto]">
+              {/* Custom Tabs */}
+              <div className="flex h-10 items-center gap-4 relative self-stretch w-full">
+                {tabs.map((tab) => (
+                  <div
+                    key={tab.id}
+                    className={`inline-flex items-center justify-center gap-2.5 relative self-stretch flex-[0_0_auto] ${
+                      tab.id === `step-${currentStep}`
+                        ? "border-b-2 border-[#5856d6]"
+                        : "border-b-2 border-transparent"
+                    }`}
+                  >
+                    <div
+                      className={`relative w-fit font-['Montserrat',Helvetica] font-medium text-sm tracking-[0] leading-6 whitespace-nowrap ${
+                        tab.id === `step-${currentStep}` ? "text-[#5856d6]" : "text-white"
+                      }`}
+                    >
+                      {tab.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-      {showCropper && selectedImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
-          <div className="bg-gray-900 p-4 rounded-lg w-[90vw] h-[90vh] flex flex-col">
-            <div className="relative w-full h-[80vh]">
-              <Cropper
-                image={URL.createObjectURL(selectedImage)}
-                crop={crop}
-                zoom={zoom}
-                rotation={rotation}
-                aspect={9/16}
-                onCropChange={setCrop}
-                onCropComplete={onCropComplete}
-                onZoomChange={setZoom}
-                onRotationChange={setRotation}
-                minZoom={0.5}
-                maxZoom={3}
-                objectFit="contain"
-                showGrid={true}
-                restrictPosition={false}
-                style={{
-                  containerStyle: {
-                    backgroundColor: 'black',
-                  },
-                  mediaStyle: {
-                    backgroundColor: 'black',
-                  },
-                  cropAreaStyle: {
-                    border: '2px solid white',
-                  },
-                }}
-              />
+              {/* Form Fields */}
+              {currentStep === 2 && (
+                <div className="flex flex-col items-start gap-2 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
+                  {formFields.map((field) => (
+                    <React.Fragment key={field.id}>
+                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">
+                        {field.label}
+                      </div>
+
+                      {field.type === "input" ? (
+                        <CustomInput
+                          className="h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-[#535a65] text-xs"
+                          placeholder={
+                            field.id === "character-name"
+                              ? "Enter the name for your character"
+                              : field.id === "tagline"
+                              ? "Give your character a quick catchphrase"
+                              : "Type a message..."
+                          }
+                          wordLimit={field.wordLimit}
+                          value={field.id === "character-name" ? name : field.id === "tagline" ? bio : ""}
+                          onChange={(e) => {
+                            if (field.id === "character-name") setName(e.target.value);
+                            else if (field.id === "tagline") setBio(e.target.value);
+                          }}
+                        />
+                      ) : (
+                        <CustomTextarea
+                          height={field.height}
+                          className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-[#535a65] text-xs"
+                          placeholder={
+                            field.id === "description"
+                              ? "In a third person perspective, how would your character describe themselves?"
+                              : field.id === "scene"
+                              ? "*Optional* Describe the starting scene of the story between your character and you."
+                              : "Type a message..."
+                          }
+                          wordLimit={field.wordLimit}
+                          value={field.id === "description" ? prompt : field.id === "scene" ? scenePrompt : ""}
+                          onChange={(e) => {
+                            if (field.id === "description") setPrompt(e.target.value);
+                            else if (field.id === "scene") setScenePrompt(e.target.value);
+                          }}
+                        />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+
+              {/* Voice Selection */}
+              {currentStep === 3 && (
+                <div className="flex flex-col items-start gap-4 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
+                  {voices.map((voice) => (
+                    <Button
+                      key={voice.id}
+                      variant="ghost"
+                      className={`flex items-center justify-between w-full rounded-xl py-5 px-4 h-12 transition-colors ${
+                        selectedVoice === voice.id
+                          ? "bg-[#2a2b30] border-2 border-[#5856d6]"
+                          : "bg-[#222327] hover:bg-[#2a2b30]"
+                      }`}
+                      onClick={() => setSelectedVoice(voice.id)}
+                    >
+                      <div className="flex items-center">
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isPlaying === voice.id) {
+                              handleStopAudio();
+                            } else {
+                              handlePlayAudio(voice.id);
+                            }
+                          }}
+                          className="text-[#5856d6] mr-4 hover:text-[#3c34b5] transition-colors cursor-pointer"
+                        >
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="24" 
+                            height="24" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="2" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            {isPlaying === voice.id ? (
+                              <rect x="6" y="4" width="12" height="16" />
+                            ) : (
+                              <polygon points="5 3 19 12 5 21 5 3" />
+                            )}
+                          </svg>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-white font-medium text-xs">Voice {voice.id}</p>
+                        </div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="mt-4 flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <label className="text-white">
-                  Zoom:
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="3"
-                    step="0.1"
-                    value={zoom}
-                    onChange={(e) => setZoom(Number(e.target.value))}
-                    className="ml-2 w-32"
-                  />
-                </label>
-                <label className="text-white">
-                  Rotation:
-                  <input
-                    type="range"
-                    min="0"
-                    max="360"
-                    step="1"
-                    value={rotation}
-                    onChange={(e) => setRotation(Number(e.target.value))}
-                    className="ml-2 w-32"
-                  />
-                </label>
-              </div>
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => setShowCropper(false)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+
+            {/* Previous and Next Buttons */}
+            <div className="flex items-center justify-between w-full">
+              <Button
+                variant="ghost"
+                className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] text-white hover:bg-[#2a2a2e]"
+                onClick={currentStep === 1 ? () => setShowCropper(true) : handlePrevious}
+                disabled={currentStep === 1 && !selectedImage}
+              >
+                <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
+                  {currentStep === 1 ? 'Edit' : 'Previous'}
+                </span>
+              </Button>
+              {currentStep === 3 ? (
+                <Button 
+                  className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] bg-[#5856d6] hover:bg-[#3c34b5] rounded-[10.8px] transition-colors duration-200"
+                  onClick={async () => {
+                    await handleGenerateAvatar();
+                    setShowSuccessPopup(true);
+                  }}
+                  disabled={!isStep3Valid}
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleApplyCrop}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
+                    Create Character
+                  </span>
+                </Button>
+              ) : (
+                <Button 
+                  className={`inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] transition-colors duration-200 ${
+                    (currentStep === 1 && isStep1Valid) || (currentStep === 2 && isStep2Valid)
+                      ? "bg-[#5856d6] hover:bg-[#3c34b5]"
+                      : "bg-[#5856d6]/50 cursor-not-allowed"
+                  }`}
+                  onClick={handleNext}
+                  disabled={(currentStep === 1 && !isStep1Valid) || (currentStep === 2 && !isStep2Valid)}
                 >
-                  Apply
-                </button>
-              </div>
+                  <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
+                    Next
+                  </span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Crop Modal */}
+      {showCropper && selectedImage && (
+        <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center">
+          <Card className="w-[90vw] max-w-[452px] bg-[#222327] border-none">
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-6">
+                <p className="text-sm text-white font-medium">
+                  Crop your image to 9:16 aspect ratio:
+                </p>
+
+                <div className="relative w-full aspect-[9/16] bg-[#1a1a1e] rounded-sm overflow-hidden">
+                  <Cropper
+                    image={URL.createObjectURL(selectedImage)}
+                    crop={crop}
+                    zoom={zoom}
+                    rotation={rotation}
+                    aspect={9/16}
+                    onCropChange={setCrop}
+                    onCropComplete={onCropComplete}
+                    onZoomChange={setZoom}
+                    onRotationChange={setRotation}
+                    minZoom={0.5}
+                    maxZoom={3}
+                    objectFit="contain"
+                    showGrid={true}
+                    restrictPosition={false}
+                    style={{
+                      containerStyle: {
+                        backgroundColor: '#1a1a1e',
+                      },
+                      mediaStyle: {
+                        backgroundColor: '#1a1a1e',
+                      },
+                      cropAreaStyle: {
+                        border: '2px solid white',
+                      },
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-center gap-4">
+                  <Button
+                    variant="ghost"
+                    className="text-white hover:bg-[#2a2a2e]"
+                    onClick={() => setShowCropper(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-[#5856d6] hover:bg-[#3c34b5] text-white"
+                    onClick={handleApplyCrop}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      {previewUrl && !showCropper && (
-        <div className="mt-4">
-          <p className="mb-2 text-white font-['Montserrat',Helvetica]">Selected image:</p>
-          <div className="relative max-w-md border border-gray-300 rounded overflow-hidden">
-            <Image 
-              src={previewUrl} 
-              alt="Preview" 
-              width={500}
-              height={500}
-              className="object-contain"
-            />
-          </div>
-          
-          <div className="mt-6 space-y-4">
-            <div>
-              <label htmlFor="prompt" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
-                Agent Prompt
-              </label>
-              <textarea
-                id="prompt"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Enter your prompt here..."
-                className="w-full p-2 border border-gray-300 rounded-md h-32 text-white font-['Montserrat',Helvetica] bg-transparent"
-                rows={4}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="scenePrompt" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
-                Scene Prompt
-              </label>
-              <textarea
-                id="scenePrompt"
-                value={scenePrompt}
-                onChange={(e) => setScenePrompt(e.target.value)}
-                placeholder="Describe the scene or environment..."
-                className="w-full p-2 border border-gray-300 rounded-md h-32 text-white font-['Montserrat',Helvetica] bg-transparent"
-                rows={4}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="bio" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
-                Agent Bio
-              </label>
-              <textarea
-                id="bio"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Enter a brief bio for your agent..."
-                className="w-full p-2 border border-gray-300 rounded-md h-24 text-white font-['Montserrat',Helvetica] bg-transparent"
-                rows={3}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
-                Agent Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter agent name..."
-                className="w-full p-2 border border-gray-300 rounded-md text-white font-['Montserrat',Helvetica] bg-transparent"
-              />
-            </div>
-
-            <div className="mt-4">
-              <button
-                onClick={() => setShowVoiceSection(true)}
-                disabled={!isTextFieldsValid}
-                className={`py-2 px-4 rounded font-medium ${
-                  isTextFieldsValid 
-                    ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                Add Voice
-              </button>
-            </div>
-
-            {showVoiceSection && (
-              <>
-                <div>
-                  <label htmlFor="voice" className="block text-sm font-medium text-white mb-1 font-['Montserrat',Helvetica]">
-                    Select Voice
-                  </label>
-                  <div className="grid grid-cols-2 gap-4">
-                    {voices.map((voice) => (
-                      <div
-                        key={voice.id}
-                        className={`p-4 border rounded-md cursor-pointer ${
-                          selectedVoice === voice.id
-                            ? 'border-blue-500 bg-blue-500/10'
-                            : 'border-gray-300'
-                        }`}
-                        onClick={() => setSelectedVoice(voice.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-white font-['Montserrat',Helvetica]">Voice {voice.id.slice(0, 4)}</span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isPlaying === voice.id) {
-                                handleStopAudio();
-                              } else {
-                                handlePlayAudio(voice.id);
-                              }
-                            }}
-                            className="text-white font-['Montserrat',Helvetica] hover:text-blue-500"
-                          >
-                            {isPlaying === voice.id ? 'Stop' : 'Play'}
-                          </button>
-                        </div>
-                        {isPlaying === voice.id && (
-                          <div className="mt-2">
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-blue-500 h-2 rounded-full"
-                                style={{ width: `${(currentTime / duration) * 100}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isPublic"
-                    checked={isPublic}
-                    onChange={(e) => setIsPublic(e.target.checked)}
-                    className="rounded"
-                  />
-                  <label htmlFor="isPublic" className="text-white font-['Montserrat',Helvetica]">
-                    Make this avatar public
-                  </label>
-                </div>
-
-                <button
-                  onClick={handleGenerateAvatar}
-                  disabled={!isFormValid}
-                  className={`w-full py-2 px-4 rounded-md ${
-                    isFormValid
-                      ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  } font-['Montserrat',Helvetica]`}
-                >
-                  Generate Avatar
-                </button>
-              </>
-            )}
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
+            <Button
+              variant="ghost"
+              className="absolute top-2 right-2 text-white"
+              onClick={() => {
+                setShowSuccessPopup(false);
+                router.push('/dashboard/my-avatars');
+              }}
+            >
+              <X size={24} />
+            </Button>
+            <h2 className="text-white text-2xl font-semibold mb-4 flex items-center">
+              <CheckCircle className="text-green-500 mr-2" size={28} />
+              Success!
+            </h2>
+            <p className="text-white text-lg">You can find your character under my avatar.</p>
           </div>
         </div>
       )}
