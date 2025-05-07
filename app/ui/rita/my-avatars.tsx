@@ -74,7 +74,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
     try {
       await startStreamingSession({
         instruction: "test",
-        seconds: 300,
+        seconds: 600,
         room: roomName,
         avatarSource: avatar.image_uri,
         avatar_id: avatar.avatar_id,

@@ -28,7 +28,7 @@ export default function RitaStreamingPage() {
     try {
       await startStreamingSession({
         instruction: "test",
-        seconds: 300,
+        seconds: 600,
         room: roomName,
         avatarSource: avatar?.src || '',
       });
