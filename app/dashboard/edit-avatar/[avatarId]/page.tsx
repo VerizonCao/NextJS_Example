@@ -1,9 +1,9 @@
 'use client';
 
-import { getPresignedUrl, loadAvatar, updateAvatarData } from '@/app/lib/actions';
+import { getPresignedUrl, loadAvatar, updateAvatarData, deleteAvatar } from '@/app/lib/actions';
 import { useState, useEffect } from 'react';
 import { use } from 'react';
-import { X, CheckCircle } from 'lucide-react';
+import { X, CheckCircle, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 
@@ -30,6 +30,8 @@ export default function EditAvatarPage({
     voice_id: ''
   });
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const router = useRouter();
 
   // Load avatar data
@@ -109,6 +111,22 @@ export default function EditAvatarPage({
     }));
   };
 
+  const handleDelete = async () => {
+    try {
+      const response = await deleteAvatar(avatarId);
+      if (response.success) {
+        setShowDeleteSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+      } else {
+        console.error('Failed to delete avatar:', response.message);
+      }
+    } catch (error) {
+      console.error('Error deleting avatar:', error);
+    }
+  };
+
   return (
     <div className="bg-[#121214] flex flex-row justify-center w-full">
       <div className="bg-[#121214] w-[1920px] h-[1080px] relative">
@@ -127,7 +145,17 @@ export default function EditAvatarPage({
             <div className="flex flex-col w-[613.7px] h-[937.44px] items-center justify-between p-8 relative bg-[#1a1a1e] rounded-[4.72px]">
               <div className="flex flex-col items-center gap-2 relative self-stretch w-full flex-[0_0_auto]">
                 <div className="flex flex-col items-start gap-2 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
-                  <h2 className="self-stretch font-semibold text-[16px] leading-[24px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Edit Profile</h2>
+                  <div className="flex justify-between items-center w-full">
+                    <h2 className="font-semibold text-[16px] leading-[24px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Edit Profile</h2>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2"
+                    >
+                      <Trash2 size={20} />
+                      <span className="font-medium">Delete Avatar</span>
+                    </Button>
+                  </div>
                   
                   <div className="space-y-4 w-full">
                     <div>
@@ -237,7 +265,53 @@ export default function EditAvatarPage({
         </div>
       </div>
 
-      {/* Success Popup */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
+            <Button
+              variant="ghost"
+              className="absolute top-2 right-2 text-white"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              <X size={24} />
+            </Button>
+            <h2 className="text-white text-2xl font-semibold mb-4">Confirm Deletion</h2>
+            <p className="text-white text-lg mb-6">Are you sure you want to delete this avatar? This action cannot be undone.</p>
+            <div className="flex gap-4 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  handleDelete();
+                }}
+                className="text-white border-red-600 hover:bg-red-600 hover:text-white"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteSuccess && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
+            <h2 className="text-white text-2xl font-semibold mb-4 flex items-center">
+              <CheckCircle className="text-green-500 mr-2" size={28} />
+              Avatar Deleted
+            </h2>
+            <p className="text-white text-lg">Redirecting to dashboard...</p>
+          </div>
+        </div>
+      )}
+
       {showSuccessPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-[#1a1a1e] p-8 rounded-xl relative">

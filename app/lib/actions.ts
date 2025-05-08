@@ -18,6 +18,7 @@ import {
   loadAvatar as loadAvatarFromDb, 
   updateAvatarData as updateAvatarDataFromDb,
   loadPublicAvatars as loadPublicAvatarsFromDb,
+  deleteAvatar as deleteAvatarFromDb,
   Avatar 
 } from './data';
 
@@ -451,5 +452,28 @@ export async function reportAvatarServeTime(
       success: false, 
       message: 'Failed to record avatar serve time' 
     };
+  }
+}
+
+/**
+ * Server action to delete an avatar by its ID
+ * @param avatarId The ID of the avatar to delete
+ * @returns Promise<{ success: boolean; message: string }> Response indicating success or failure
+ */
+export async function deleteAvatar(avatarId: string): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    const success = await deleteAvatarFromDb(avatarId);
+    
+    if (success) {
+      return { success: true, message: 'Avatar deleted successfully' };
+    } else {
+      return { success: false, message: 'Avatar not found or could not be deleted' };
+    }
+  } catch (error) {
+    console.error('Error in deleteAvatar action:', error);
+    return { success: false, message: 'An error occurred while deleting the avatar' };
   }
 }

@@ -583,4 +583,23 @@ export async function updateAvatarData(
   }
 }
 
+/**
+ * Delete an avatar from the database by its ID
+ * @param avatarId The ID of the avatar to delete
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function deleteAvatar(avatarId: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      DELETE FROM avatars
+      WHERE avatar_id = ${avatarId}
+      RETURNING avatar_id
+    `;
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error deleting avatar:', error);
+    return false;
+  }
+}
+
 
