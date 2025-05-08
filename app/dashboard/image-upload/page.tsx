@@ -369,6 +369,18 @@ export default function ImageUploadPage() {
                       )}
                     </React.Fragment>
                   ))}
+                  <div className="mt-4 flex items-center gap-2 self-stretch">
+                    <input
+                      type="checkbox"
+                      id="isPublicCheckbox"
+                      checked={isPublic}
+                      onChange={(e) => setIsPublic(e.target.checked)}
+                      className="h-4 w-4 text-[#5856d6] bg-gray-700 border-gray-600 rounded focus:ring-[#5856d6] focus:ring-2"
+                    />
+                    <label htmlFor="isPublicCheckbox" className="font-['Montserrat',Helvetica] text-sm text-white">
+                      Make this character public
+                    </label>
+                  </div>
                 </div>
               )}
 
