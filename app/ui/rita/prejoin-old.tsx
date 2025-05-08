@@ -76,7 +76,7 @@ function CustomPreJoinBase({ defaults, onSubmit, onError }: CustomPreJoinProps) 
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <p className="text-lg font-medium">Waiting for agent to join...</p>
+          <p className="text-lg font-medium">Loading character, this will only take a few secods...</p>
         </div>
         <p className="text-sm mt-1 opacity-80">You will be automatically connected when the agent is ready.</p>
       </div>

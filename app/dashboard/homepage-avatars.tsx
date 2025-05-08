@@ -119,7 +119,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
     },
     {
       id: 2,
-      title: "Explore Trending Avatars",
+      title: "Explore Trending Characters",
       component: (
         <div className="flex flex-wrap justify-start gap-x-[1.5%] gap-y-[2vh] w-full max-w-[90vw]">
           {initialAvatars.avatars.map((avatar) => (

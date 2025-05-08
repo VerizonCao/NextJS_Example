@@ -120,10 +120,10 @@ export default function EditAvatarPage({
           router.push('/dashboard');
         }, 2000);
       } else {
-        console.error('Failed to delete avatar:', response.message);
+        console.error('Failed to delete character:', response.message);
       }
     } catch (error) {
-      console.error('Error deleting avatar:', error);
+      console.error('Error deleting character:', error);
     }
   };
 
@@ -147,14 +147,6 @@ export default function EditAvatarPage({
                 <div className="flex flex-col items-start gap-2 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
                   <div className="flex justify-between items-center w-full">
                     <h2 className="font-semibold text-[16px] leading-[24px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Edit Profile</h2>
-                    <Button
-                      variant="destructive"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2"
-                    >
-                      <Trash2 size={20} />
-                      <span className="font-medium">Delete Avatar</span>
-                    </Button>
                   </div>
                   
                   <div className="space-y-4 w-full">
@@ -240,17 +232,28 @@ export default function EditAvatarPage({
                     <div className="flex flex-row items-center relative self-stretch w-full">
                       <a 
                         href={`/dashboard/avatar-studio/${avatarId}?avatar_uri=${encodeURIComponent(avatar.image_uri || '')}`}
-                        className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] bg-[#222327] border border-solid border-[#d2d5da40] hover:bg-[#1a1a1e]"
+                        className="inline-flex items-center justify-center gap-[9px] px-[36px] py-[7.2px] rounded-[10.8px] bg-blue-500 hover:bg-blue-700 text-white transition-colors duration-200"
                       >
-                        <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
-                          Open Studio
+                        <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
+                          Open in Studio
                         </span>
                       </a>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-end w-full">
+              <div className="flex items-center justify-between w-full">
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="inline-flex items-center justify-center gap-2 px-[18px] py-[7.2px] bg-red-800 hover:bg-red-900 rounded-[10.8px] text-white"
+                >
+                  <Trash2 size={18} />
+                  <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
+                    Delete Character
+                  </span>
+                </Button>
+
                 <button 
                   onClick={handleSave}
                   className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] bg-[#5856d6] rounded-[10.8px]"

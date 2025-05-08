@@ -439,7 +439,7 @@ export async function loadAvatarsByOwner(ownerId: string): Promise<Avatar[]> {
     
     return result;
   } catch (error) {
-    console.error('Error loading avatars by owner:', error);
+    console.error('Error loading Characters by owner:', error);
     return [];
   }
 }

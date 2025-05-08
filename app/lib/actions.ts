@@ -254,7 +254,7 @@ export async function loadUserAvatars(userEmail: string): Promise<{
     return { 
       success: false, 
       avatars: null, 
-      message: 'An error occurred while loading avatars' 
+      message: 'An error occurred while loading Characters' 
     };
   }
 }

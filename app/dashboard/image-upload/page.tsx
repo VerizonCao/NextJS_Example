@@ -321,6 +321,17 @@ export default function ImageUploadPage() {
                   </div>
                 ))}
               </div>
+              <div className="text-xs text-gray-400 mt-3 font-['Montserrat',Helvetica] space-y-1">
+                <p>Important notes for your image:</p>
+                <ul className="list-disc list-inside pl-1 space-y-1.5">
+                  <li>Image must contain clear facial details. Certain anime styles are not yet supported.</li>
+                  <li>Supports JPG, PNG, JFIF.</li>
+                  <li>
+                    The image will be cropped to a 9:16 aspect ratio. 
+                    You can use <a href="https://huggingface.co/spaces/fffiloni/diffusers-image-outpaint" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">outpainting tools </a> to adjust your image before uploading.
+                  </li>
+                </ul>
+              </div>
 
               {/* Form Fields */}
               {currentStep === 2 && (
