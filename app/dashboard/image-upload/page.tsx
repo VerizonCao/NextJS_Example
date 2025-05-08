@@ -252,7 +252,7 @@ export default function ImageUploadPage() {
           }
 
           // redirect to the dashboard
-          router.push('/dashboard/my-avatars');
+          router.push('/dashboard');
         } 
         
       } catch (error) {
@@ -556,7 +556,7 @@ export default function ImageUploadPage() {
               className="absolute top-2 right-2 text-white"
               onClick={() => {
                 setShowSuccessPopup(false);
-                router.push('/dashboard/my-avatars');
+                router.push('/dashboard');
               }}
             >
               <X size={24} />
