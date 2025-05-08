@@ -200,10 +200,20 @@ export default function ImageUploadPage() {
         // Get the presigned URL using the server action
         const presignedUrlResponse = await generatePresignedUrl(key);
         console.log('presignedUrl:', presignedUrlResponse);
+
+        // Convert cropped image data URL to Blob
+        let imageToUpload: Blob;
+        if (croppedImage) {
+          const response = await fetch(croppedImage);
+          imageToUpload = await response.blob();
+        } else {
+          imageToUpload = selectedImage;
+        }
+        
         // Upload the image using the presigned URL
         const uploadResponse = await fetch(presignedUrlResponse.presignedUrl, {
           method: 'PUT',
-          body: selectedImage,
+          body: imageToUpload,
           headers: {
             'Content-Type': selectedImage.type,
           },
