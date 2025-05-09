@@ -644,6 +644,16 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
     }
   };
 
+  // useEffect to automatically start streaming on component mount
+  useEffect(() => {
+    // Check if not already streaming and essential props are available
+    if (!isStreaming && avatarId) {
+      addLog('Component mounted, attempting to auto-start streaming...');
+      handleStartStreaming();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array ensures this runs only once on mount
+
   return (
     <div className="flex gap-4 h-screen p-4">
       {/* Left Panel - Video Stream */}
@@ -652,7 +662,9 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
           <div className="w-[80%] mx-auto aspect-[9/16] bg-black rounded overflow-hidden">
             {!isStreaming ? (
               <div className="w-full h-full flex items-center justify-center bg-black">
-                <div className="text-white text-lg">Click Start Streaming to begin</div>
+                <div className="text-white text-lg">
+                  {status === 'Disconnected' || status === 'Connecting...' || status === 'Loading Data...' ? status : 'Click Start Streaming to begin'}
+                </div>
               </div>
             ) : !preJoinChoices || !room || !connectionDetails ? (
               <div className="w-full h-full flex items-center justify-center">
