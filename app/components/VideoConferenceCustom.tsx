@@ -9,7 +9,6 @@ import { RoomEvent, Track } from 'livekit-client';
 import * as React from 'react';
 import type { MessageFormatter } from '@livekit/components-react';
 import {
-  Chat,
   ConnectionStateToast,
   ControlBar,
   GridLayout,
@@ -21,6 +20,7 @@ import {
 
 import { ParticipantTileCustom } from './PaticipantTileCustom';
 import { ControlBarCustom } from './ControlBarCustom';
+import { CustomChat } from './CustomChat';
 
 export interface VideoConferenceProps extends React.HTMLAttributes<HTMLDivElement> {
   chatMessageFormatter?: MessageFormatter;
@@ -39,7 +39,7 @@ export function VideoConferenceCustom({
   ...props
 }: VideoConferenceProps) {
   const [widgetState, setWidgetState] = React.useState<WidgetState>({
-    showChat: false,
+    showChat: true,
     unreadMessages: 0,
     showSettings: false,
   });
@@ -95,6 +95,11 @@ export function VideoConferenceCustom({
 
   const layoutContext = useCreateLayoutContext();
 
+  React.useEffect(() => {
+    // Ensure chat is visible when component mounts
+    setWidgetState(prev => ({ ...prev, showChat: true }));
+  }, []);
+
   return (
     <div className="lk-video-conference" {...props}>
       {isWeb() && (
@@ -109,22 +114,26 @@ export function VideoConferenceCustom({
             }
           }}
         >
-          <div className="lk-video-conference-inner" style={{ position: 'relative' }}>
-            {!hideControlBar && (
-              <div style={controlBarStyle}>
-                <ControlBarCustom controls={{ chat: true, settings: !!SettingsComponent }} />
+          <div className="lk-video-conference-inner" style={{ position: 'relative', display: 'flex', width: '97%', height: '100%'}}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              {!hideControlBar && (
+                <div style={controlBarStyle}>
+                  <ControlBarCustom controls={{ chat: true, settings: !!SettingsComponent }} />
+                </div>
+              )}
+              <div className="lk-grid-layout-wrapper">
+                <GridLayout tracks={tracks}>
+                  <ParticipantTileCustom ref={tileRef} />
+                </GridLayout>
               </div>
-            )}
-            <div className="lk-grid-layout-wrapper">
-              <GridLayout tracks={tracks}>
-                <ParticipantTileCustom ref={tileRef} />
-              </GridLayout>
             </div>
+            <CustomChat
+              style={{ display: widgetState.showChat ? 'flex' : 'none' }}
+              messageFormatter={chatMessageFormatter}
+              position="right"
+              tileRef={tileRef}
+            />
           </div>
-          <Chat
-            style={{ display: widgetState.showChat ? 'grid' : 'none' }}
-            messageFormatter={chatMessageFormatter}
-          />
           {SettingsComponent && widgetState.showSettings && (
             <div className="lk-settings-menu-modal">
               <SettingsComponent />
