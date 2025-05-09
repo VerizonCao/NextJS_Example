@@ -104,16 +104,12 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
   }
 
   const sections = [
-    {
+    (userAvatars && userAvatars.avatars && userAvatars.avatars.length > 0) && {
       id: 1,
       title: "My characters",
-      component: userAvatars ? (
+      component: (
         <div className="w-full">
           <MyAvatars initialAvatars={userAvatars} />
-        </div>
-      ) : (
-        <div className="flex items-center justify-center h-32">
-          <div className="text-white">Please sign in to view your avatars</div>
         </div>
       ),
     },
@@ -156,7 +152,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
         </div>
       ),
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <div className="flex flex-col w-full items-center gap-[2vh] px-[110px] py-[2vh] mt-[70px]">
