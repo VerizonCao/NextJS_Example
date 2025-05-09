@@ -19,6 +19,9 @@ import {
   VideoCodec,
   VideoPresets,
   Room,
+  RoomEvent,
+  RemoteVideoTrack,
+  TrackEvent,
 } from 'livekit-client';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -219,6 +222,16 @@ function RoomContent(props: {
       }
     };
 
+    // Add resolution detection
+    room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+      if (track.kind === 'video') {
+        const videoTrack = track as RemoteVideoTrack;
+        videoTrack.on(TrackEvent.VideoDimensionsChanged, (dimensions) => {
+          console.log(`Resolution changed to: ${dimensions.width}x${dimensions.height}`);
+        });
+      }
+    });
+
     // Only start sending data when room is connected
     const handleRoomConnected = () => {
       sendCustomData();
@@ -242,6 +255,7 @@ function RoomContent(props: {
         cleanup = undefined;
       }
     });
+
 
     return () => {
       if (cleanup) {

@@ -152,7 +152,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
         </div>
       ),
     },
-  ].filter(Boolean);
+  ].filter((section): section is { id: number; title: string; component: React.ReactElement } => Boolean(section));
 
   return (
     <div className="flex flex-col w-full items-center gap-[2vh] px-[110px] py-[2vh] mt-[70px]">
