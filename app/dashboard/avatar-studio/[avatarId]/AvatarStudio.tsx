@@ -9,6 +9,7 @@ import { VideoConferenceCustom } from '@/app/components/VideoConferenceCustom'
 import { startStreamingSession } from '@/app/lib/actions'
 import { incrementAvatarRequestCounter } from '@/app/lib/actions';
 import React from 'react'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 
 // Constants
 const totalMaskSize = 29
@@ -70,6 +71,12 @@ interface AvatarStudioProps {
   avatarUri?: string
 }
 
+const latentCategories = {
+  eye: [0, 1, 2, 11, 12, 13, 14, 16, 17, 18, 19],
+  mouth: [9, 15, 20, 21, 22, 23, 24, 25, 26, 27, 28],
+  head: [3, 4, 5, 6, 7, 8, 10]
+} as const;
+
 export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps) {
   // Refs
   const logsRef = useRef<HTMLDivElement>(null)
@@ -104,6 +111,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
   const [editingTransitionDuration, setEditingTransitionDuration] = useState(10)
   const [editingSpeechMouthRatio, setEditingSpeechMouthRatio] = useState(0.15)
   const [activeEditorTab, setActiveEditorTab] = useState<'library' | 'controls'>('library');
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
@@ -922,8 +930,8 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
           {activeEditorTab === 'controls' && (
             <div className="flex-1 flex flex-col min-h-0 gap-4">
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-white">
-                  Facial Expression Control
+                <h2 className="[font-family:'Montserrat',Helvetica] font-semibold text-white text-lg tracking-[0.17px] leading-[25.7px]">
+                  Expression Controls
                 </h2>
                 <button
                   id="loadDefaultExpButton"
@@ -931,41 +939,139 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                     setExpValues(new Array(totalMaskSize).fill(0))
                     setIsDirty(true)
                   }}
-                  className={`px-4 py-2 bg-[#222327] text-white rounded-lg text-sm hover:bg-[#2a2b30] border border-solid border-[#d2d5da40] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`px-[18px] py-[7.2px] bg-[#222327] rounded-[10.8px] hover:bg-[#2a2b30] font-medium text-white text-[12.6px] tracking-[0] leading-[21.6px] border border-solid border-[#d2d5da40] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={isLoading}
                 >
                   Load Default
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto pr-2 bg-[#222327] p-4 rounded-xl border border-solid border-[#d2d5da40]" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                  {expValues.map((value, index) => (
-                    <div key={index} className="flex flex-col gap-1">
-                      <label className="text-sm text-white">
-                        {index < latentDescription.length ? latentDescription[index] : `Param ${index}`}
-                      </label>
-                      <input
-                        type="range"
-                        min="-1"
-                        max="1"
-                        step="0.01"
-                        value={value}
-                        onChange={(e) => handleExpressionChange(index, Number(e.target.value))}
-                        className={`w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#5856d6] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={isLoading}
-                      />
-                      <div className="text-sm text-gray-400 text-center mt-1">
-                        Value: {value.toFixed(3)}
-                      </div>
+
+              <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+                <div className="flex flex-col gap-8">
+                  {/* Eye Controls Section */}
+                  <div className="flex flex-col gap-4">
+                    <div 
+                      className="flex items-center justify-between w-full py-2 text-lg font-semibold text-white hover:bg-[#2a2b30] rounded cursor-pointer"
+                      onClick={() => setOpenSection(openSection === 'eye' ? null : 'eye')}
+                    >
+                      <span>Eye Controls</span>
+                      {openSection === 'eye' ? (
+                        <ChevronUp className="w-5 h-5" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5" />
+                      )}
                     </div>
-                  ))}
+                    {openSection === 'eye' && (
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-6 pl-4">
+                        {latentCategories.eye.map((index) => (
+                          <div key={index} className="flex flex-col gap-1">
+                            <label className="text-sm text-white">
+                              {latentDescription[index]}
+                            </label>
+                            <input
+                              type="range"
+                              min="-1"
+                              max="1"
+                              step="0.01"
+                              value={expValues[index]}
+                              onChange={(e) => handleExpressionChange(index, Number(e.target.value))}
+                              className={`w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#5856d6] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              disabled={isLoading}
+                            />
+                            <div className="text-sm text-gray-400 text-center mt-1">
+                              Value: {expValues[index].toFixed(3)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mouth Controls Section */}
+                  <div className="flex flex-col gap-4">
+                    <div 
+                      className="flex items-center justify-between w-full py-2 text-lg font-semibold text-white hover:bg-[#2a2b30] rounded cursor-pointer"
+                      onClick={() => setOpenSection(openSection === 'mouth' ? null : 'mouth')}
+                    >
+                      <span>Mouth Controls</span>
+                      {openSection === 'mouth' ? (
+                        <ChevronUp className="w-5 h-5" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5" />
+                      )}
+                    </div>
+                    {openSection === 'mouth' && (
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-6 pl-4">
+                        {latentCategories.mouth.map((index) => (
+                          <div key={index} className="flex flex-col gap-1">
+                            <label className="text-sm text-white">
+                              {latentDescription[index]}
+                            </label>
+                            <input
+                              type="range"
+                              min="-1"
+                              max="1"
+                              step="0.01"
+                              value={expValues[index]}
+                              onChange={(e) => handleExpressionChange(index, Number(e.target.value))}
+                              className={`w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#5856d6] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              disabled={isLoading}
+                            />
+                            <div className="text-sm text-gray-400 text-center mt-1">
+                              Value: {expValues[index].toFixed(3)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Head Controls Section */}
+                  <div className="flex flex-col gap-4">
+                    <div 
+                      className="flex items-center justify-between w-full py-2 text-lg font-semibold text-white hover:bg-[#2a2b30] rounded cursor-pointer"
+                      onClick={() => setOpenSection(openSection === 'head' ? null : 'head')}
+                    >
+                      <span>Head Controls</span>
+                      {openSection === 'head' ? (
+                        <ChevronUp className="w-5 h-5" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5" />
+                      )}
+                    </div>
+                    {openSection === 'head' && (
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-6 pl-4">
+                        {latentCategories.head.map((index) => (
+                          <div key={index} className="flex flex-col gap-1">
+                            <label className="text-sm text-white">
+                              {latentDescription[index]}
+                            </label>
+                            <input
+                              type="range"
+                              min="-1"
+                              max="1"
+                              step="0.01"
+                              value={expValues[index]}
+                              onChange={(e) => handleExpressionChange(index, Number(e.target.value))}
+                              className={`w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#5856d6] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              disabled={isLoading}
+                            />
+                            <div className="text-sm text-gray-400 text-center mt-1">
+                              Value: {expValues[index].toFixed(3)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+
               <div className="flex gap-4 mt-auto pt-4 border-t border-solid border-[#d2d5da40]">
                 <button
                   id="resetExpButton"
                   onClick={resetExpression}
-                  className={`flex-1 px-4 py-2 bg-[#37373c] text-white rounded-xl hover:bg-[#45454a] border border-solid border-[#d2d5da40] font-medium text-sm ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex-1 px-4 py-2 bg-[#222327] text-white rounded-xl hover:bg-[#2a2b30] border border-solid border-[#d2d5da40] font-medium text-sm ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={isLoading}
                 >
                   Discard Changes
