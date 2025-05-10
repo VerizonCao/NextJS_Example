@@ -697,7 +697,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
               </div>
             )}
           </div>
-          <div className="flex gap-2 mt-2">
+          {/* <div className="flex gap-2 mt-2">
             <button
               onClick={handleStartStreaming}
               disabled={isStreaming}
@@ -723,7 +723,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
           </div>
           <div className="bg-black/40 p-2 rounded-lg">
             <div className="text-sm font-medium text-gray-200">Status: {status}</div>
-          </div>
+          </div> */}
         </div>
       </div>
 
