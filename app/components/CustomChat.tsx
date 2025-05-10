@@ -30,12 +30,16 @@ export function CustomChat({
   const { chatMessages, send, isSending } = useChat(chatOptions);
 
   const updatePosition = React.useCallback(() => {
-    if (!tileRef?.current) return;
+    if (!tileRef?.current) {
+      return;
+    }
     
     const rect = tileRef.current.getBoundingClientRect();
     const parentRect = tileRef.current.closest('.lk-video-conference-inner')?.getBoundingClientRect();
     
-    if (!parentRect) return;
+    if (!parentRect) {
+      return;
+    }
     
     // Calculate position relative to the parent container
     const top = rect.top - parentRect.top;
@@ -57,8 +61,17 @@ export function CustomChat({
     });
   }, [tileRef]);
 
+  // Add effect to handle tileRef changes
   React.useEffect(() => {
-    if (!tileRef?.current) return;
+    if (tileRef?.current) {
+      updatePosition();
+    }
+  }, [tileRef?.current, updatePosition]);
+
+  React.useEffect(() => {
+    if (!tileRef?.current) {
+      return;
+    }
     
     const observer = new ResizeObserver(() => {
       // Add a small delay to ensure DOM is ready
@@ -71,7 +84,9 @@ export function CustomChat({
     });
     
     // Initial position with a small delay
-    const timeoutId = setTimeout(updatePosition, 100);
+    const timeoutId = setTimeout(() => {
+      updatePosition();
+    }, 100);
     
     return () => {
       observer.disconnect();

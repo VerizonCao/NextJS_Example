@@ -39,11 +39,13 @@ export function VideoConferenceCustom({
   ...props
 }: VideoConferenceProps) {
   const [widgetState, setWidgetState] = React.useState<WidgetState>({
-    showChat: true,
+    showChat: false,
     unreadMessages: 0,
     showSettings: false,
   });
+  const [isChatVisible, setIsChatVisible] = React.useState(true);
   const [isUserInitiated, setIsUserInitiated] = React.useState(false);
+  const [isInitialized, setIsInitialized] = React.useState(false);
 
   const tileRef = React.useRef<HTMLDivElement | null>(null);
   const [controlBarStyle, setControlBarStyle] = React.useState<React.CSSProperties>({
@@ -98,14 +100,40 @@ export function VideoConferenceCustom({
 
   const layoutContext = useCreateLayoutContext();
 
+  // Add effect to log widgetState changes
+  React.useEffect(() => {
+    console.log('widgetState changed:', widgetState);
+  }, [widgetState]);
+
+  // Add effect to log state changes
+  React.useEffect(() => {
+    console.log('Chat visibility changed to:', isChatVisible);
+  }, [isChatVisible]);
+
   React.useEffect(() => {
     // Ensure chat is visible after initial render
     const timeoutId = setTimeout(() => {
-      setWidgetState(prev => ({ ...prev, showChat: true }));
+      setIsChatVisible(true);
+      // Add a small delay to ensure DOM is ready before updating position
+      setTimeout(() => {
+        if (tileRef.current) {
+          const event = new Event('resize');
+          window.dispatchEvent(event);
+        }
+      }, 200);
     }, 100);
   
     return () => clearTimeout(timeoutId);
   }, []);
+
+  // Add a new effect to handle tileRef changes
+  React.useEffect(() => {
+    if (tileRef.current) {
+      // Force a resize event when tileRef becomes available
+      const event = new Event('resize');
+      window.dispatchEvent(event);
+    }
+  }, [tileRef.current]);
 
   return (
     <div className="lk-video-conference" {...props}>
@@ -113,22 +141,7 @@ export function VideoConferenceCustom({
         <LayoutContextProvider
           value={layoutContext}
           onWidgetChange={(state) => {
-            // Only update if the state actually changed
-            if (JSON.stringify(state) !== JSON.stringify(widgetState)) {
-              if (state.showChat !== widgetState.showChat) {
-                // Only allow changing showChat if it's user initiated
-                if (!isUserInitiated) {
-                  return;
-                }
-                // Reset the user initiated flag after handling the change
-                setIsUserInitiated(false);
-              }
-              setWidgetState(prev => ({ ...prev, ...state }));
-              // Update position when chat state changes
-              if (state.showChat !== widgetState.showChat) {
-                setTimeout(updatePosition, 100);
-              }
-            }
+            // Ignore LiveKit's chat state changes
           }}
         >
           <div className="lk-video-conference-inner" style={{ position: 'relative', display: 'flex', width: '97%', height: '100%'}}>
@@ -138,8 +151,7 @@ export function VideoConferenceCustom({
                   <ControlBarCustom 
                     controls={{ chat: true, settings: !!SettingsComponent }} 
                     onChatClick={() => {
-                      setIsUserInitiated(true);
-                      setWidgetState(prev => ({ ...prev, showChat: !prev.showChat }));
+                      setIsChatVisible(prev => !prev);
                     }}
                   />
                 </div>
@@ -150,12 +162,14 @@ export function VideoConferenceCustom({
                 </GridLayout>
               </div>
             </div>
-            <CustomChat
-              style={{ display: widgetState.showChat ? 'flex' : 'none' }}
-              messageFormatter={chatMessageFormatter}
-              position="right"
-              tileRef={tileRef}
-            />
+            {tileRef.current && (
+              <CustomChat
+                style={{ display: isChatVisible ? 'flex' : 'none' }}
+                messageFormatter={chatMessageFormatter}
+                position="right"
+                tileRef={tileRef}
+              />
+            )}
           </div>
           {SettingsComponent && widgetState.showSettings && (
             <div className="lk-settings-menu-modal">
