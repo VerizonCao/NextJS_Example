@@ -77,13 +77,33 @@ export function VideoConferenceCustom({
     { updateOnlyOn: [RoomEvent.ActiveSpeakersChanged], onlySubscribed: false },
   );
 
+  // const updatePosition = React.useCallback(() => {
+  //   if (!tileRef.current) return;
+  //   const rect = tileRef.current.getBoundingClientRect();
+  //   setControlBarStyle({
+  //     position: 'absolute',
+  //     left: `${rect.right - 10}px`,
+  //     top: `${rect.bottom - 10}px`,
+  //     transform: 'translate(-100%, -100%) scale(1.2)',
+  //     transformOrigin: 'bottom right',
+  //     zIndex: 10,
+  //   });
+  // }, []);
+
   const updatePosition = React.useCallback(() => {
     if (!tileRef.current) return;
     const rect = tileRef.current.getBoundingClientRect();
+    
+    const container = tileRef.current.closest('.lk-video-conference-inner') as HTMLElement;
+    const containerRect = container?.getBoundingClientRect();
+  
+    const offsetTop = containerRect ? containerRect.top : 0;
+    const offsetLeft = containerRect ? containerRect.left : 0;
+  
     setControlBarStyle({
       position: 'absolute',
-      left: `${rect.right - 10}px`,
-      top: `${rect.bottom - 10}px`,
+      left: `${rect.right - offsetLeft - 10}px`,
+      top: `${rect.bottom - offsetTop - 10}px`,
       transform: 'translate(-100%, -100%) scale(1.2)',
       transformOrigin: 'bottom right',
       zIndex: 10,
@@ -120,7 +140,13 @@ export function VideoConferenceCustom({
   // Add effect to log state changes
   React.useEffect(() => {
     console.log('Chat visibility changed to:', isChatVisible);
-  }, [isChatVisible]);
+    // Update control bar position when chat visibility changes
+    const timeoutId = setTimeout(() => {
+      updatePosition();
+    }, 100); // Small delay to ensure DOM has updated
+    
+    return () => clearTimeout(timeoutId);
+  }, [isChatVisible, updatePosition]);
 
   React.useEffect(() => {
     if (!alwaysHideChat) {
@@ -145,6 +171,17 @@ export function VideoConferenceCustom({
       window.dispatchEvent(event);
     }
   }, [tileRef.current]);
+
+  // Add console log to check incoming props
+  React.useEffect(() => {
+    console.log('VideoConferenceCustom received props:', {
+      prompt,
+      scene,
+      bio,
+      avatar_name,
+      presignedUrl
+    });
+  }, [prompt, scene, bio, avatar_name, presignedUrl]);
 
   return (
     <div className="lk-video-conference" {...props}>
@@ -188,6 +225,11 @@ export function VideoConferenceCustom({
                 messageFormatter={chatMessageFormatter}
                 position="right"
                 tileRef={tileRef}
+                prompt={prompt}
+                scene={scene}
+                bio={bio}
+                avatar_name={avatar_name}
+                presignedUrl={presignedUrl}
               />
             )}
           </div>

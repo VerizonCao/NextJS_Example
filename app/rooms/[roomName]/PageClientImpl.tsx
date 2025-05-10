@@ -286,6 +286,11 @@ function RoomContent(props: {
         <VideoConferenceCustom
           chatMessageFormatter={formatChatMessageLinks}
           SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
+          prompt={props.prompt}
+          scene={props.scene}
+          bio={props.bio}
+          avatar_name={props.avatar_name}
+          presignedUrl={props.presignedUrl}
         />
       ) : (
         <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>

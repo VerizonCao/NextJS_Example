@@ -3,11 +3,20 @@ import * as React from 'react';
 import { useChat } from '@livekit/components-react';
 import type { MessageFormatter } from '@livekit/components-react';
 import { ChatEntry } from '@livekit/components-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 export interface CustomChatProps extends React.HTMLAttributes<HTMLDivElement>, ChatOptions {
   messageFormatter?: MessageFormatter;
   position?: 'left' | 'right';
   tileRef?: React.RefObject<HTMLDivElement | null>;
+  prompt?: string;
+  scene?: string;
+  bio?: string;
+  avatar_name?: string;
+  presignedUrl?: string;
 }
 
 export function CustomChat({
@@ -17,6 +26,11 @@ export function CustomChat({
   channelTopic,
   position = 'right',
   tileRef,
+  prompt,
+  scene,
+  bio,
+  avatar_name,
+  presignedUrl,
   ...props
 }: CustomChatProps) {
   const ulRef = React.useRef<HTMLUListElement>(null);
@@ -51,7 +65,7 @@ export function CustomChat({
         position: 'absolute',
         top: `${top}px`,
         left: `${left}px`,
-        width: '400px',
+        width: '600px',
         height: `${rect.height}px`,
         backgroundColor: '#1a1a1e',
         display: 'flex',
@@ -106,6 +120,18 @@ export function CustomChat({
     }
   }, [props.style?.display, updatePosition]);
 
+  // Add console log to check received props
+  React.useEffect(() => {
+    console.log('CustomChat received props:', {
+      prompt,
+      scene,
+      bio,
+      avatar_name,
+      presignedUrl
+    });
+  }, [prompt, scene, bio, avatar_name, presignedUrl]);
+
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (inputRef.current && inputRef.current.value.trim() !== '') {
@@ -130,81 +156,95 @@ export function CustomChat({
         ...props.style
       }}
     >
-      <div className="custom-chat-header" style={{ padding: '1rem', borderBottom: '1px solid #2a2a2e' }}>
-        Messages
-      </div>
+      <Card className="flex flex-col w-full h-full items-center justify-between p-[18px] relative bg-[#1a1a1e] rounded-[4.72px] border-none">
+        <CardContent className="flex flex-col items-start gap-[16.2px] relative self-stretch w-full flex-[0_0_auto] p-0">
+          <div className="flex flex-col items-start gap-[16.2px] relative self-stretch w-full flex-[0_0_auto] pt-6">
+            {/* User profile section */}
+            <div className="flex items-center gap-[15.12px] relative self-stretch w-full flex-[0_0_auto]">
+              <img
+                className="relative w-20 h-20 object-cover rounded-full"
+                alt="Profile"
+                src={presignedUrl || "https://c.animaapp.com/ma3i21k1TwXiJe/img/ellipse-1.svg"}
+              />
+              <div className="flex flex-col items-start gap-[7.56px] relative flex-1 grow">
+                <div className="relative self-stretch mt-[-0.94px] font-['Montserrat',Helvetica] font-bold text-white text-lg tracking-[0] leading-[normal]">
+                  {avatar_name || 'Ruby Runolfsson'}
+                </div>
+                <div className="relative self-stretch font-['Montserrat',Helvetica] font-medium text-white text-sm tracking-[0] leading-[normal]">
+                  {scene || 'Created by Desiree Nolan'}
+                </div>
+                <div className="relative self-stretch font-['Montserrat',Helvetica] font-medium text-white text-sm tracking-[0] leading-[normal]">
+                  {bio || prompt || 'The beautiful range of Apple Naturalé that has an exciting mix of natural ingredients. With the Goodness of 100% Natural Ingredients'}
+                </div>
+              </div>
+            </div>
 
-      <ul 
-        className="custom-chat-messages" 
-        ref={ulRef}
-        style={{ 
-          flex: 1,
-          overflowY: 'auto',
-          padding: '1rem',
-          listStyle: 'none',
-          margin: 0
-        }}
-      >
-        {chatMessages.map((msg, idx, allMsg) => {
-          const hideName = idx >= 1 && allMsg[idx - 1].from === msg.from;
-          const hideTimestamp = idx >= 1 && msg.timestamp - allMsg[idx - 1].timestamp < 60_000;
+            <Separator className="relative self-stretch w-full h-px mb-[-0.05px]" />
+          </div>
 
-          return (
-            <ChatEntry
-              key={msg.id ?? idx}
-              hideName={hideName}
-              hideTimestamp={hideName === false ? false : hideTimestamp}
-              entry={msg}
-              messageFormatter={messageFormatter}
-            />
-          );
-        })}
-      </ul>
+          {/* Chat messages */}
+          <ul 
+            className="custom-chat-messages" 
+            ref={ulRef}
+            style={{ 
+              flex: 1,
+              overflowY: 'auto',
+              padding: '1rem',
+              listStyle: 'none',
+              margin: 0,
+              width: '100%'
+            }}
+          >
+            {chatMessages.map((msg, idx, allMsg) => {
+              const hideName = idx >= 1 && allMsg[idx - 1].from === msg.from;
 
-      <form 
-        className="custom-chat-form" 
-        onSubmit={handleSubmit}
-        style={{
-          padding: '1rem',
-          borderTop: '1px solid #2a2a2e',
-          display: 'flex',
-          gap: '0.5rem'
-        }}
-      >
-        <input
-          className="custom-chat-input"
-          disabled={isSending}
-          ref={inputRef}
-          type="text"
-          placeholder="Enter a message..."
+              return (
+                <div key={msg.id ?? idx} className="mb-2">
+                  <ChatEntry
+                    hideName={hideName}
+                    hideTimestamp={true}
+                    entry={msg}
+                    messageFormatter={messageFormatter}
+                  />
+                </div>
+              );
+            })}
+          </ul>
+        </CardContent>
+
+        {/* Message input area */}
+        <form 
+          className="custom-chat-form" 
+          onSubmit={handleSubmit}
           style={{
-            flex: 1,
-            padding: '0.5rem',
-            borderRadius: '0.25rem',
-            border: '1px solid #2a2a2e',
-            backgroundColor: '#2a2a2e',
-            color: 'white'
-          }}
-          onInput={(ev) => ev.stopPropagation()}
-          onKeyDown={(ev) => ev.stopPropagation()}
-          onKeyUp={(ev) => ev.stopPropagation()}
-        />
-        <button 
-          type="submit" 
-          className="custom-chat-button"
-          disabled={isSending}
-          style={{
-            padding: '0.5rem 1rem',
-            borderRadius: '0.25rem',
-            backgroundColor: '#3a3a3e',
-            color: 'white',
-            border: 'none',
-            cursor: 'pointer'
+            padding: '1rem',
+            borderTop: '1px solid #2a2a2e',
+            display: 'flex',
+            gap: '0.5rem',
+            width: '100%'
           }}
         >
-          Send
-        </button>
-      </form>
+          <Input
+            className="flex items-center gap-2.5 px-3 py-2 relative flex-1 grow bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] text-[#535a65] text-xs font-['Montserrat',Helvetica] font-normal"
+            disabled={isSending}
+            ref={inputRef}
+            type="text"
+            placeholder="Type a message..."
+            onInput={(ev: React.FormEvent<HTMLInputElement>) => ev.stopPropagation()}
+            onKeyDown={(ev: React.KeyboardEvent<HTMLInputElement>) => ev.stopPropagation()}
+            onKeyUp={(ev: React.KeyboardEvent<HTMLInputElement>) => ev.stopPropagation()}
+          />
+          <Button 
+            type="submit"
+            className="inline-flex items-center justify-center gap-2.5 px-5 py-2 relative flex-[0_0_auto] bg-[#5856d6] rounded-xl hover:bg-[#4a49b3]"
+            disabled={isSending}
+          >
+            <span className="relative w-fit mt-[-1.00px] font-['Montserrat',Helvetica] font-medium text-white text-sm tracking-[0] leading-6 whitespace-nowrap">
+              Send
+            </span>
+          </Button>
+        </form>
+      </Card>
     </div>
   );
 } 
