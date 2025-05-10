@@ -225,7 +225,7 @@ export function CustomChat({
           }}
         >
           <Input
-            className="flex items-center gap-2.5 px-3 py-2 relative flex-1 grow bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] text-[#535a65] text-xs font-['Montserrat',Helvetica] font-normal"
+            className="flex items-center gap-2.5 px-3 py-2 relative flex-1 grow bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] text-white text-xs font-['Montserrat',Helvetica] font-normal"
             disabled={isSending}
             ref={inputRef}
             type="text"
