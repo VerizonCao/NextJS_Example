@@ -121,7 +121,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
           {initialAvatars.avatars.map((avatar) => (
             <Card
               key={avatar.avatar_id}
-              className="relative w-[15%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
+              className="relative w-[18.75%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
               onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
             >
               {avatar.presignedUrl && (
@@ -155,7 +155,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
   ].filter((section): section is { id: number; title: string; component: React.ReactElement } => Boolean(section));
 
   return (
-    <div className="flex flex-col w-full items-center gap-[2vh] px-[110px] py-[2vh] mt-[70px]">
+    <div className="flex flex-col w-full items-center gap-[2vh] py-[2vh]">
       {sections.map((section) => (
         <React.Fragment key={section.id}>
           <div className="flex w-full max-w-[1148px] items-center justify-start gap-[1%] relative flex-[0_0_auto]">
