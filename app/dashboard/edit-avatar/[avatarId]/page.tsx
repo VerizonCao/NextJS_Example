@@ -259,7 +259,7 @@ export default function EditAvatarPage({
                   className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] bg-[#5856d6] rounded-[10.8px]"
                 >
                   <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
-                    Finish
+                    Save
                   </span>
                 </button>
               </div>
