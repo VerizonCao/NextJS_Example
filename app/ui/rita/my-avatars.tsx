@@ -125,7 +125,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
       {initialAvatars.avatars.map((avatar) => (
         <Card
           key={avatar.avatar_id}
-          className="relative w-[15%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
+          className="relative w-[18.75%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
           onClick={() => setSelectedAvatar(selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? null : {id: avatar.avatar_id, type: 'my'})}
         >
           {avatar.presignedUrl ? (
@@ -138,15 +138,12 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
                 priority={selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my'}
                 className="object-cover"
               />
-              <div className="absolute w-full bottom-0 left-0">
-                <div className="relative w-full h-[30%] bg-[#00000080] blur-[9px]"></div>
-                <div className="absolute bottom-0 left-0 flex flex-col w-full items-start gap-[0.5%] p-[2%]">
-                  <div className="relative self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-[0.7vw] tracking-[0] leading-[normal]">
-                    {avatar.avatar_name}
-                  </div>
-                  <div className="relative self-stretch font-['Montserrat',Helvetica] font-normal text-white text-[0.5vw] tracking-[0] leading-[normal]">
-                    {avatar.agent_bio}
-                  </div>
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-3 bg-gradient-to-t from-black/80 via-black/45 to-black/1">
+                <div className="self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-base leading-tight truncate">
+                  {avatar.avatar_name}
+                </div>
+                <div className="self-stretch font-['Montserrat',Helvetica] font-normal text-neutral-300 text-xs leading-snug overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                  {avatar.agent_bio}
                 </div>
               </div>
             </>

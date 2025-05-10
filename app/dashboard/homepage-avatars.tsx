@@ -134,15 +134,12 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
                     priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
                     className="object-cover"
                   />
-                  <div className="absolute w-full bottom-0 left-0">
-                    <div className="relative w-full h-[30%] bg-[#00000080] blur-[9px]"></div>
-                    <div className="absolute bottom-0 left-0 flex flex-col w-full items-start gap-[0.5%] p-[2%]">
-                      <div className="relative self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-[0.7vw] tracking-[0] leading-[normal]">
-                        {avatar.avatar_name}
-                      </div>
-                      <div className="relative self-stretch font-['Montserrat',Helvetica] font-normal text-white text-[0.5vw] tracking-[0] leading-[normal]">
-                        {avatar.agent_bio}
-                      </div>
+                  <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-3 bg-gradient-to-t from-black/80 via-black/45 to-black/1">
+                    <div className="self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-base leading-tight truncate">
+                      {avatar.avatar_name}
+                    </div>
+                    <div className="self-stretch font-['Montserrat',Helvetica] font-normal text-neutral-300 text-xs leading-snug overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                      {avatar.agent_bio}
                     </div>
                   </div>
                 </>
