@@ -23,8 +23,9 @@ import {
   RemoteVideoTrack,
   TrackEvent,
 } from 'livekit-client';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import React from 'react';
+import { removeParticipant } from '@/app/lib/actions';
 
 // custom video conference
 import { VideoConferenceCustom } from '@/app/components/VideoConferenceCustom';
@@ -48,6 +49,7 @@ export function PageClientImpl(props: {
 
   // console.log('PageClientImpl props', props);
   const router = useRouter();
+  const pathname = usePathname();
   const [preJoinChoices, setPreJoinChoices] = React.useState<LocalUserChoices | undefined>(
     undefined,
   );
@@ -109,6 +111,26 @@ export function PageClientImpl(props: {
         console.log('Created new room instance');
         setRoom(newRoom);
         setHasConnected(true);
+
+        // Add cleanup function to remove participant when leaving the page
+        const handleBeforeUnload = async () => {
+          if (newRoom && newRoom.state === 'connected') {
+            try {
+              await removeParticipant(props.roomName, newRoom.localParticipant.identity);
+            } catch (error) {
+              console.error('Error removing participant:', error);
+            }
+          }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+          window.removeEventListener('beforeunload', handleBeforeUnload);
+          if (newRoom && newRoom.state === 'connected') {
+            removeParticipant(props.roomName, newRoom.localParticipant.identity).catch(console.error);
+          }
+        };
       } catch (error) {
         console.error('Error in setup:', error);
         setRoom(null);
@@ -119,6 +141,48 @@ export function PageClientImpl(props: {
 
     submitData();
   }, [props.roomName, props.region, props.hq, props.codec, preJoinDefaults]);
+
+  // Add cleanup effect for room
+  React.useEffect(() => {
+    if (!room) return;
+
+    const handleRouteChange = async () => {
+      if (room.state === 'connected') {
+        try {
+          await removeParticipant(props.roomName, room.localParticipant.identity);
+        } catch (error) {
+          console.error('Error removing participant:', error);
+        }
+      }
+    };
+
+    // Handle browser/tab close
+    const handleBeforeUnload = () => {
+      if (room.state === 'connected') {
+        removeParticipant(props.roomName, room.localParticipant.identity).catch(console.error);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Check if we're leaving the room page
+    const checkPath = () => {
+      if (!pathname?.startsWith(`/rooms/${props.roomName}`)) {
+        handleRouteChange();
+      }
+    };
+
+    // Run check periodically
+    const interval = setInterval(checkPath, 1000);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      clearInterval(interval);
+      if (room.state === 'connected') {
+        removeParticipant(props.roomName, room.localParticipant.identity).catch(console.error);
+      }
+    };
+  }, [room, props.roomName, pathname]);
 
   return (
     // <main data-lk-theme="default" style={{ height: '80vh' }}>

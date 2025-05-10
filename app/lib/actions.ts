@@ -22,6 +22,8 @@ import {
   Avatar 
 } from './data';
 
+import { RoomServiceClient } from 'livekit-server-sdk';
+
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 import { customAlphabet } from 'nanoid'
@@ -552,6 +554,35 @@ export async function checkRunPodHealth(): Promise<{
       success: false, 
       data: null, 
       message: 'Failed to check RunPod health' 
+    };
+  }
+}
+
+/**
+ * Server action to remove a participant from a LiveKit room
+ */
+export async function removeParticipant(roomName: string, identity: string): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    const roomService = new RoomServiceClient(
+      process.env.LIVEKIT_URL!,
+      process.env.LIVEKIT_API_KEY!,
+      process.env.LIVEKIT_API_SECRET!
+    );
+    
+    await roomService.removeParticipant(roomName, identity);
+    
+    return { 
+      success: true, 
+      message: 'Participant removed successfully' 
+    };
+  } catch (error) {
+    console.error('Error removing participant:', error);
+    return { 
+      success: false, 
+      message: 'Failed to remove participant' 
     };
   }
 }
