@@ -28,6 +28,12 @@ export interface VideoConferenceProps extends React.HTMLAttributes<HTMLDivElemen
   chatMessageDecoder?: MessageDecoder;
   SettingsComponent?: React.ComponentType;
   hideControlBar?: boolean;
+  alwaysHideChat?: boolean;
+  prompt?: string;
+  scene?: string;
+  bio?: string;
+  avatar_name?: string;
+  presignedUrl?: string;
 }
 
 export function VideoConferenceCustom({
@@ -36,6 +42,12 @@ export function VideoConferenceCustom({
   chatMessageEncoder,
   SettingsComponent,
   hideControlBar = false,
+  alwaysHideChat = false,
+  prompt,
+  scene,
+  bio,
+  avatar_name,
+  presignedUrl,
   ...props
 }: VideoConferenceProps) {
   const [widgetState, setWidgetState] = React.useState<WidgetState>({
@@ -43,7 +55,7 @@ export function VideoConferenceCustom({
     unreadMessages: 0,
     showSettings: false,
   });
-  const [isChatVisible, setIsChatVisible] = React.useState(true);
+  const [isChatVisible, setIsChatVisible] = React.useState(!alwaysHideChat);
   const [isUserInitiated, setIsUserInitiated] = React.useState(false);
   const [isInitialized, setIsInitialized] = React.useState(false);
 
@@ -111,20 +123,19 @@ export function VideoConferenceCustom({
   }, [isChatVisible]);
 
   React.useEffect(() => {
-    // Ensure chat is visible after initial render
-    const timeoutId = setTimeout(() => {
-      setIsChatVisible(true);
-      // Add a small delay to ensure DOM is ready before updating position
-      setTimeout(() => {
-        if (tileRef.current) {
-          const event = new Event('resize');
-          window.dispatchEvent(event);
-        }
-      }, 200);
-    }, 100);
-  
-    return () => clearTimeout(timeoutId);
-  }, []);
+    if (!alwaysHideChat) {
+      const timeoutId = setTimeout(() => {
+        setIsChatVisible(true);
+        setTimeout(() => {
+          if (tileRef.current) {
+            const event = new Event('resize');
+            window.dispatchEvent(event);
+          }
+        }, 200);
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [alwaysHideChat]);
 
   // Add a new effect to handle tileRef changes
   React.useEffect(() => {
@@ -144,14 +155,23 @@ export function VideoConferenceCustom({
             // Ignore LiveKit's chat state changes
           }}
         >
-          <div className="lk-video-conference-inner" style={{ position: 'relative', display: 'flex', width: '97%', height: '100%'}}>
+          <div className="lk-video-conference-inner" style={{ 
+            position: 'relative', 
+            display: 'flex', 
+            width: alwaysHideChat ? '100%' : (isChatVisible ? '27%' : '30%'),
+            marginLeft: alwaysHideChat ? '0%' : (isChatVisible ? '20%' : '33%'),
+            height: '95%', 
+            marginTop: '2.5%'
+          }}>
             <div style={{ flex: 1, position: 'relative' }}>
               {!hideControlBar && (
                 <div style={controlBarStyle}>
                   <ControlBarCustom 
                     controls={{ chat: true, settings: !!SettingsComponent }} 
                     onChatClick={() => {
-                      setIsChatVisible(prev => !prev);
+                      if (!alwaysHideChat) {
+                        setIsChatVisible(prev => !prev);
+                      }
                     }}
                   />
                 </div>
@@ -162,7 +182,7 @@ export function VideoConferenceCustom({
                 </GridLayout>
               </div>
             </div>
-            {tileRef.current && (
+            {tileRef.current && !alwaysHideChat && (
               <CustomChat
                 style={{ display: isChatVisible ? 'flex' : 'none' }}
                 messageFormatter={chatMessageFormatter}

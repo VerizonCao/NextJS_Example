@@ -692,6 +692,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
                   <div className="w-full h-full">
                     <VideoConferenceCustom 
                       hideControlBar={true}
+                      alwaysHideChat={true}
                     />
                   </div>
                 </LiveKitRoom>
