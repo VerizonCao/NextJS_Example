@@ -508,6 +508,10 @@ export async function checkRunPodHealth(): Promise<{
     const { RUNPOD_API_KEY, ENDPOINT_ID } = process.env;
     
     if (!RUNPOD_API_KEY || !ENDPOINT_ID) {
+      console.error('Missing RunPod configuration:', { 
+        hasApiKey: !!RUNPOD_API_KEY, 
+        hasEndpointId: !!ENDPOINT_ID 
+      });
       return { 
         success: false, 
         data: null, 
@@ -522,28 +526,44 @@ export async function checkRunPodHealth(): Promise<{
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch RunPod health');
+      const errorText = await response.text();
+      console.error('RunPod health check failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Failed to fetch RunPod health: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    
+    // Validate the response structure
+    if (!data || typeof data !== 'object') {
+      console.error('Invalid RunPod health response:', data);
+      throw new Error('Invalid RunPod health response format');
+    }
+
+    // Ensure we have the expected structure with default values
+    const jobs = data.jobs || {};
+    const workers = data.workers || {};
     
     return {
       success: true,
       data: {
         jobs: {
-          completed: data.jobs?.completed || 0,
-          failed: data.jobs?.failed || 0,
-          inProgress: data.jobs?.inProgress || 0,
-          inQueue: data.jobs?.inQueue || 0,
-          retried: data.jobs?.retried || 0,
+          completed: Number(jobs.completed) || 0,
+          failed: Number(jobs.failed) || 0,
+          inProgress: Number(jobs.inProgress) || 0,
+          inQueue: Number(jobs.inQueue) || 0,
+          retried: Number(jobs.retried) || 0,
         },
         workers: {
-          idle: data.workers?.idle || 0,
-          initializing: data.workers?.initializing || 0,
-          ready: data.workers?.ready || 0,
-          running: data.workers?.running || 0,
-          throttled: data.workers?.throttled || 0,
-          unhealthy: data.workers?.unhealthy || 0,
+          idle: Number(workers.idle) || 0,
+          initializing: Number(workers.initializing) || 0,
+          ready: Number(workers.ready) || 0,
+          running: Number(workers.running) || 0,
+          throttled: Number(workers.throttled) || 0,
+          unhealthy: Number(workers.unhealthy) || 0,
         },
       },
       message: 'Health check completed successfully'
@@ -553,7 +573,7 @@ export async function checkRunPodHealth(): Promise<{
     return { 
       success: false, 
       data: null, 
-      message: 'Failed to check RunPod health' 
+      message: error instanceof Error ? error.message : 'Failed to check RunPod health' 
     };
   }
 }
