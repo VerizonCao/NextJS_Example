@@ -1,6 +1,6 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { PlusSquareIcon } from 'lucide-react';
-import AcmeLogo from '@/app/ui/acme-logo';
 import { auth } from '@/auth';
 import CreateButton from '@/app/ui/dashboard/sidenav-buttons/create-button';
 import AuthButton from '@/app/ui/dashboard/sidenav-buttons/auth-button';
@@ -57,8 +57,14 @@ export default async function SideNav() {
     <nav className="fixed top-0 left-0 right-0 z-50 flex w-full h-[78px] items-center justify-between px-10 py-3 bg-[#121214]">
       <div className="flex items-center gap-6">
         <Link href="/" className="flex items-center">
-          <div className="w-32 text-white">
-            <AcmeLogo />
+          <div className="w-32">
+            <Image
+              src="/logo2.png"
+              alt="Logo"
+              width={128}
+              height={32}
+              priority
+            />
           </div>
         </Link>
         <div className="ml-12">
