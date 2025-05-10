@@ -41,16 +41,19 @@ export function CustomChat({
     const top = rect.top - parentRect.top;
     const left = rect.right - parentRect.left;
     
-    setChatStyle({
-      position: 'absolute',
-      top: `${top}px`,
-      left: `${left}px`,
-      width: '400px',
-      height: `${rect.height}px`,
-      backgroundColor: '#1a1a1e',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 10,
+    // Force a reflow to ensure the position is applied correctly
+    requestAnimationFrame(() => {
+      setChatStyle({
+        position: 'absolute',
+        top: `${top}px`,
+        left: `${left}px`,
+        width: '400px',
+        height: `${rect.height}px`,
+        backgroundColor: '#1a1a1e',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 10,
+      });
     });
   }, [tileRef]);
 
@@ -76,6 +79,17 @@ export function CustomChat({
       clearTimeout(timeoutId);
     };
   }, [updatePosition, tileRef]);
+
+  // Add a new effect to handle visibility changes
+  React.useEffect(() => {
+    if (props.style?.display === 'flex') {
+      // When chat becomes visible, update position after a short delay
+      const timeoutId = setTimeout(() => {
+        requestAnimationFrame(updatePosition);
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [props.style?.display, updatePosition]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

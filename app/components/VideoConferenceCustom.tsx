@@ -43,6 +43,7 @@ export function VideoConferenceCustom({
     unreadMessages: 0,
     showSettings: false,
   });
+  const [isUserInitiated, setIsUserInitiated] = React.useState(false);
 
   const tileRef = React.useRef<HTMLDivElement | null>(null);
   const [controlBarStyle, setControlBarStyle] = React.useState<React.CSSProperties>({
@@ -82,7 +83,9 @@ export function VideoConferenceCustom({
     }
 
     // Add a small delay to ensure DOM is ready
-    const timeoutId = setTimeout(updatePosition, 100);
+    const timeoutId = setTimeout(() => {
+      requestAnimationFrame(updatePosition);
+    }, 100);
     
     window.addEventListener('resize', updatePosition);
 
@@ -96,8 +99,12 @@ export function VideoConferenceCustom({
   const layoutContext = useCreateLayoutContext();
 
   React.useEffect(() => {
-    // Ensure chat is visible when component mounts
-    setWidgetState(prev => ({ ...prev, showChat: true }));
+    // Ensure chat is visible after initial render
+    const timeoutId = setTimeout(() => {
+      setWidgetState(prev => ({ ...prev, showChat: true }));
+    }, 100);
+  
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (
@@ -106,11 +113,21 @@ export function VideoConferenceCustom({
         <LayoutContextProvider
           value={layoutContext}
           onWidgetChange={(state) => {
-            log.debug('updating widget state', state);
-            setWidgetState(state);
-            // Update position when chat state changes
-            if (state.showChat !== widgetState.showChat) {
-              setTimeout(updatePosition, 100);
+            // Only update if the state actually changed
+            if (JSON.stringify(state) !== JSON.stringify(widgetState)) {
+              if (state.showChat !== widgetState.showChat) {
+                // Only allow changing showChat if it's user initiated
+                if (!isUserInitiated) {
+                  return;
+                }
+                // Reset the user initiated flag after handling the change
+                setIsUserInitiated(false);
+              }
+              setWidgetState(prev => ({ ...prev, ...state }));
+              // Update position when chat state changes
+              if (state.showChat !== widgetState.showChat) {
+                setTimeout(updatePosition, 100);
+              }
             }
           }}
         >
@@ -118,7 +135,13 @@ export function VideoConferenceCustom({
             <div style={{ flex: 1, position: 'relative' }}>
               {!hideControlBar && (
                 <div style={controlBarStyle}>
-                  <ControlBarCustom controls={{ chat: true, settings: !!SettingsComponent }} />
+                  <ControlBarCustom 
+                    controls={{ chat: true, settings: !!SettingsComponent }} 
+                    onChatClick={() => {
+                      setIsUserInitiated(true);
+                      setWidgetState(prev => ({ ...prev, showChat: !prev.showChat }));
+                    }}
+                  />
                 </div>
               )}
               <div className="lk-grid-layout-wrapper">

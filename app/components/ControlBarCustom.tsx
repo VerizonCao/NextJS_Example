@@ -33,6 +33,7 @@ export interface ControlBarProps extends React.HTMLAttributes<HTMLDivElement> {
   onDeviceError?: (error: { source: Track.Source; error: Error }) => void;
   variation?: 'minimal' | 'verbose' | 'textOnly';
   controls?: ControlBarControls;
+  onChatClick?: () => void;
   /**
    * If `true`, the user's device choices will be persisted.
    * This will enable the user to have the same device choices when they rejoin the room.
@@ -63,6 +64,7 @@ export function ControlBarCustom({
   controls,
   saveUserChoices = true,
   onDeviceError,
+  onChatClick,
   ...props
 }: ControlBarProps) {
   const [isChatOpen, setIsChatOpen] = React.useState(false);
@@ -191,6 +193,7 @@ export function ControlBarCustom({
       {visibleControls.chat && (
         <ChatToggle
           className="relative w-14 h-14 bg-[rgba(36,36,40,0.75)] rounded-full flex items-center justify-center"
+          onClick={onChatClick}
         >
           <MessageSquare className="w-7 h-7 text-white" />
         </ChatToggle>
