@@ -157,10 +157,10 @@ export function CustomChat({
       }}
     >
       <Card className="flex flex-col w-full h-full items-center justify-between p-[18px] relative bg-[#1a1a1e] rounded-[4.72px] border-none">
-        <CardContent className="flex flex-col items-start gap-[16.2px] relative self-stretch w-full flex-[0_0_auto] p-0">
-          <div className="flex flex-col items-start gap-[16.2px] relative self-stretch w-full flex-[0_0_auto] pt-6">
+        <CardContent className="flex flex-col items-start gap-[16.2px] relative self-stretch w-full flex-1 overflow-hidden p-0">
+          <div className="flex flex-col items-start gap-[16.2px] relative self-stretch w-full flex-shrink-0 pt-6 px-4">
             {/* User profile section */}
-            <div className="flex items-center gap-[15.12px] relative self-stretch w-full flex-[0_0_auto]">
+            <div className="flex items-center gap-[15.12px] relative self-stretch w-full">
               <img
                 className="relative w-20 h-20 object-cover rounded-full"
                 alt="Profile"
@@ -214,7 +214,7 @@ export function CustomChat({
 
         {/* Message input area */}
         <form 
-          className="custom-chat-form" 
+          className="custom-chat-form flex-shrink-0" 
           onSubmit={handleSubmit}
           style={{
             padding: '1rem',
