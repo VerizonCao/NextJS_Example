@@ -23,7 +23,6 @@ export default function AvatarStudioPage({ params, searchParams }: AvatarStudioP
   
   return (
     <div className="flex flex-col gap-4 p-4">
-      <h1 className="text-2xl font-bold">Avatar Studio - {avatarId}</h1>
       <AvatarStudio avatarId={avatarId} avatarUri={decodedAvatarUri} />
     </div>
   )

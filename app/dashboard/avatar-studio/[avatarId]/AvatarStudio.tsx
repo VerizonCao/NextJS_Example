@@ -664,7 +664,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
   }, []); // Empty dependency array ensures this runs only once on mount
 
   return (
-    <div className="flex gap-4 h-screen p-4">
+    <div className="flex gap-4 p-4">
       {/* Left Panel - Video Stream */}
       <div className="w-[33.33%] bg-[#121214] rounded-lg shadow flex flex-col">
         <div className="flex-1 p-2 flex flex-col">
