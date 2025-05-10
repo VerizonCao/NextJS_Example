@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import CreateButton from '@/app/ui/dashboard/sidenav-buttons/create-button';
 import AuthButton from '@/app/ui/dashboard/sidenav-buttons/auth-button';
 import SignOutButton from '@/app/ui/dashboard/sidenav-buttons/signout-button';
+import RunPodHealth from '@/app/ui/dashboard/runpod-health';
 
 type NavButton = {
   label: string;
@@ -54,11 +55,16 @@ export default async function SideNav() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex w-full h-[78px] items-center justify-between px-10 py-3 bg-[#121214]">
-      <Link href="/" className="flex items-center">
-        <div className="w-32 text-white">
-          <AcmeLogo />
+      <div className="flex items-center gap-6">
+        <Link href="/" className="flex items-center">
+          <div className="w-32 text-white">
+            <AcmeLogo />
+          </div>
+        </Link>
+        <div className="ml-12">
+          <RunPodHealth />
         </div>
-      </Link>
+      </div>
 
       <div className="flex items-center">
         {navButtons.map((button, index) => (

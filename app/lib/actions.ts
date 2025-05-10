@@ -477,3 +477,81 @@ export async function deleteAvatar(avatarId: string): Promise<{
     return { success: false, message: 'An error occurred while deleting the avatar' };
   }
 }
+
+/**
+ * Server action to check RunPod endpoint health status
+ */
+export async function checkRunPodHealth(): Promise<{ 
+  success: boolean; 
+  data: {
+    jobs: {
+      completed: number;
+      failed: number;
+      inProgress: number;
+      inQueue: number;
+      retried: number;
+    };
+    workers: {
+      idle: number;
+      initializing: number;
+      ready: number;
+      running: number;
+      throttled: number;
+      unhealthy: number;
+    };
+  } | null;
+  message: string;
+}> {
+  try {
+    const { RUNPOD_API_KEY, ENDPOINT_ID } = process.env;
+    
+    if (!RUNPOD_API_KEY || !ENDPOINT_ID) {
+      return { 
+        success: false, 
+        data: null, 
+        message: 'Missing RunPod configuration' 
+      };
+    }
+
+    const response = await fetch(`https://api.runpod.ai/v2/${ENDPOINT_ID}/health`, {
+      headers: {
+        'Authorization': RUNPOD_API_KEY,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch RunPod health');
+    }
+
+    const data = await response.json();
+    
+    return {
+      success: true,
+      data: {
+        jobs: {
+          completed: data.jobs?.completed || 0,
+          failed: data.jobs?.failed || 0,
+          inProgress: data.jobs?.inProgress || 0,
+          inQueue: data.jobs?.inQueue || 0,
+          retried: data.jobs?.retried || 0,
+        },
+        workers: {
+          idle: data.workers?.idle || 0,
+          initializing: data.workers?.initializing || 0,
+          ready: data.workers?.ready || 0,
+          running: data.workers?.running || 0,
+          throttled: data.workers?.throttled || 0,
+          unhealthy: data.workers?.unhealthy || 0,
+        },
+      },
+      message: 'Health check completed successfully'
+    };
+  } catch (error) {
+    console.error('Error checking RunPod health:', error);
+    return { 
+      success: false, 
+      data: null, 
+      message: 'Failed to check RunPod health' 
+    };
+  }
+}
