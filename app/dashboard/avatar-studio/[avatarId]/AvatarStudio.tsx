@@ -561,10 +561,6 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
           console.log("new library:", newLibrary);
           return newLibrary;
         });
-        handleExpressionSelect(selectedCategory, selectedExpression, {
-          info: updatedInfo,
-          exp_values: [...expValues]
-        });
       }
 
       // Then send the data to server
@@ -604,6 +600,11 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
         );
         addLog('Sending edited expression data...');
       }
+      // Finally Select expression after server communication
+      handleExpressionSelect(selectedCategory, selectedExpression, {
+        info: updatedInfo,
+        exp_values: [...expValues]
+      });
     } catch (error) {
       console.error('Error saving expression:', error);
       addLog(`Error saving expression: ${error instanceof Error ? error.message : 'Unknown error'}`);
