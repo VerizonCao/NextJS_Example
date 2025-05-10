@@ -156,7 +156,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
       {sections.map((section) => (
         <React.Fragment key={section.id}>
           <div className="flex w-full max-w-[1148px] items-center justify-start gap-[1%] relative flex-[0_0_auto]">
-            <div className="relative flex-1 h-[3.3vh] [font-family:'Montserrat',Helvetica] font-bold text-white text-[1.5vw] tracking-[0] leading-[normal]">
+            <div className="relative flex-1 h-[3.3vh] [font-family:'Montserrat',Helvetica] font-bold text-white text-3xl tracking-[0] leading-[normal]">
               {section.title}
             </div>
           </div>
