@@ -668,7 +668,7 @@ export async function getUserServeCountAction(userEmail: string): Promise<{
     }
 
     // if it's our user, just return success with count 0
-    if (userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH' || userId === 'u-mwpqtYu1f2B') {
+    if (userId == 'u-vSOjV52Fssi' || userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH' || userId === 'u-mwpqtYu1f2B') {
       return {
         success: true,
         count: 0,
