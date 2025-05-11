@@ -1,11 +1,12 @@
 'use client';
 
-import { getPresignedUrl, loadAvatar, updateAvatarData, deleteAvatar } from '@/app/lib/actions';
+import { getPresignedUrl, loadAvatar, updateAvatarData, deleteAvatar, isUserAvatarOwnerAction } from '@/app/lib/actions';
 import { useState, useEffect } from 'react';
 import { use } from 'react';
 import { X, CheckCircle, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
 
 type PageParams = {
   avatarId: string;
@@ -14,14 +15,15 @@ type PageParams = {
 export default function EditAvatarPage({
     params,
   }: {
-    params: Promise<PageParams>; // ← Promise type
+    params: Promise<PageParams>;
   }) {
-  const { avatarId } = use(params); // ← unwrap with `use`
+  const { avatarId } = use(params);
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingVoice, setIsEditingVoice] = useState(false);
   const [avatar, setAvatar] = useState<any>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
   const [formData, setFormData] = useState({
     avatar_name: '',
     agent_bio: '',
@@ -33,8 +35,9 @@ export default function EditAvatarPage({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const router = useRouter();
+  const { data: session } = useSession();
 
-  // Load avatar data
+  // Load avatar data and check ownership
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -57,6 +60,12 @@ export default function EditAvatarPage({
               console.error('Error getting presigned URL:', error);
             }
           }
+
+          // Check ownership if user is logged in
+          if (session?.user?.email) {
+            const ownershipResponse = await isUserAvatarOwnerAction(session.user.email, avatarId);
+            setIsOwner(ownershipResponse.isOwner);
+          }
         }
       } catch (error) {
         console.error('Error loading avatar:', error);
@@ -65,7 +74,7 @@ export default function EditAvatarPage({
       }
     };
     loadData();
-  }, [avatarId]);
+  }, [avatarId, session?.user?.email, router]);
 
   if (isLoading) {
     return (
@@ -87,6 +96,7 @@ export default function EditAvatarPage({
   }
 
   const handleSave = async () => {
+    if (!isOwner) return;
     try {
       const response = await updateAvatarData(avatarId, formData);
       if (response.success) {
@@ -105,6 +115,7 @@ export default function EditAvatarPage({
   };
 
   const handleInputChange = (field: string, value: string) => {
+    if (!isOwner) return;
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -112,6 +123,7 @@ export default function EditAvatarPage({
   };
 
   const handleDelete = async () => {
+    if (!isOwner) return;
     try {
       const response = await deleteAvatar(avatarId);
       if (response.success) {
@@ -142,7 +154,7 @@ export default function EditAvatarPage({
               </div>
             )}
             
-            <div className="flex flex-col w-[613.7px] h-[937.44px] items-center justify-between p-8 relative bg-[#1a1a1e] rounded-[4.72px]">
+            <div className={`flex flex-col w-[613.7px] h-[937.44px] items-center justify-between p-8 relative bg-[#1a1a1e] rounded-[4.72px] ${!isOwner ? 'opacity-75' : ''}`}>
               <div className="flex flex-col items-center gap-2 relative self-stretch w-full flex-[0_0_auto]">
                 <div className="flex flex-col items-start gap-2 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
                   <div className="flex justify-between items-center w-full">
@@ -157,8 +169,9 @@ export default function EditAvatarPage({
                           type="text"
                           value={formData.avatar_name}
                           onChange={(e) => handleInputChange('avatar_name', e.target.value)}
-                          className="h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs w-full"
+                          className={`h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs w-full ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                           placeholder="Type a message..."
+                          disabled={!isOwner}
                         />
                       </div>
                     </div>
@@ -170,8 +183,9 @@ export default function EditAvatarPage({
                           type="text"
                           value={formData.agent_bio}
                           onChange={(e) => handleInputChange('agent_bio', e.target.value)}
-                          className="h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs w-full"
+                          className={`h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs w-full ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                           placeholder="Type a message..."
+                          disabled={!isOwner}
                         />
                       </div>
                     </div>
@@ -182,9 +196,10 @@ export default function EditAvatarPage({
                         <textarea
                           value={formData.prompt}
                           onChange={(e) => handleInputChange('prompt', e.target.value)}
-                          className="w-full h-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden"
+                          className={`w-full h-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                           placeholder="Type a message..."
                           style={{ height: '100%' }}
+                          disabled={!isOwner}
                         />
                       </div>
                     </div>
@@ -195,9 +210,10 @@ export default function EditAvatarPage({
                         <textarea
                           value={formData.scene_prompt}
                           onChange={(e) => handleInputChange('scene_prompt', e.target.value)}
-                          className="w-full h-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden"
+                          className={`w-full h-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                           placeholder="Type a message..."
                           style={{ height: '100%' }}
+                          disabled={!isOwner}
                         />
                       </div>
                     </div>
@@ -214,8 +230,9 @@ export default function EditAvatarPage({
                         type="text"
                         value={formData.voice_id}
                         onChange={(e) => handleInputChange('voice_id', e.target.value)}
-                        className="h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs w-full"
+                        className={`h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs w-full ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                         placeholder="Enter voice name"
+                        disabled={!isOwner}
                       />
                     </div>
                   </div>
@@ -232,7 +249,7 @@ export default function EditAvatarPage({
                     <div className="flex flex-row items-center relative self-stretch w-full">
                       <a 
                         href={`/dashboard/avatar-studio/${avatarId}?avatar_uri=${encodeURIComponent(avatar.image_uri || '')}`}
-                        className="inline-flex items-center justify-center gap-[9px] px-[36px] py-[7.2px] rounded-[10.8px] bg-blue-500 hover:bg-blue-700 text-white transition-colors duration-200"
+                        className={`inline-flex items-center justify-center gap-[9px] px-[36px] py-[7.2px] rounded-[10.8px] bg-blue-500 hover:bg-blue-700 text-white transition-colors duration-200 ${!isOwner ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                       >
                         <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
                           Open in Studio
@@ -246,7 +263,8 @@ export default function EditAvatarPage({
                 <Button
                   variant="destructive"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="inline-flex items-center justify-center gap-2 px-[18px] py-[7.2px] bg-red-800 hover:bg-red-900 rounded-[10.8px] text-white"
+                  className={`inline-flex items-center justify-center gap-2 px-[18px] py-[7.2px] bg-red-800 hover:bg-red-900 rounded-[10.8px] text-white ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={!isOwner}
                 >
                   <Trash2 size={18} />
                   <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
@@ -256,7 +274,8 @@ export default function EditAvatarPage({
 
                 <button 
                   onClick={handleSave}
-                  className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] bg-[#5856d6] rounded-[10.8px]"
+                  className={`inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] bg-[#5856d6] rounded-[10.8px] ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={!isOwner}
                 >
                   <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
                     Save

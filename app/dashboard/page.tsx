@@ -1,9 +1,25 @@
 import { loadPublicAvatars, getPresignedUrl, loadUserAvatars } from '@/app/lib/actions';
 import HomepageAvatars from './homepage-avatars';
 import { auth } from '@/auth';
+import { Suspense } from 'react';
 
 // This makes the page use ISR and revalidate every 60 seconds
 export const revalidate = 60;
+
+function LoadingState() {
+  return (
+    <div className="flex flex-col items-center gap-6 p-6">
+      <div className="animate-pulse">
+        <div className="h-8 w-48 bg-gray-700 rounded mb-4"></div>
+        <div className="grid grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="h-64 bg-gray-700 rounded"></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default async function RitaStreamingPage() {
   const session = await auth();
@@ -57,9 +73,11 @@ export default async function RitaStreamingPage() {
   }
 
   return (
-    <HomepageAvatars 
-      initialAvatars={{ ...publicResult, avatars: publicAvatars }}
-      userAvatars={userAvatars}
-    />
+    <Suspense fallback={<LoadingState />}>
+      <HomepageAvatars 
+        initialAvatars={{ ...publicResult, avatars: publicAvatars }}
+        userAvatars={userAvatars}
+      />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { startStreamingSession, incrementAvatarRequestCounter } from '@/app/lib/actions';
@@ -71,6 +71,21 @@ function WarningPopup({
         <p className="text-gray-400 text-sm">
           Your limit will reset tomorrow. Thank you for using our service!
         </p>
+      </div>
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="flex flex-col items-center gap-6 p-6">
+      <div className="animate-pulse">
+        <div className="h-8 w-48 bg-gray-700 rounded mb-4"></div>
+        <div className="grid grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="h-64 bg-gray-700 rounded"></div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -202,47 +217,49 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
   ].filter((section): section is { id: number; title: string; component: React.ReactElement } => Boolean(section));
 
   return (
-    <div className="flex flex-col w-full items-center gap-[2vh] py-[2vh]">
-      {sections.map((section) => (
-        <React.Fragment key={section.id}>
-          <div className="flex w-full max-w-[1148px] items-center justify-start gap-[1%] relative flex-[0_0_auto]">
-            <div className="relative flex-1 h-[3.3vh] [font-family:'Montserrat',Helvetica] font-bold text-white text-3xl tracking-[0] leading-[normal]">
-              {section.title}
+    <Suspense fallback={<LoadingState />}>
+      <div className="flex flex-col w-full items-center gap-[2vh] py-[2vh]">
+        {sections.map((section) => (
+          <React.Fragment key={section.id}>
+            <div className="flex w-full max-w-[1148px] items-center justify-start gap-[1%] relative flex-[0_0_auto]">
+              <div className="relative flex-1 h-[3.3vh] [font-family:'Montserrat',Helvetica] font-bold text-white text-3xl tracking-[0] leading-[normal]">
+                {section.title}
+              </div>
             </div>
-          </div>
-          <div className="w-full max-w-[1148px] flex justify-start mt-[1vh]">
-            {section.component}
-          </div>
-        </React.Fragment>
-      ))}
+            <div className="w-full max-w-[1148px] flex justify-start mt-[1vh]">
+              {section.component}
+            </div>
+          </React.Fragment>
+        ))}
 
-      <AvatarPopup
-        avatar={selectedAvatar ? {
-          avatar_id: selectedAvatar.avatar_id,
-          avatar_name: selectedAvatar.avatar_name,
-          image_uri: selectedAvatar.image_uri,
-          create_time: selectedAvatar.create_time,
-          prompt: selectedAvatar.prompt,
-          agent_bio: selectedAvatar.agent_bio,
-          presignedUrl: selectedAvatar.presignedUrl,
-          scene_prompt: selectedAvatar.scene_prompt,
-          voice_id: selectedAvatar.voice_id,
-        } : null}
-        onStream={() => selectedAvatar && handleStream(selectedAvatar.avatar_id)}
-        onClose={() => setGlobalSelectedAvatar(null)}
-      />
+        <AvatarPopup
+          avatar={selectedAvatar ? {
+            avatar_id: selectedAvatar.avatar_id,
+            avatar_name: selectedAvatar.avatar_name,
+            image_uri: selectedAvatar.image_uri,
+            create_time: selectedAvatar.create_time,
+            prompt: selectedAvatar.prompt,
+            agent_bio: selectedAvatar.agent_bio,
+            presignedUrl: selectedAvatar.presignedUrl,
+            scene_prompt: selectedAvatar.scene_prompt,
+            voice_id: selectedAvatar.voice_id,
+          } : null}
+          onStream={() => selectedAvatar && handleStream(selectedAvatar.avatar_id)}
+          onClose={() => setGlobalSelectedAvatar(null)}
+        />
 
-      <LoginPopup 
-        isOpen={showLoginPopup} 
-        onClose={() => setShowLoginPopup(false)} 
-      />
+        <LoginPopup 
+          isOpen={showLoginPopup} 
+          onClose={() => setShowLoginPopup(false)} 
+        />
 
-      <WarningPopup
-        isOpen={showWarningPopup}
-        onClose={() => setShowWarningPopup(false)}
-        currentCount={streamCount.current}
-        maxCount={streamCount.max}
-      />
-    </div>
+        <WarningPopup
+          isOpen={showWarningPopup}
+          onClose={() => setShowWarningPopup(false)}
+          currentCount={streamCount.current}
+          maxCount={streamCount.max}
+        />
+      </div>
+    </Suspense>
   );
 }

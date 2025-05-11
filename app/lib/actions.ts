@@ -23,7 +23,8 @@ import {
   incrementUserServeCount,
   Avatar,
   updateUserPreferredName,
-  getUserPreferredName
+  getUserPreferredName,
+  isUserAvatarOwner
 } from './data';
 
 import { RoomServiceClient } from 'livekit-server-sdk';
@@ -873,6 +874,56 @@ export async function getUserPreferredNameAction(userEmail: string): Promise<{
       success: false, 
       preferredName: null, 
       message: 'An error occurred while getting preferred name' 
+    };
+  }
+}
+
+/**
+ * Server action to check if a user is the owner of an avatar
+ * @param userEmail The email of the user to check
+ * @param avatarId The avatar ID to check ownership for
+ * @returns Promise<{ success: boolean; isOwner: boolean; message: string }> Response indicating ownership status
+ */
+export async function isUserAvatarOwnerAction(
+  userEmail: string,
+  avatarId: string
+): Promise<{ 
+  success: boolean; 
+  isOwner: boolean; 
+  message: string 
+}> {
+  try {
+    // Get the user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      return {
+        success: false,
+        isOwner: false,
+        message: 'User not found'
+      };
+    }
+
+    // Check if user is in the special list
+    if (userId == 'u-vSOjV52Fssi' || userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH' || userId === 'u-mwpqtYu1f2B') {
+      return {
+        success: true,
+        isOwner: true,
+        message: 'Special user - full access granted'
+      };
+    }
+
+    const isOwner = await isUserAvatarOwner(userId, avatarId);
+    return { 
+      success: true, 
+      isOwner, 
+      message: isOwner ? 'User is the owner of this avatar' : 'User is not the owner of this avatar' 
+    };
+  } catch (error) {
+    console.error('Error checking avatar ownership:', error);
+    return { 
+      success: false, 
+      isOwner: false, 
+      message: 'An error occurred while checking avatar ownership' 
     };
   }
 }

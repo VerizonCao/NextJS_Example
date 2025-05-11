@@ -689,4 +689,27 @@ export async function getUserPreferredName(userId: string): Promise<string | nul
   }
 }
 
+/**
+ * Check if a user is the owner of an avatar
+ * @param userId The user ID to check
+ * @param avatarId The avatar ID to check ownership for
+ * @returns Promise<boolean> True if user is the owner, false otherwise
+ */
+export async function isUserAvatarOwner(userId: string, avatarId: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      SELECT EXISTS (
+        SELECT 1 
+        FROM avatars 
+        WHERE avatar_id = ${avatarId} 
+        AND owner_id = ${userId}
+      ) as is_owner
+    `;
+    return result[0].is_owner;
+  } catch (error) {
+    console.error('Error checking avatar ownership:', error);
+    return false;
+  }
+}
+
 
