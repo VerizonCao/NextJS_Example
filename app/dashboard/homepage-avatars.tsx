@@ -175,6 +175,8 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
           prompt: selectedAvatar.prompt,
           agent_bio: selectedAvatar.agent_bio,
           presignedUrl: selectedAvatar.presignedUrl,
+          scene_prompt: selectedAvatar.scene_prompt,
+          voice_id: selectedAvatar.voice_id,
         } : null}
         onStream={() => selectedAvatar && handleStream(selectedAvatar.avatar_id)}
         onClose={() => setGlobalSelectedAvatar(null)}
