@@ -5,7 +5,7 @@ import { auth } from '@/auth';
 import CreateButton from '@/app/ui/dashboard/sidenav-buttons/create-button';
 import AuthButton from '@/app/ui/dashboard/sidenav-buttons/auth-button';
 import SignOutButton from '@/app/ui/dashboard/sidenav-buttons/signout-button';
-import RunPodHealth from '@/app/ui/dashboard/runpod-health';
+import StatusBar from '@/app/ui/dashboard/runpod-health';
 
 type NavButton = {
   label: string;
@@ -68,7 +68,7 @@ export default async function SideNav() {
           </div>
         </Link>
         <div className="ml-12">
-          <RunPodHealth />
+          <StatusBar />
         </div>
       </div>
 
