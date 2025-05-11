@@ -722,10 +722,14 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
             >
               Stop Streaming
             </button>
-          </div>
-          <div className="bg-black/40 p-2 rounded-lg">
-            <div className="text-sm font-medium text-gray-200">Status: {status}</div>
           </div> */}
+          {isLoading && (
+            <div className="bg-black/40 p-2 rounded-lg mt-2">
+              <div className="text-sm font-medium text-gray-200">
+                Loading character...
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
