@@ -126,13 +126,13 @@ export async function startStreamingSession({
     // Check user's serve count if email is provided
     if (userEmail) {
       const { success, count } = await getUserServeCountAction(userEmail);
-      if (success && count >= 6) {
+      if (success && count >= 10) {
         return { 
           success: false, 
           message: 'Maximum serve count reached',
           error: 'LIMIT_REACHED',
           currentCount: count,
-          maxCount: 6
+          maxCount: 10
         };
       }
     }
@@ -657,6 +657,15 @@ export async function getUserServeCountAction(userId: string): Promise<{
   message: string 
 }> {
   try {
+    // if it's our user, just return success with count 0
+    if (userId === 'u-vSOjV52Fssi' || userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH') {
+      return {
+        success: true,
+        count: 0,
+        message: 'Bypass user - no count limit'
+      };
+    }
+
     const count = await getUserServeCount(userId);
     return { 
       success: true, 
