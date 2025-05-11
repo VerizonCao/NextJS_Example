@@ -6,6 +6,7 @@ import CreateButton from '@/app/ui/dashboard/sidenav-buttons/create-button';
 import AuthButton from '@/app/ui/dashboard/sidenav-buttons/auth-button';
 import SignOutButton from '@/app/ui/dashboard/sidenav-buttons/signout-button';
 import StatusBar from '@/app/ui/dashboard/runpod-health';
+import NameInput from '@/app/ui/dashboard/sidenav-buttons/name-input';
 
 type NavButton = {
   label: string;
@@ -19,6 +20,7 @@ type NavButton = {
 export default async function SideNav() {
   const session = await auth();
   const userName = session?.user?.name || session?.user?.email;
+  const userEmail = session?.user?.email;
 
   const navButtons: NavButton[] = [
     {
@@ -81,6 +83,12 @@ export default async function SideNav() {
               <CreateButton button={button} />
             ) : !session && (button.label === "Login" || button.label === "Sign Up") ? (
               <AuthButton button={button} />
+            ) : button.label === userName ? (
+              <NameInput 
+                userName={userName} 
+                className={button.className} 
+                userEmail={userEmail || ''} 
+              />
             ) : (
               <Link
                 href={button.href}

@@ -651,4 +651,42 @@ export async function incrementUserServeCount(userId: string): Promise<number> {
   }
 }
 
+/**
+ * Update a user's preferred name
+ * @param userId The user_id to update
+ * @param preferredName The new preferred name to set
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function updateUserPreferredName(userId: string, preferredName: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      UPDATE users
+      SET preferred_name = ${preferredName}
+      WHERE user_id = ${userId}
+      RETURNING user_id
+    `;
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error updating user preferred name:', error);
+    return false;
+  }
+}
+
+/**
+ * Get a user's preferred name by their user ID
+ * @param userId The user ID to look up
+ * @returns Promise<string | null> The preferred name if found, null otherwise
+ */
+export async function getUserPreferredName(userId: string): Promise<string | null> {
+  try {
+    const result = await sql`
+      SELECT preferred_name FROM users WHERE user_id = ${userId}
+    `;
+    return result.length > 0 ? result[0].preferred_name : null;
+  } catch (error) {
+    console.error('Error getting user preferred name:', error);
+    return null;
+  }
+}
+
 

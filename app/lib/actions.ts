@@ -21,7 +21,9 @@ import {
   deleteAvatar as deleteAvatarFromDb,
   getUserServeCount,
   incrementUserServeCount,
-  Avatar 
+  Avatar,
+  updateUserPreferredName,
+  getUserPreferredName
 } from './data';
 
 import { RoomServiceClient } from 'livekit-server-sdk';
@@ -134,6 +136,12 @@ export async function startStreamingSession({
           currentCount: count,
           maxCount: 10
         };
+      }
+
+      // Check if user has a preferred name
+      const { success: nameSuccess, preferredName } = await getUserPreferredNameAction(userEmail);
+      if (nameSuccess && preferredName) {
+        llmUserNickname = preferredName;
       }
     }
 
@@ -725,6 +733,146 @@ export async function incrementUserServeCountAction(userEmail: string): Promise<
       success: false, 
       newCount: 0, 
       message: 'Failed to increment serve count' 
+    };
+  }
+}
+
+/**
+ * Server action to load a single avatar by its ID with permission check
+ */
+export async function loadAuthorizedAvatar(avatarId: string, email: string): Promise<{ 
+  success: boolean; 
+  avatar: Avatar | null; 
+  message: string;
+  authorized: boolean;
+}> {
+  try {
+    // Get user ID from email
+    const userId = await getUserByIdEmail(email);
+    if (!userId) {
+      return {
+        success: false,
+        avatar: null,
+        message: 'User not found',
+        authorized: false
+      };
+    }
+
+    const avatar = await loadAvatarFromDb(avatarId);
+    if (!avatar) {
+      return { 
+        success: false, 
+        avatar: null, 
+        message: 'Avatar not found',
+        authorized: false
+      };
+    }
+
+    // Check if the user is authorized to view this avatar
+    const isAuthorized = avatar.owner_id === userId;
+    if (!isAuthorized) {
+      return {
+        success: false,
+        avatar: null,
+        message: 'You do not have permission to view this avatar',
+        authorized: false
+      };
+    }
+    
+    return { 
+      success: true, 
+      avatar, 
+      message: 'Avatar loaded successfully',
+      authorized: true
+    };
+  } catch (error) {
+    console.error('Error in loadAuthorizedAvatar action:', error);
+    return { 
+      success: false, 
+      avatar: null, 
+      message: 'An error occurred while loading the avatar',
+      authorized: false
+    };
+  }
+}
+
+/**
+ * Server action to update a user's preferred name
+ * @param userEmail The email of the user to update
+ * @param preferredName The new preferred name to set
+ * @returns Promise<{ success: boolean; message: string }> Response indicating success or failure
+ */
+export async function updateUserPreferredNameAction(
+  userEmail: string,
+  preferredName: string
+): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    // Get the user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      return {
+        success: false,
+        message: 'User not found'
+      };
+    }
+
+    const success = await updateUserPreferredName(userId, preferredName);
+    if (success) {
+      return { 
+        success: true, 
+        message: 'Preferred name updated successfully' 
+      };
+    } else {
+      return { 
+        success: false, 
+        message: 'Failed to update preferred name' 
+      };
+    }
+  } catch (error) {
+    console.error('Error updating preferred name:', error);
+    return { 
+      success: false, 
+      message: 'An error occurred while updating preferred name' 
+    };
+  }
+}
+
+/**
+ * Server action to get a user's preferred name
+ * @param userEmail The email of the user to get the preferred name for
+ * @returns Promise<{ success: boolean; preferredName: string | null; message: string }> Response with the preferred name
+ */
+export async function getUserPreferredNameAction(userEmail: string): Promise<{ 
+  success: boolean; 
+  preferredName: string | null; 
+  message: string 
+}> {
+  try {
+    // Get the user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      return {
+        success: false,
+        preferredName: null,
+        message: 'User not found'
+      };
+    }
+
+    const preferredName = await getUserPreferredName(userId);
+    return { 
+      success: true, 
+      preferredName, 
+      message: preferredName ? 'Preferred name retrieved successfully' : 'No preferred name set' 
+    };
+  } catch (error) {
+    console.error('Error getting preferred name:', error);
+    return { 
+      success: false, 
+      preferredName: null, 
+      message: 'An error occurred while getting preferred name' 
     };
   }
 }
