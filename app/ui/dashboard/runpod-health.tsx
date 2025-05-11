@@ -45,9 +45,9 @@ export default function StatusBar() {
     };
 
     const checkTokenCount = async () => {
-      if (session?.user?.id) {
+      if (session?.user?.email) {
         try {
-          const result = await getUserServeCountAction(session.user.id);
+          const result = await getUserServeCountAction(session.user.email);
           if (result.success) {
             setTokenCount(10 - result.count);
           }
@@ -60,13 +60,13 @@ export default function StatusBar() {
     checkHealth();
     checkTokenCount();
     const healthInterval = setInterval(checkHealth, 10000); // Check every 10 seconds
-    const tokenInterval = setInterval(checkTokenCount, 60000); // Check every minute
+    const tokenInterval = setInterval(checkTokenCount, 20000); // Check every 20 seconds
 
     return () => {
       clearInterval(healthInterval);
       clearInterval(tokenInterval);
     };
-  }, [session?.user?.id]);
+  }, [session?.user?.email]);
 
   if (loading) {
     return (

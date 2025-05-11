@@ -648,15 +648,25 @@ export async function removeParticipant(roomName: string, identity: string): Pro
 
 /**
  * Server action to get the serve count for a user
- * @param userId The ID of the user to get the serve count for
+ * @param userEmail The email of the user to get the serve count for
  * @returns Promise<{ success: boolean; count: number; message: string }> Response with the serve count
  */
-export async function getUserServeCountAction(userId: string): Promise<{ 
+export async function getUserServeCountAction(userEmail: string): Promise<{ 
   success: boolean; 
   count: number; 
   message: string 
 }> {
   try {
+    // Get the real user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      return {
+        success: false,
+        count: 0,
+        message: 'User not found'
+      };
+    }
+
     // if it's our user, just return success with count 0
     if (userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH' || userId === 'u-mwpqtYu1f2B') {
       return {
@@ -684,15 +694,25 @@ export async function getUserServeCountAction(userId: string): Promise<{
 
 /**
  * Server action to increment the serve count for a user
- * @param userId The ID of the user to increment the serve count for
+ * @param userEmail The email of the user to increment the serve count for
  * @returns Promise<{ success: boolean; newCount: number; message: string }> Response with the new serve count
  */
-export async function incrementUserServeCountAction(userId: string): Promise<{ 
+export async function incrementUserServeCountAction(userEmail: string): Promise<{ 
   success: boolean; 
   newCount: number; 
   message: string 
 }> {
   try {
+    // Get the real user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      return {
+        success: false,
+        newCount: 0,
+        message: 'User not found'
+      };
+    }
+
     const newCount = await incrementUserServeCount(userId);
     return { 
       success: true, 
