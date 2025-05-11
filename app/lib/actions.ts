@@ -19,6 +19,8 @@ import {
   updateAvatarData as updateAvatarDataFromDb,
   loadPublicAvatars as loadPublicAvatarsFromDb,
   deleteAvatar as deleteAvatarFromDb,
+  getUserServeCount,
+  incrementUserServeCount,
   Avatar 
 } from './data';
 
@@ -104,6 +106,7 @@ export async function startStreamingSession({
   llmAssistantAdditionalCharacteristics = null,
   llmConversationContext = null,
   ttsVoiceIdCartesia = null,
+  userEmail = null,
 }: {
   instruction: string;
   seconds: number;
@@ -117,8 +120,23 @@ export async function startStreamingSession({
   llmAssistantAdditionalCharacteristics?: string | null;
   llmConversationContext?: string | null;
   ttsVoiceIdCartesia?: string | null;
+  userEmail?: string | null;
 }) {
   try {
+    // Check user's serve count if email is provided
+    if (userEmail) {
+      const { success, count } = await getUserServeCountAction(userEmail);
+      if (success && count >= 6) {
+        return { 
+          success: false, 
+          message: 'Maximum serve count reached',
+          error: 'LIMIT_REACHED',
+          currentCount: count,
+          maxCount: 6
+        };
+      }
+    }
+
     const input: Record<string, any> = {
       instruction,
       seconds,
@@ -147,6 +165,18 @@ export async function startStreamingSession({
 
     const data = await response.json();
     console.log('Streaming session completed:', data);
+
+    // Increment user's serve count if email is provided
+    if (userEmail) {
+      const { newCount } = await incrementUserServeCountAction(userEmail);
+      return {
+        ...data,
+        success: true,
+        currentCount: newCount,
+        maxCount: 6
+      };
+    }
+
     return data;
   } catch (error) {
     console.error('Error in streaming session:', error);
@@ -598,11 +628,74 @@ export async function removeParticipant(roomName: string, identity: string): Pro
       success: true, 
       message: 'Participant removed successfully' 
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error removing participant:', error);
+    
+    // Handle the case where participant is not found
+    if (error.status === 404 && error.code === 'not_found') {
+      return {
+        success: true,
+        message: 'Participant was already removed or not found'
+      };
+    }
+    
     return { 
       success: false, 
       message: 'Failed to remove participant' 
+    };
+  }
+}
+
+/**
+ * Server action to get the serve count for a user
+ * @param userId The ID of the user to get the serve count for
+ * @returns Promise<{ success: boolean; count: number; message: string }> Response with the serve count
+ */
+export async function getUserServeCountAction(userId: string): Promise<{ 
+  success: boolean; 
+  count: number; 
+  message: string 
+}> {
+  try {
+    const count = await getUserServeCount(userId);
+    return { 
+      success: true, 
+      count, 
+      message: 'Serve count retrieved successfully' 
+    };
+  } catch (error) {
+    console.error('Error getting user serve count:', error);
+    return { 
+      success: false, 
+      count: 0, 
+      message: 'Failed to get serve count' 
+    };
+  }
+}
+
+/**
+ * Server action to increment the serve count for a user
+ * @param userId The ID of the user to increment the serve count for
+ * @returns Promise<{ success: boolean; newCount: number; message: string }> Response with the new serve count
+ */
+export async function incrementUserServeCountAction(userId: string): Promise<{ 
+  success: boolean; 
+  newCount: number; 
+  message: string 
+}> {
+  try {
+    const newCount = await incrementUserServeCount(userId);
+    return { 
+      success: true, 
+      newCount, 
+      message: 'Serve count incremented successfully' 
+    };
+  } catch (error) {
+    console.error('Error incrementing user serve count:', error);
+    return { 
+      success: false, 
+      newCount: 0, 
+      message: 'Failed to increment serve count' 
     };
   }
 }

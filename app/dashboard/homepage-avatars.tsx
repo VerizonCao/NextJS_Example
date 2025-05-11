@@ -10,6 +10,8 @@ import AvatarPopup from '@/app/ui/rita/avatar-popup';
 import LoginPopup from '@/app/ui/rita/login-popup';
 import { Card } from '@/app/components/card';
 import MyAvatars from '@/app/ui/rita/my-avatars';
+import { X, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type UserAvatar = {
   avatar_id: string;
@@ -36,10 +38,50 @@ interface HomepageAvatarsProps {
   } | null;
 }
 
+function WarningPopup({ 
+  isOpen, 
+  onClose, 
+  currentCount, 
+  maxCount 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  currentCount: number;
+  maxCount: number;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
+        <Button
+          variant="ghost"
+          className="absolute top-2 right-2 text-white"
+          onClick={onClose}
+        >
+          <X size={24} />
+        </Button>
+        <h2 className="text-white text-2xl font-semibold mb-4 flex items-center">
+          <AlertCircle className="text-yellow-500 mr-2" size={28} />
+          Daily Limit Reached
+        </h2>
+        <p className="text-white text-lg mb-2">
+          You have reached your daily limit of {maxCount} streaming sessions.
+        </p>
+        <p className="text-gray-400 text-sm">
+          Your limit will reset tomorrow. Thank you for using our service!
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function HomepageAvatars({ initialAvatars, userAvatars }: HomepageAvatarsProps) {
   const router = useRouter();
   const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [showWarningPopup, setShowWarningPopup] = useState(false);
+  const [streamCount, setStreamCount] = useState({ current: 0, max: 6 });
   const { data: session } = useSession();
  
   const handleStream = async (avatarId: string) => {
@@ -54,7 +96,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
     if (!avatar) return;
     
     try {
-      await startStreamingSession({
+      const response = await startStreamingSession({
         instruction: "test",
         seconds: 600,
         room: roomName,
@@ -67,7 +109,15 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
         llmAssistantAdditionalCharacteristics: avatar.prompt,
         llmConversationContext: avatar.scene_prompt,
         ttsVoiceIdCartesia: avatar.voice_id,
+        userEmail: session?.user?.email || '',
       });
+
+      if (!response.success && response.error === 'LIMIT_REACHED') {
+        setStreamCount({ current: response.currentCount, max: response.maxCount });
+        setShowWarningPopup(true);
+        return;
+      }
+
       await incrementAvatarRequestCounter(avatarId);
       const returnPath = '/dashboard';
       const presignedUrl = avatar.presignedUrl || '';
@@ -185,6 +235,13 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
       <LoginPopup 
         isOpen={showLoginPopup} 
         onClose={() => setShowLoginPopup(false)} 
+      />
+
+      <WarningPopup
+        isOpen={showWarningPopup}
+        onClose={() => setShowWarningPopup(false)}
+        currentCount={streamCount.current}
+        maxCount={streamCount.max}
       />
     </div>
   );

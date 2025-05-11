@@ -465,7 +465,7 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
       FROM avatars 
       WHERE is_public = true
       ORDER BY create_time DESC
-      LIMIT 20
+      LIMIT 40
     `;
     
     return result;
@@ -599,6 +599,55 @@ export async function deleteAvatar(avatarId: string): Promise<boolean> {
   } catch (error) {
     console.error('Error deleting avatar:', error);
     return false;
+  }
+}
+
+/**
+ * Get the serve count for a user from Redis
+ * @param userId The user ID to get the serve count for
+ * @returns Promise<number> The serve count, or 0 if no record exists
+ */
+export async function getUserServeCount(userId: string): Promise<number> {
+  try {
+    const today = new Date();
+    const dateKey = `${today.getMonth() + 1}.${today.getDate()}`;
+    const key = `${userId}_serve_count_${dateKey}`;
+    const count = await redis.get(key);
+    return count ? Number(count) : 0;
+  } catch (error) {
+    console.error('Error getting user serve count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Increment the serve count for a user by 1
+ * @param userId The user ID to increment the serve count for
+ * @returns Promise<number> The new serve count after incrementing
+ */
+export async function incrementUserServeCount(userId: string): Promise<number> {
+  try {
+    const today = new Date();
+    const dateKey = `${today.getMonth() + 1}.${today.getDate()}`;
+    const key = `${userId}_serve_count_${dateKey}`;
+    
+    // First check if the key exists
+    const exists = await redis.exists(key);
+    
+    if (!exists) {
+      // If key doesn't exist, set it with TTL
+      const multi = redis.multi();
+      multi.set(key, 1);
+      multi.expire(key, 24 * 60 * 60); // Set TTL to 24 hours in seconds
+      await multi.exec();
+      return 1;
+    } else {
+      // If key exists, just increment it
+      return await redis.incr(key);
+    }
+  } catch (error) {
+    console.error('Error incrementing user serve count:', error);
+    return 0;
   }
 }
 
