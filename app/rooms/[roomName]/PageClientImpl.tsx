@@ -12,6 +12,7 @@ import {
   VideoConference,
   useRemoteParticipants,
   useRoomContext,
+  useChat,
 } from '@livekit/components-react';
 import { CustomPreJoin } from '@/app/ui/rita/prejoin';
 import {
@@ -47,7 +48,6 @@ export function PageClientImpl(props: {
   avatar_name?: string;
 }) {
 
-  // console.log('PageClientImpl props', props);
   const router = useRouter();
   const pathname = usePathname();
   const [preJoinChoices, setPreJoinChoices] = React.useState<LocalUserChoices | undefined>(
@@ -84,7 +84,6 @@ export function PageClientImpl(props: {
         const connectionDetailsResp = await fetch(url.toString());
         const connectionDetailsData = await connectionDetailsResp.json();
         setConnectionDetails(connectionDetailsData);
-        console.log('Got connection details:', connectionDetailsData);
 
         const roomOptions: RoomOptions = {
           videoCaptureDefaults: {
@@ -118,7 +117,10 @@ export function PageClientImpl(props: {
             try {
               await removeParticipant(props.roomName, newRoom.localParticipant.identity);
             } catch (error) {
-              console.error('Error removing participant:', error);
+              // Silently ignore participant not found errors
+              if (!(error instanceof Error && error.message.includes('participant not found'))) {
+                console.error('Error removing participant:', error);
+              }
             }
           }
         };
@@ -128,7 +130,11 @@ export function PageClientImpl(props: {
         return () => {
           window.removeEventListener('beforeunload', handleBeforeUnload);
           if (newRoom && newRoom.state === 'connected') {
-            removeParticipant(props.roomName, newRoom.localParticipant.identity).catch(console.error);
+            removeParticipant(props.roomName, newRoom.localParticipant.identity).catch((error) => {
+              if (!(error instanceof Error && error.message.includes('participant not found'))) {
+                console.error('Error removing participant:', error);
+              }
+            });
           }
         };
       } catch (error) {
@@ -151,7 +157,9 @@ export function PageClientImpl(props: {
         try {
           await removeParticipant(props.roomName, room.localParticipant.identity);
         } catch (error) {
-          console.error('Error removing participant:', error);
+          if (!(error instanceof Error && error.message.includes('participant not found'))) {
+            console.error('Error removing participant:', error);
+          }
         }
       }
     };
@@ -159,7 +167,11 @@ export function PageClientImpl(props: {
     // Handle browser/tab close
     const handleBeforeUnload = () => {
       if (room.state === 'connected') {
-        removeParticipant(props.roomName, room.localParticipant.identity).catch(console.error);
+        removeParticipant(props.roomName, room.localParticipant.identity).catch((error) => {
+          if (!(error instanceof Error && error.message.includes('participant not found'))) {
+            console.error('Error removing participant:', error);
+          }
+        });
       }
     };
 
@@ -179,7 +191,11 @@ export function PageClientImpl(props: {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       clearInterval(interval);
       if (room.state === 'connected') {
-        removeParticipant(props.roomName, room.localParticipant.identity).catch(console.error);
+        removeParticipant(props.roomName, room.localParticipant.identity).catch((error) => {
+          if (!(error instanceof Error && error.message.includes('participant not found'))) {
+            console.error('Error removing participant:', error);
+          }
+        });
       }
     };
   }, [room, props.roomName, pathname]);
@@ -253,10 +269,18 @@ function RoomContent(props: {
   const remoteParticipants = useRemoteParticipants();
   const hasRemoteParticipant = remoteParticipants.length > 0;
   const [showVideoConference, setShowVideoConference] = React.useState(false);
+  const { send } = useChat();
+  const lastProcessedIndex = React.useRef<number>(-1);
 
-  // send data code start
-  
   const room = useRoomContext();
+
+  // Reset index when remote participant disconnects
+  React.useEffect(() => {
+    if (!hasRemoteParticipant) {
+      lastProcessedIndex.current = -1;
+    }
+  }, [hasRemoteParticipant]);
+
   // Add data sending functionality
   React.useEffect(() => {
     if (!room) return;
@@ -285,6 +309,31 @@ function RoomContent(props: {
         console.error('Error sending custom data:', error);
       }
     };
+
+    // Handle incoming data messages
+    const handleDataReceived = async (payload: Uint8Array, participant: any) => {
+      try {
+        const data = JSON.parse(new TextDecoder().decode(payload));
+        
+        // Handle voice transcription data
+        if (data.type === 'voice_transcription' && data.resp.index !== undefined) {
+          // Only process if this is a new index
+          if (data.resp.index <= lastProcessedIndex.current) {
+            return;
+          }
+          
+          // Update last processed index
+          lastProcessedIndex.current = data.resp.index;
+          // Add message to chat history using send function
+          await send(data.resp.text);
+        }
+      } catch (error) {
+        console.error('Error processing received data:', error);
+      }
+    };
+
+    // Subscribe to data messages
+    room.on('dataReceived', handleDataReceived);
 
     // Add resolution detection
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
@@ -320,16 +369,12 @@ function RoomContent(props: {
       }
     });
 
-
     return () => {
       if (cleanup) {
         cleanup();
       }
     };
-  }, [room, remoteParticipants.length]);
-
-
-  // send data code end
+  }, [room, remoteParticipants.length, send]);
 
   React.useEffect(() => {
     if (hasRemoteParticipant) {
