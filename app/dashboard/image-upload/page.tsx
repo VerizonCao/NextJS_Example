@@ -447,6 +447,7 @@ export default function ImageUploadPage() {
                       </div>
                     </Button>
                   ))}
+                  <p className="text-xs text-gray-400 mt-3 font-['Montserrat',Helvetica] space-y-1">Voice clone is coming soon!</p>
                 </div>
               )}
             </div>
