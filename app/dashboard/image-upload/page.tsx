@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { saveAvatarData, generatePresignedUrl } from '@/app/lib/actions';
+import { saveAvatarData, generatePresignedUrl, cloneVoice } from '@/app/lib/actions';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -13,6 +13,7 @@ import DragDropImageUpload from '@/app/components/DragDropImageUpload';
 import { CustomInput } from '@/app/components/ui/custom-input';
 import { CustomTextarea } from '@/app/components/ui/custom-textarea';
 import { X, CheckCircle } from 'lucide-react';
+import VoiceCloneUpload from '@/app/components/VoiceCloneUpload';
 
 interface VoiceSample {
   id: string;
@@ -231,6 +232,11 @@ export default function ImageUploadPage() {
           // You can implement additional logic here, such as saving the image URL to your database
           const owner_email = session?.user?.email ?? '';
           if (owner_email) {
+            // Strip the 'cloned-' prefix if it exists
+            const voiceId = selectedVoice.startsWith('cloned-') 
+              ? selectedVoice.slice(7) // Remove 'cloned-' prefix
+              : selectedVoice;
+
             // Save the avatar to the database using the server action
             const result = await saveAvatarData({
               avatar_name: name,
@@ -239,7 +245,7 @@ export default function ImageUploadPage() {
               agent_bio: bio,
               owner_email: owner_email,
               image_uri: key,
-              voice_id: selectedVoice,
+              voice_id: voiceId, // Use the cleaned voice ID
               is_public: isPublic
             });
             
@@ -442,12 +448,27 @@ export default function ImageUploadPage() {
                           </svg>
                         </div>
                         <div className="text-left">
-                          <p className="text-white font-medium text-xs">Voice {voice.id}</p>
+                          <p className="text-white font-medium text-xs">
+                            {voice.id.startsWith('cloned-') ? 'Cloned Voice' : `Voice ${voice.id}`}
+                          </p>
                         </div>
                       </div>
                     </Button>
                   ))}
-                  <p className="text-xs text-gray-400 mt-3 font-['Montserrat',Helvetica] space-y-1">Voice clone is coming soon!</p>
+                  <div className="w-full mt-4">
+                    <VoiceCloneUpload 
+                      onVoiceCloned={(voiceId, originalAudioUrl) => {
+                        // Add the cloned voice to the voices list with a special prefix
+                        const clonedVoiceId = `cloned-${voiceId}`;
+                        setVoices(prev => [...prev, {
+                          id: clonedVoiceId,
+                          audioUrl: originalAudioUrl // Use the original audio file URL
+                        }]);
+                        // Automatically select the newly cloned voice
+                        setSelectedVoice(clonedVoiceId);
+                      }} 
+                    />
+                  </div>
                 </div>
               )}
             </div>
