@@ -12,6 +12,7 @@ import LoginPopup from './login-popup';
 import { Card } from '@/app/components/card';
 import { X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { storeUserRoomAction, deleteUserPreviousRoomAction } from '@/app/lib/actions';
 
 // Loading component for images
 function ImageLoading() {
@@ -113,6 +114,11 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
       avatar_name: avatar.avatar_name || '',
     }).toString();
 
+    // Delete any previous room for this user
+    if (session?.user?.email) {
+      deleteUserPreviousRoomAction(session.user.email, roomName);
+    }
+
     try {
       const response = await startStreamingSession({
         instruction: "test",
@@ -130,6 +136,11 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
         userEmail: session?.user?.email || '',
       });
 
+      // Store the room ID for this user
+      if (session?.user?.email) {
+        storeUserRoomAction(session.user.email, roomName);
+      }
+    
       if (!response.success && response.error === 'LIMIT_REACHED') {
         setStreamCount({ current: response.currentCount, max: response.maxCount });
         setShowWarningPopup(true);

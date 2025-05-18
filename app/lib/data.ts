@@ -712,4 +712,55 @@ export async function isUserAvatarOwner(userId: string, avatarId: string): Promi
   }
 }
 
+/**
+ * Find and remove a user's previous room ID if it exists
+ * @param userId The user ID to check for previous rooms
+ * @returns Promise<string | null> The room ID if found, null otherwise
+ */
+export async function findUserPreviousRoom(userId: string): Promise<string | null> {
+  try {
+    // Search for any room keys for this user
+    const pattern = `${userId}_room_*`;
+    const keys = await redis.keys(pattern);
+    
+    // Filter keys that belong to this user
+    const userRoomKeys = keys.filter(key => {
+      const roomId = key.split('_')[2]; // Get room ID from key
+      return key.startsWith(`${userId}_room_${roomId}`);
+    });
+
+    if (userRoomKeys.length === 0) {
+      return null;
+    }
+
+    // Get the room ID from the first key found
+    const roomId = userRoomKeys[0].split('_')[2];
+
+    // Delete the room key from Redis
+    await redis.del(userRoomKeys[0]);
+
+    return roomId;
+  } catch (error) {
+    console.error('Error finding user previous room:', error);
+    return null;
+  }
+}
+
+/**
+ * Store a room ID in Redis for a user
+ * @param userId The user ID to store the room for
+ * @param roomId The room ID to store
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function storeUserRoom(userId: string, roomId: string): Promise<boolean> {
+  try {
+    const key = `${userId}_room_${roomId}`;
+    await redis.set(key, userId, { ex: 2 * 60 * 60 }); // Set TTL to 2 hours
+    return true;
+  } catch (error) {
+    console.error('Error storing user room:', error);
+    return false;
+  }
+}
+
 
