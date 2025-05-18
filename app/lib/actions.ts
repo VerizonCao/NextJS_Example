@@ -24,7 +24,9 @@ import {
   Avatar,
   updateUserPreferredName,
   getUserPreferredName,
-  isUserAvatarOwner
+  isUserAvatarOwner,
+  findUserPreviousRoom,
+  storeUserRoom
 } from './data';
 
 import { RoomServiceClient } from 'livekit-server-sdk';
@@ -33,8 +35,6 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 import { customAlphabet } from 'nanoid'
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 11)
-
-
 
 const FormSchema = z.object({
     id: z.string(),
@@ -878,18 +878,63 @@ export async function getUserPreferredNameAction(userEmail: string): Promise<{
   }
 }
 
+
 /**
- * Server action to check if a user is the owner of an avatar
- * @param userEmail The email of the user to check
- * @param avatarId The avatar ID to check ownership for
- * @returns Promise<{ success: boolean; isOwner: boolean; message: string }> Response indicating ownership status
+ * Server action to delete a user's previous room if it exists
+ * This is a fire-and-forget operation that doesn't need to be awaited
+ * @param userEmail The email of the user to check for previous rooms
+ * @param room_name The name of the current room to compare against
  */
-export async function isUserAvatarOwnerAction(
+export async function deleteUserPreviousRoomAction(userEmail: string, room_name: string) {
+  try {
+    // Get the user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      console.error('User not found for email:', userEmail);
+      return;
+    }
+
+    // Find and remove the previous room ID from Redis
+    const roomId = await findUserPreviousRoom(userId);
+    if (!roomId) {
+      return; // No previous room found, nothing to do
+    }
+
+    // Only delete if the room IDs don't match
+    if (roomId === room_name) {
+      console.log(`Room "${roomId}" matches current room, skipping deletion.`);
+      return;
+    }
+
+    // Delete the room from LiveKit
+    try {
+      const roomService = new RoomServiceClient(
+        process.env.LIVEKIT_URL!,
+        process.env.LIVEKIT_API_KEY!,
+        process.env.LIVEKIT_API_SECRET!
+      );
+      
+      await roomService.deleteRoom(roomId);
+      console.log(`Room "${roomId}" deleted successfully.`);
+    } catch (error) {
+      console.error(`Failed to delete room "${roomId}":`, error);
+    }
+  } catch (error) {
+    console.error('Error in deleteUserPreviousRoomAction:', error);
+  }
+}
+
+/**
+ * Server action to store a room ID for a user
+ * @param userEmail The email of the user to store the room for
+ * @param roomId The room ID to store
+ * @returns Promise<{ success: boolean; message: string }> Response indicating success or failure
+ */
+export async function storeUserRoomAction(
   userEmail: string,
-  avatarId: string
+  roomId: string
 ): Promise<{ 
   success: boolean; 
-  isOwner: boolean; 
   message: string 
 }> {
   try {
@@ -898,32 +943,28 @@ export async function isUserAvatarOwnerAction(
     if (!userId) {
       return {
         success: false,
-        isOwner: false,
         message: 'User not found'
       };
     }
 
-    // Check if user is in the special list
-    if (userId == 'u-vSOjV52Fssi' || userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH' || userId === 'u-mwpqtYu1f2B') {
+    // Store the room ID in Redis
+    const success = await storeUserRoom(userId, roomId);
+    if (success) {
       return {
         success: true,
-        isOwner: true,
-        message: 'Special user - full access granted'
+        message: 'Room stored successfully'
+      };
+    } else {
+      return {
+        success: false,
+        message: 'Failed to store room'
       };
     }
-
-    const isOwner = await isUserAvatarOwner(userId, avatarId);
-    return { 
-      success: true, 
-      isOwner, 
-      message: isOwner ? 'User is the owner of this avatar' : 'User is not the owner of this avatar' 
-    };
   } catch (error) {
-    console.error('Error checking avatar ownership:', error);
-    return { 
-      success: false, 
-      isOwner: false, 
-      message: 'An error occurred while checking avatar ownership' 
+    console.error('Error in storeUserRoomAction:', error);
+    return {
+      success: false,
+      message: 'An error occurred while storing room'
     };
   }
 }

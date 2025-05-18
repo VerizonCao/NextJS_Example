@@ -115,7 +115,7 @@ export function PageClientImpl(props: {
         const handleBeforeUnload = async () => {
           if (newRoom && newRoom.state === 'connected') {
             try {
-              await removeParticipant(props.roomName, newRoom.localParticipant.identity);
+              // await removeParticipant(props.roomName, newRoom.localParticipant.identity);
             } catch (error) {
               // Silently ignore participant not found errors
               if (!(error instanceof Error && error.message.includes('participant not found'))) {
@@ -130,11 +130,11 @@ export function PageClientImpl(props: {
         return () => {
           window.removeEventListener('beforeunload', handleBeforeUnload);
           if (newRoom && newRoom.state === 'connected') {
-            removeParticipant(props.roomName, newRoom.localParticipant.identity).catch((error) => {
-              if (!(error instanceof Error && error.message.includes('participant not found'))) {
-                console.error('Error removing participant:', error);
-              }
-            });
+            // removeParticipant(props.roomName, newRoom.localParticipant.identity).catch((error) => {
+            //   if (!(error instanceof Error && error.message.includes('participant not found'))) {
+            //     console.error('Error removing participant:', error);
+            //   }
+            // });
           }
         };
       } catch (error) {
@@ -155,7 +155,7 @@ export function PageClientImpl(props: {
     const handleRouteChange = async () => {
       if (room.state === 'connected') {
         try {
-          await removeParticipant(props.roomName, room.localParticipant.identity);
+          // await removeParticipant(props.roomName, room.localParticipant.identity);
         } catch (error) {
           if (!(error instanceof Error && error.message.includes('participant not found'))) {
             console.error('Error removing participant:', error);
@@ -167,11 +167,11 @@ export function PageClientImpl(props: {
     // Handle browser/tab close
     const handleBeforeUnload = () => {
       if (room.state === 'connected') {
-        removeParticipant(props.roomName, room.localParticipant.identity).catch((error) => {
-          if (!(error instanceof Error && error.message.includes('participant not found'))) {
-            console.error('Error removing participant:', error);
-          }
-        });
+        // removeParticipant(props.roomName, room.localParticipant.identity).catch((error) => {
+        //   if (!(error instanceof Error && error.message.includes('participant not found'))) {
+        //     console.error('Error removing participant:', error);
+        //   }
+        // });
       }
     };
 
@@ -191,11 +191,11 @@ export function PageClientImpl(props: {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       clearInterval(interval);
       if (room.state === 'connected') {
-        removeParticipant(props.roomName, room.localParticipant.identity).catch((error) => {
-          if (!(error instanceof Error && error.message.includes('participant not found'))) {
-            console.error('Error removing participant:', error);
-          }
-        });
+        // removeParticipant(props.roomName, room.localParticipant.identity).catch((error) => {
+        //   if (!(error instanceof Error && error.message.includes('participant not found'))) {
+        //     console.error('Error removing participant:', error);
+        //   }
+        // });
       }
     };
   }, [room, props.roomName, pathname]);

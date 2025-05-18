@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { startStreamingSession, incrementAvatarRequestCounter } from '@/app/lib/actions';
+import { startStreamingSession, incrementAvatarRequestCounter, storeUserRoomAction, deleteUserPreviousRoomAction } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useSession } from 'next-auth/react';
 import AvatarPopup from '@/app/ui/rita/avatar-popup';
@@ -110,6 +110,11 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
     
     if (!avatar) return;
     
+    // Delete any previous room for this user
+    if (session?.user?.email) {
+      deleteUserPreviousRoomAction(session.user.email, roomName);
+    }
+
     try {
       const response = await startStreamingSession({
         instruction: "test",
@@ -126,6 +131,11 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
         ttsVoiceIdCartesia: avatar.voice_id,
         userEmail: session?.user?.email || '',
       });
+
+      // Store the room ID for this user
+      if (session?.user?.email) {
+        storeUserRoomAction(session.user.email, roomName);
+      }
 
       if (!response.success && response.error === 'LIMIT_REACHED') {
         setStreamCount({ current: response.currentCount, max: response.maxCount });
