@@ -19,6 +19,7 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const { data: session, status } = useSession();
 
   useEffect(() => {
@@ -29,7 +30,14 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
 
   useEffect(() => {
     if (avatar) {
-      setIsVisible(true);
+      setIsImageLoaded(false);
+      // Preload the image
+      const img = new Image();
+      img.src = avatar.presignedUrl || '';
+      img.onload = () => {
+        setIsImageLoaded(true);
+        setIsVisible(true);
+      };
     } else {
       setIsVisible(false);
     }
@@ -51,7 +59,7 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
     }
   };
 
-  if (!isVisible || !avatar) return null;
+  if (!isVisible || !avatar || !isImageLoaded) return null;
 
   return (
     <>
