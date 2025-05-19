@@ -7,18 +7,22 @@ import { Suspense } from 'react';
 export const revalidate = 60;
 
 function LoadingState() {
-  return (
-    <div className="flex flex-col items-center gap-6 p-6">
-      <div className="animate-pulse">
-        <div className="h-8 w-48 bg-gray-700 rounded mb-4"></div>
-        <div className="grid grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-64 bg-gray-700 rounded"></div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  // return (
+  //   <div className="flex flex-col items-center gap-6 p-6">
+  //     <div className="animate-pulse w-full max-w-7xl">
+  //       <div className="h-8 w-48 bg-gray-700 rounded mb-4"></div>
+  //       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+  //         {[...Array(8)].map((_, i) => (
+  //           <div key={i} className="flex flex-col gap-2">
+  //             <div className="aspect-square bg-gray-700 rounded-lg"></div>
+  //             <div className="h-4 w-3/4 bg-gray-700 rounded"></div>
+  //           </div>
+  //         ))}
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
+  return null;
 }
 
 export default async function RitaStreamingPage() {

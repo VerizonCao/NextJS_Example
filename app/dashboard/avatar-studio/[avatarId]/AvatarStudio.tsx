@@ -9,7 +9,7 @@ import { VideoConferenceCustom } from '@/app/components/VideoConferenceCustom'
 import { startStreamingSession } from '@/app/lib/actions'
 import { incrementAvatarRequestCounter } from '@/app/lib/actions';
 import React from 'react'
-import { ChevronUp, ChevronDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, X, CheckCircle } from 'lucide-react'
 
 // Constants
 const totalMaskSize = 29
@@ -113,6 +113,10 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
   const [activeEditorTab, setActiveEditorTab] = useState<'library' | 'controls'>('library');
   const [openSection, setOpenSection] = useState<string | null>(null);
 
+  // Add new state for success popups
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
     setLogs(prev => [...prev, `${timestamp} - ${message}`])
@@ -168,7 +172,7 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
       try {
         await startStreamingSession({
           instruction: "test",
-          seconds: 300,
+          seconds: 1000,
           room: `${avatarId}-room`,
           avatarSource: avatarUri,
           avatar_id: avatarId,
@@ -605,6 +609,16 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
         info: updatedInfo,
         exp_values: [...expValues]
       });
+
+      // Show success popup after server communication
+      setSuccessMessage(isAddingNewExpression ? 'New expression created successfully!' : 'Expression changes saved successfully!');
+      setShowSuccessPopup(true);
+      
+      // Auto-hide popup after 3 seconds
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+      }, 3000);
+
     } catch (error) {
       console.error('Error saving expression:', error);
       addLog(`Error saving expression: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1095,6 +1109,25 @@ export default function AvatarStudio({ avatarId, avatarUri }: AvatarStudioProps)
           )}
         </div>
       </div>
+
+      {/* Add Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
+            <button
+              className="absolute top-2 right-2 text-white hover:text-gray-300"
+              onClick={() => setShowSuccessPopup(false)}
+            >
+              <X size={24} />
+            </button>
+            <h2 className="text-white text-2xl font-semibold mb-4 flex items-center">
+              <CheckCircle className="text-green-500 mr-2" size={28} />
+              Success!
+            </h2>
+            <p className="text-white text-lg">{successMessage}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
