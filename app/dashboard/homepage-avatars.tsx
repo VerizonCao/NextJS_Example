@@ -100,8 +100,6 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
   const [streamCount, setStreamCount] = useState({ current: 0, max: 6 });
   const { data: session } = useSession();
   const [avatarThumbCounts, setAvatarThumbCounts] = useState<Record<string, number>>({});
-  const [loadingThumbs, setLoadingThumbs] = useState<Record<string, boolean>>({});
-  const [userThumbedAvatars, setUserThumbedAvatars] = useState<Record<string, boolean>>({});
  
   // Initialize thumb counts from initialAvatars
   useEffect(() => {
@@ -113,147 +111,6 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
       setAvatarThumbCounts(thumbs);
     }
   }, [initialAvatars.avatars]);
-
-  // Check which avatars the user has already thumbed
-  useEffect(() => {
-    const checkUserThumbs = async () => {
-      if (session?.user?.email && initialAvatars.avatars) {
-        const userEmail = session.user.email;
-        const results = await Promise.all(
-          initialAvatars.avatars.map(async (avatar) => {
-            const { hasThumb, success } = await hasUserThumbedAvatarAction(userEmail, avatar.avatar_id);
-            return { avatarId: avatar.avatar_id, hasThumb: success && hasThumb };
-          })
-        );
-        
-        const thumbedMap: Record<string, boolean> = {};
-        results.forEach(result => {
-          thumbedMap[result.avatarId] = result.hasThumb;
-        });
-        
-        setUserThumbedAvatars(thumbedMap);
-      }
-    };
-    
-    checkUserThumbs();
-  }, [session, initialAvatars.avatars]);
-
-  const handleThumbClick = async (avatarId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click when thumb is clicked
-    
-    console.log('Thumb clicked for avatar:', avatarId);
-    
-    if (!session) {
-      console.log('No session, showing login popup');
-      setShowLoginPopup(true);
-      return;
-    }
-
-    if (loadingThumbs[avatarId]) {
-      console.log('Already processing a thumb action for this avatar');
-      return; // Prevent multiple clicks
-    }
-
-    setLoadingThumbs(prev => ({ ...prev, [avatarId]: true }));
-    console.log('Set loading state for avatar:', avatarId);
-    
-    // Set a timeout to reset loading state after 10 seconds in case of failure
-    const timeoutId = setTimeout(() => {
-      console.log('Timeout reached, resetting loading state');
-      setLoadingThumbs(prev => ({ ...prev, [avatarId]: false }));
-    }, 10000);
-    
-    try {
-      const userEmail = session.user?.email;
-      if (!userEmail) {
-        console.error('User email not found in session');
-        clearTimeout(timeoutId);
-        setLoadingThumbs(prev => ({ ...prev, [avatarId]: false }));
-        return;
-      }
-      
-      console.log('User email:', userEmail);
-
-      // Check if user has already thumbed this avatar
-      const hasThumb = userThumbedAvatars[avatarId] || false;
-      console.log('Current thumb status for avatar:', avatarId, 'is:', hasThumb);
-      
-      let success = false;
-      
-      // Toggle thumb status
-      try {
-        console.log('About to call server action');
-        if (hasThumb) {
-          // Remove thumb
-          console.log('Attempting to remove thumb');
-          const result = await Promise.race([
-            removeAvatarThumbAction(userEmail, avatarId),
-            new Promise<{success: false, message: string}>((resolve) => 
-              setTimeout(() => resolve({success: false, message: 'Timeout'}), 5000)
-            )
-          ]);
-          console.log('Remove thumb result:', result);
-          success = result.success;
-          if (!success) {
-            console.error('Remove thumb failed with message:', result.message);
-          }
-        } else {
-          // Add thumb
-          console.log('Attempting to add thumb');
-          const result = await Promise.race([
-            addAvatarThumbAction(userEmail, avatarId),
-            new Promise<{success: false, message: string}>((resolve) => 
-              setTimeout(() => resolve({success: false, message: 'Timeout'}), 5000)
-            )
-          ]);
-          console.log('Add thumb result:', result);
-          success = result.success;
-          if (!success) {
-            console.error('Add thumb failed with message:', result.message);
-          }
-        }
-        console.log('Server action completed');
-      } catch (actionError) {
-        console.error('Error in server action:', actionError);
-        success = false;
-      }
-      
-      if (success) {
-        console.log('Thumb action successful, updating UI');
-        // Update local thumb status
-        setUserThumbedAvatars(prev => {
-          const newState = {
-            ...prev,
-            [avatarId]: !hasThumb
-          };
-          console.log('New userThumbedAvatars state:', newState);
-          return newState;
-        });
-        
-        // Update local thumb count
-        setAvatarThumbCounts(prev => {
-          const newCount = hasThumb 
-            ? Math.max(0, (prev[avatarId] || 0) - 1) // Decrease count if removing thumb
-            : (prev[avatarId] || 0) + 1; // Increase count if adding thumb
-          
-          const newState = {
-            ...prev,
-            [avatarId]: newCount
-          };
-          console.log('New avatarThumbCounts state:', newState);
-          return newState;
-        });
-      } else {
-        console.error('Thumb action failed');
-      }
-    } catch (error) {
-      console.error('Error in handleThumbClick:', error);
-    } finally {
-      clearTimeout(timeoutId);
-      console.log('Resetting loading state for avatar:', avatarId);
-      setLoadingThumbs(prev => ({ ...prev, [avatarId]: false }));
-    }
-  };
 
   const handleStream = async (avatarId: string) => {
     if (!session) {
@@ -373,12 +230,9 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
                     <div className="self-stretch font-['Montserrat',Helvetica] font-normal text-neutral-300 text-xs leading-snug overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                       {avatar.agent_bio}
                     </div>
-                    <div 
-                      className="absolute bottom-3 right-3 flex items-center p-1.5 rounded-full bg-black/30 hover:bg-blue-900/70 transition-all duration-200 z-10 cursor-pointer"
-                      onClick={(e) => handleThumbClick(avatar.avatar_id, e)}
-                    >
-                      <ThumbsUp size={18} className={`text-gray-300 hover:text-blue-400 transition-colors duration-200 ${loadingThumbs[avatar.avatar_id] ? 'animate-spin' : ''}`} />
-                      <span className="ml-1 text-xs text-gray-300 hover:text-white transition-colors duration-200">
+                    <div className="absolute bottom-3 right-3 flex items-center p-1.5 rounded-full bg-black/30 z-10">
+                      <ThumbsUp size={18} className="text-gray-300" />
+                      <span className="ml-1 text-xs text-gray-300">
                         {avatarThumbCounts[avatar.avatar_id] || '0'}
                       </span>
                     </div>
