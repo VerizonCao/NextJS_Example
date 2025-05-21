@@ -381,6 +381,8 @@ export type Avatar = {
   image_uri: string | null;
   create_time: Date;
   update_time: Date;
+  thumb_count: number;
+  is_public: boolean;
 };
 
 /**
@@ -461,7 +463,8 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
         owner_id, 
         image_uri, 
         create_time, 
-        update_time
+        update_time,
+        thumb_count
       FROM avatars 
       WHERE is_public = true
       ORDER BY create_time DESC
@@ -557,6 +560,11 @@ export async function updateAvatarData(
     if (updateData.image_uri !== undefined) {
       updateFields.push(`image_uri = $${paramIndex}`);
       values.push(updateData.image_uri);
+      paramIndex++;
+    }
+    if (updateData.thumb_count !== undefined) {
+      updateFields.push(`thumb_count = $${paramIndex}`);
+      values.push(updateData.thumb_count);
       paramIndex++;
     }
 
@@ -759,6 +767,139 @@ export async function storeUserRoom(userId: string, roomId: string): Promise<boo
     return true;
   } catch (error) {
     console.error('Error storing user room:', error);
+    return false;
+  }
+}
+
+/**
+ * Add a thumb (like) to an avatar by a user
+ * @param userId The ID of the user giving the thumb
+ * @param avatarId The ID of the avatar receiving the thumb
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function addAvatarThumb(userId: string, avatarId: string): Promise<boolean> {
+  try {
+    // Use ON CONFLICT DO NOTHING to handle the case where the user has already thumbed this avatar
+    const result = await sql`
+      INSERT INTO avatar_thumbs (user_id, avatar_id)
+      VALUES (${userId}, ${avatarId})
+      ON CONFLICT (user_id, avatar_id) DO NOTHING
+      RETURNING user_id
+    `;
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error adding avatar thumb:', error);
+    return false;
+  }
+}
+
+/**
+ * Get the number of thumbs (likes) for an avatar
+ * @param avatarId The ID of the avatar to count thumbs for
+ * @returns Promise<number> The number of thumbs
+ */
+export async function getAvatarThumbCount(avatarId: string): Promise<number> {
+  try {
+    const result = await sql`
+      SELECT COUNT(*) as thumb_count
+      FROM avatar_thumbs
+      WHERE avatar_id = ${avatarId}
+    `;
+    return Number(result[0].thumb_count);
+  } catch (error) {
+    console.error('Error counting avatar thumbs:', error);
+    return 0;
+  }
+}
+
+/**
+ * Check if a user has thumbed (liked) a specific avatar
+ * @param userId The ID of the user to check
+ * @param avatarId The ID of the avatar to check
+ * @returns Promise<boolean> True if the user has thumbed the avatar, false otherwise
+ */
+export async function hasUserThumbedAvatar(userId: string, avatarId: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      SELECT EXISTS (
+        SELECT 1 
+        FROM avatar_thumbs 
+        WHERE user_id = ${userId} AND avatar_id = ${avatarId}
+      ) as has_thumbed
+    `;
+    return result[0].has_thumbed;
+  } catch (error) {
+    console.error('Error checking if user has thumbed avatar:', error);
+    return false;
+  }
+}
+
+/**
+ * Remove a thumb (unlike) from an avatar by a user
+ * @param userId The ID of the user removing the thumb
+ * @param avatarId The ID of the avatar to remove the thumb from
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function removeAvatarThumb(userId: string, avatarId: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      DELETE FROM avatar_thumbs
+      WHERE user_id = ${userId} AND avatar_id = ${avatarId}
+      RETURNING user_id
+    `;
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error removing avatar thumb:', error);
+    return false;
+  }
+}
+
+/**
+ * Cache the thumb count for an avatar in Redis
+ * @param avatarId The ID of the avatar
+ * @param count The thumb count to cache
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function cacheAvatarThumbCount(avatarId: string, count: number): Promise<boolean> {
+  // console.log("caching avatar thumb count", avatarId, count);
+  try {
+    const key = `thumb_${avatarId}`;
+    await redis.set(key, count, { ex: 60 }); // Set TTL to 1 minute (60 seconds)
+    return true;
+  } catch (error) {
+    console.error('Error caching avatar thumb count:', error);
+    return false;
+  }
+}
+
+/**
+ * Get the cached thumb count for an avatar from Redis
+ * @param avatarId The ID of the avatar
+ * @returns Promise<number> The cached thumb count, or 0 if no cache exists
+ */
+export async function getCachedAvatarThumbCount(avatarId: string): Promise<number> {
+  try {
+    const key = `thumb_${avatarId}`;
+    const count = await redis.get(key);
+    return count ? Number(count) : 0;
+  } catch (error) {
+    console.error('Error getting cached avatar thumb count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Check if a cached thumb count exists for an avatar in Redis
+ * @param avatarId The ID of the avatar to check
+ * @returns Promise<boolean> True if a cached count exists, false otherwise
+ */
+export async function hasCachedAvatarThumbCount(avatarId: string): Promise<boolean> {
+  try {
+    const key = `thumb_${avatarId}`;
+    const exists = await redis.exists(key);
+    return exists === 1;
+  } catch (error) {
+    console.error('Error checking cached avatar thumb count:', error);
     return false;
   }
 }

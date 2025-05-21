@@ -26,7 +26,14 @@ import {
   getUserPreferredName,
   isUserAvatarOwner,
   findUserPreviousRoom,
-  storeUserRoom
+  storeUserRoom,
+  addAvatarThumb,
+  removeAvatarThumb,
+  getAvatarThumbCount,
+  hasUserThumbedAvatar,
+  cacheAvatarThumbCount,
+  getCachedAvatarThumbCount,
+  hasCachedAvatarThumbCount
 } from './data';
 
 import { RoomServiceClient } from 'livekit-server-sdk';
@@ -311,6 +318,30 @@ export async function loadPublicAvatars(): Promise<{
   try {
     // Load all public avatars
     const avatars = await loadPublicAvatarsFromDb();
+
+    // Fire-and-forget async process
+    Promise.resolve().then(async () => {
+      await Promise.all(
+        avatars.map(async (avatar) => {
+          const avatarId = avatar.avatar_id;
+          const exists = await hasCachedAvatarThumbCount(avatarId);
+
+          if (exists) {
+            // Update Redis value into DB-backed avatar cache if needed
+            const cachedCount = await getCachedAvatarThumbCount(avatarId);
+            avatar.thumb_count = cachedCount;
+          } else {
+            // Trigger async update
+            // console.log("avatarId cache not exists, updating thumb count");
+            try {
+              await updateAvatarThumbCountAction(avatarId);
+            } catch (error) {
+              console.error(`Error updating thumb count for avatar ${avatarId}:`, error);
+            }
+          }
+        })
+      );
+    });
     
     return { 
       success: true, 
@@ -1099,5 +1130,313 @@ export async function cloneVoice(formData: FormData): Promise<{
       message: error instanceof Error ? error.message : 'Failed to clone voice',
       error: 'UNKNOWN_ERROR'
     };
+  }
+}
+
+/**
+ * Server action to add a thumb (like) to an avatar
+ * @param userId The ID of the user giving the thumb
+ * @param avatarId The ID of the avatar receiving the thumb
+ * @returns Promise<{ success: boolean; message: string }> Response indicating success or failure
+ */
+export async function addAvatarThumbAction(
+  userEmail: string,
+  avatarId: string
+): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    // Get the user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      return {
+        success: false,
+        message: 'User not found'
+      };
+    }
+
+    const success = await addAvatarThumb(userId, avatarId);
+    if (success) {
+      return { 
+        success: true, 
+        message: 'Avatar thumbed successfully' 
+      };
+    } else {
+      return { 
+        success: false, 
+        message: 'Failed to thumb avatar' 
+      };
+    }
+  } catch (error) {
+    console.error('Error adding avatar thumb:', error);
+    return { 
+      success: false, 
+      message: 'An error occurred while thumbing the avatar' 
+    };
+  }
+}
+
+/**
+ * Server action to remove a thumb (unlike) from an avatar
+ * @param userEmail The email of the user removing the thumb
+ * @param avatarId The ID of the avatar to remove the thumb from
+ * @returns Promise<{ success: boolean; message: string }> Response indicating success or failure
+ */
+export async function removeAvatarThumbAction(
+  userEmail: string,
+  avatarId: string
+): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    // Get the user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      return {
+        success: false,
+        message: 'User not found'
+      };
+    }
+
+    const success = await removeAvatarThumb(userId, avatarId);
+    if (success) {
+      return { 
+        success: true, 
+        message: 'Avatar thumb removed successfully' 
+      };
+    } else {
+      return { 
+        success: false, 
+        message: 'Failed to remove avatar thumb' 
+      };
+    }
+  } catch (error) {
+    console.error('Error removing avatar thumb:', error);
+    return { 
+      success: false, 
+      message: 'An error occurred while removing the avatar thumb' 
+    };
+  }
+}
+
+/**
+ * Server action to get the number of thumbs for an avatar
+ * @param avatarId The ID of the avatar to get the thumb count for
+ * @returns Promise<{ success: boolean; count: number; message: string }> Response with the thumb count
+ */
+export async function getAvatarThumbCountAction(
+  avatarId: string
+): Promise<{ 
+  success: boolean; 
+  count: number; 
+  message: string 
+}> {
+  try {
+
+    // First check if we have a cached count, this prevents the database from being hit for each avatar
+    const exists = await hasCachedAvatarThumbCount(avatarId);
+    if (exists) {
+      const cachedCount = await getCachedAvatarThumbCount(avatarId);
+      return { 
+        success: true, 
+        count: cachedCount, 
+        message: 'Thumb count retrieved from cache' 
+      };
+    }
+
+    // If not in cache, get from database
+    const count = await getAvatarThumbCount(avatarId);
+    
+    // Cache the count for future requests
+    await cacheAvatarThumbCount(avatarId, count);
+    
+    return { 
+      success: true, 
+      count, 
+      message: 'Thumb count retrieved successfully' 
+    };
+  } catch (error) {
+    console.error('Error getting avatar thumb count:', error);
+    return { 
+      success: false, 
+      count: 0, 
+      message: 'Failed to get thumb count' 
+    };
+  }
+}
+
+/**
+ * Server action to check if a user has thumbed an avatar
+ * @param userEmail The email of the user to check
+ * @param avatarId The ID of the avatar to check
+ * @returns Promise<{ success: boolean; hasThumb: boolean; message: string }> Response indicating if the user has thumbed the avatar
+ */
+export async function hasUserThumbedAvatarAction(
+  userEmail: string,
+  avatarId: string
+): Promise<{ 
+  success: boolean; 
+  hasThumb: boolean; 
+  message: string 
+}> {
+  try {
+    // Get the user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      return {
+        success: false,
+        hasThumb: false,
+        message: 'User not found'
+      };
+    }
+
+    const hasThumb = await hasUserThumbedAvatar(userId, avatarId);
+    return { 
+      success: true, 
+      hasThumb, 
+      message: 'Thumb status retrieved successfully' 
+    };
+  } catch (error) {
+    console.error('Error checking if user has thumbed avatar:', error);
+    return { 
+      success: false, 
+      hasThumb: false, 
+      message: 'An error occurred while checking thumb status' 
+    };
+  }
+}
+
+
+// thumbnail redis actions
+
+/**
+ * Server action to cache an avatar's thumb count in Redis
+ * @param avatarId The ID of the avatar
+ * @param count The thumb count to cache
+ * @returns Promise<{ success: boolean; message: string }> Response indicating success or failure
+ */
+export async function cacheAvatarThumbCountAction(
+  avatarId: string,
+  count: number
+): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    const success = await cacheAvatarThumbCount(avatarId, count);
+    if (success) {
+      return { 
+        success: true, 
+        message: 'Avatar thumb count cached successfully' 
+      };
+    } else {
+      return { 
+        success: false, 
+        message: 'Failed to cache avatar thumb count' 
+      };
+    }
+  } catch (error) {
+    console.error('Error caching avatar thumb count:', error);
+    return { 
+      success: false, 
+      message: 'An error occurred while caching the avatar thumb count' 
+    };
+  }
+}
+
+/**
+ * Server action to get a cached avatar thumb count from Redis
+ * @param avatarId The ID of the avatar
+ * @returns Promise<{ success: boolean; count: number; message: string }> Response with the cached thumb count
+ */
+export async function getCachedAvatarThumbCountAction(
+  avatarId: string
+): Promise<{ 
+  success: boolean; 
+  count: number; 
+  message: string 
+}> {
+  try {
+    const count = await getCachedAvatarThumbCount(avatarId);
+    return { 
+      success: true, 
+      count, 
+      message: 'Cached thumb count retrieved successfully' 
+    };
+  } catch (error) {
+    console.error('Error getting cached avatar thumb count:', error);
+    return { 
+      success: false, 
+      count: 0, 
+      message: 'Failed to get cached thumb count' 
+    };
+  }
+}
+
+/**
+ * Server action to check if an avatar's thumb count is cached in Redis
+ * @param avatarId The ID of the avatar
+ * @returns Promise<{ success: boolean; exists: boolean; message: string }> Response indicating if the cache exists
+ */
+export async function hasCachedAvatarThumbCountAction(
+  avatarId: string
+): Promise<{ 
+  success: boolean; 
+  exists: boolean; 
+  message: string 
+}> {
+  try {
+    const exists = await hasCachedAvatarThumbCount(avatarId);
+    return { 
+      success: true, 
+      exists, 
+      message: exists ? 'Cached thumb count exists' : 'No cached thumb count found' 
+    };
+  } catch (error) {
+    console.error('Error checking cached avatar thumb count:', error);
+    return { 
+      success: false, 
+      exists: false, 
+      message: 'An error occurred while checking for cached thumb count' 
+    };
+  }
+}
+
+/**
+ * Server action to update an avatar's thumb count
+ * @param avatarId The ID of the avatar
+ * @returns Promise<{ success: boolean; thumbCount?: number; message: string }> Response with updated count or error
+ */
+export async function updateAvatarThumbCountAction(
+  avatarId: string
+): Promise<{ success: boolean; thumbCount?: number; message: string }> {
+  try {
+    // Get the current thumb count using the getAvatarThumbCountAction
+    const thumbCountResult = await getAvatarThumbCountAction(avatarId);
+    
+    if (!thumbCountResult.success) {
+      return { success: false, message: thumbCountResult.message };
+    }
+    
+    // Use the thumb count directly from the result
+    const thumbCount = thumbCountResult.count || 0;
+    
+    // Update the avatar with the thumb count
+    const updateResult = await updateAvatarData(avatarId, { thumb_count: thumbCount });
+    
+    if (updateResult.success) {
+      return { 
+        success: true, 
+        thumbCount,
+        message: 'Thumb count updated successfully' 
+      };
+    } else {
+      return { success: false, message: updateResult.message };
+    }
+  } catch (error) {
+    console.error('Error in updateAvatarThumbCountAction:', error);
+    return { success: false, message: 'An error occurred while updating thumb count' };
   }
 }
