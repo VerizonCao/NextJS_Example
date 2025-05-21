@@ -112,6 +112,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
       scene: avatar.scene_prompt || '',
       bio: avatar.agent_bio || '',
       avatar_name: avatar.avatar_name || '',
+      avatar_id: avatar.avatar_id || '',
     }).toString();
 
     // Delete any previous room for this user

@@ -38,7 +38,6 @@ export const authConfig = {
     },
     async jwt({ token, account, profile, user }) {
 
-      console.log("Inside JWT");
       // Save email in JWT token
       if (account && profile?.email) {
         const email = profile.email;

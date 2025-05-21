@@ -465,19 +465,28 @@ export async function incrementAvatarRequestCounter(avatarId: string): Promise<{
 /**
  * Server action to report avatar serve time
  * @param avatarId The ID of the avatar being served
- * @param userId The ID of the user requesting the avatar
+ * @param userEmail The email of the user requesting the avatar
  * @param serveTime The time taken to serve the avatar in milliseconds
  * @returns Promise<{ success: boolean; message: string }> Response indicating if the metric was recorded
  */
 export async function reportAvatarServeTime(
   avatarId: string,
-  userId: string,
+  userEmail: string,
   serveTime: number
 ): Promise<{ 
   success: boolean; 
   message: string 
 }> {
   try {
+    // Get the user ID from email
+    const userId = await getUserByIdEmail(userEmail);
+    if (!userId) {
+      return {
+        success: false,
+        message: 'User not found'
+      };
+    }
+
     avatarServeTimeCounter.add(serveTime, { 
       avatar_id: avatarId,
       user_id: userId

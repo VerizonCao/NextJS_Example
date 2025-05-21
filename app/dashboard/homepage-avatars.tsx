@@ -154,6 +154,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
         scene: avatar.scene_prompt || '',
         bio: avatar.agent_bio || '',
         avatar_name: avatar.avatar_name || '',
+        avatar_id: avatar.avatar_id || '',
       }).toString();
 
       router.push(`/rooms/${roomName}?${query}`);

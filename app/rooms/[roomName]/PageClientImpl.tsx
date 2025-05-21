@@ -26,7 +26,8 @@ import {
 } from 'livekit-client';
 import { useRouter, usePathname } from 'next/navigation';
 import React from 'react';
-import { removeParticipant } from '@/app/lib/actions';
+import { removeParticipant, reportAvatarServeTime } from '@/app/lib/actions';
+import { useSession } from 'next-auth/react';
 
 // custom video conference
 import { VideoConferenceCustom } from '@/app/components/VideoConferenceCustom';
@@ -46,6 +47,7 @@ export function PageClientImpl(props: {
   scene?: string;
   bio?: string;
   avatar_name?: string;
+  avatar_id?: string;
 }) {
 
   const router = useRouter();
@@ -68,7 +70,9 @@ export function PageClientImpl(props: {
   const [room, setRoom] = React.useState<Room | null>(null);
   const [hasConnected, setHasConnected] = React.useState(false);
   const [hadRemoteParticipant, setHadRemoteParticipant] = React.useState(false);
-
+  const [startTime, setStartTime] = React.useState<number | null>(null);
+  const { data: session } = useSession();
+  
   React.useEffect(() => {
     const submitData = async () => {
       try {
@@ -224,7 +228,20 @@ export function PageClientImpl(props: {
           onDisconnected={() => {
             if (hasConnected && hadRemoteParticipant) {
               console.log('Room disconnected, navigating to return path is', props.returnPath);
-              // router.push(props.returnPath || '/');
+              
+              // Report serve time before navigation if we have the necessary data
+              if (startTime && props.avatar_id && session?.user?.email) {
+                const endTime = Date.now();
+                const serveTimeSeconds = Math.round((endTime - startTime) / 1000); // Convert to seconds
+                
+                // Only report if serve time is reasonable (more than 1 second)
+                if (serveTimeSeconds > 1) {
+                  console.log('Reporting avatar serve time:', serveTimeSeconds);
+                  reportAvatarServeTime(props.avatar_id, session.user.email, serveTimeSeconds)
+                    .catch(error => console.error('Error reporting avatar serve time:', error));
+                }
+              }
+              
               setTimeout(() => {
                 router.push(props.returnPath || '/');
               }, 0); // defer navigation after React event loop
@@ -237,13 +254,17 @@ export function PageClientImpl(props: {
             userChoices={preJoinChoices}
             connectionDetails={connectionDetails}
             options={{ codec: props.codec, hq: props.hq }}
-            onRemoteJoin={() => setHadRemoteParticipant(true)}
+            onRemoteJoin={() => {
+              setHadRemoteParticipant(true);
+              setStartTime(Date.now());
+            }}
             returnPath={props.returnPath}
             presignedUrl={props.presignedUrl}
             prompt={props.prompt}
             scene={props.scene}
             bio={props.bio}
             avatar_name={props.avatar_name}
+            avatar_id={props.avatar_id}
           />
         </LiveKitRoom>
       )}
@@ -265,14 +286,41 @@ function RoomContent(props: {
   scene?: string;
   bio?: string;
   avatar_name?: string;
+  avatar_id?: string;
 }) {
   const remoteParticipants = useRemoteParticipants();
   const hasRemoteParticipant = remoteParticipants.length > 0;
   const [showVideoConference, setShowVideoConference] = React.useState(false);
   const { send } = useChat();
   const lastProcessedIndex = React.useRef<number>(-1);
-
+  const { data: session } = useSession();
+  const startTimeRef = React.useRef<number | null>(null);
   const room = useRoomContext();
+
+  // Set start time when remote participant joins
+  React.useEffect(() => {
+    if (hasRemoteParticipant && !startTimeRef.current) {
+      startTimeRef.current = Date.now();
+      props.onRemoteJoin();
+    }
+  }, [hasRemoteParticipant, props]);
+
+  // Add cleanup effect to report serve time when leaving
+  // React.useEffect(() => {
+  //   return () => {
+  //     if (startTimeRef.current && props.avatar_id && session?.user?.email) {
+  //       const endTime = Date.now();
+  //       const serveTimeSeconds = Math.round((endTime - startTimeRef.current) / 1000); // Convert to seconds
+        
+  //       // Only report if serve time is reasonable (more than 1 second)
+  //       if (serveTimeSeconds > 1) {
+  //         console.log('reporting avatar serve time: ', serveTimeSeconds);
+  //         reportAvatarServeTime(props.avatar_id, session.user.email, serveTimeSeconds)
+  //           .catch(error => console.error('Error reporting avatar serve time:', error));
+  //       }
+  //     }
+  //   };
+  // }, [props.avatar_id, session?.user?.email]);
 
   // Reset index when remote participant disconnects
   React.useEffect(() => {
@@ -378,7 +426,6 @@ function RoomContent(props: {
 
   React.useEffect(() => {
     if (hasRemoteParticipant) {
-      props.onRemoteJoin();
       // Add 2 second delay before showing video conference
       const timer = setTimeout(() => {
         setShowVideoConference(true);
