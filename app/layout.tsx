@@ -5,8 +5,8 @@ import '@/app/ui/global.css';
 import { montserrat } from '@/app/ui/fonts';
 import { Providers } from './providers';
 
+import { Analytics } from "@vercel/analytics/next"
 
- 
 export default function RootLayout({
   children,
 }: {
@@ -14,9 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      {/* <body>{children}</body> */}
       <body className={`${montserrat.className} antialiased`}>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
