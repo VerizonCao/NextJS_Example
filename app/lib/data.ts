@@ -904,4 +904,60 @@ export async function hasCachedAvatarThumbCount(avatarId: string): Promise<boole
   }
 }
 
+/**
+ * Push a list of avatar IDs to a Redis queue for thumbnail processing
+ * @param avatarIds Array of avatar IDs to be processed
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function queueAvatarThumbnailJobs(avatarIds: string[]): Promise<boolean> {
+  try {
+    const queueName = 'avatar_thumb_job_queue';
+    
+    // Use Redis pipeline to push all IDs in a single operation
+    const pipeline = redis.pipeline();
+    
+    for (const avatarId of avatarIds) {
+      pipeline.rpush(queueName, avatarId);
+    }
+    
+    await pipeline.exec();
+    return true;
+  } catch (error) {
+    console.error('Error queuing avatar thumbnail jobs:', error);
+    return false;
+  }
+}
+
+/**
+ * Get the next avatar ID from the thumbnail processing queue
+ * @returns Promise<string | null> The next avatar ID to process, or null if queue is empty
+ */
+export async function getNextAvatarThumbnailJob(): Promise<string | null> {
+  try {
+    const queueName = 'avatar_thumb_job_queue';
+    
+    // Get the current queue size for debugging
+    const queueSize = await redis.llen(queueName);
+    console.log(`Current thumbnail queue size before pop: ${queueSize}`);
+    
+    // Use LPOP to get and remove the leftmost element from the list
+    // This maintains FIFO (First In, First Out) order
+    const avatarId = await redis.lpop(queueName);
+    
+    // Log the result
+    if (avatarId) {
+      const remainingSize = await redis.llen(queueName);
+      console.log(`Popped avatar ${avatarId} from queue. Remaining items: ${remainingSize}`);
+    } else {
+      console.log('Queue is empty, no avatar ID to process');
+    }
+    
+    // If the queue is empty, avatarId will be null
+    return avatarId as string | null;
+  } catch (error) {
+    console.error('Error getting next avatar thumbnail job:', error);
+    return null;
+  }
+}
+
 

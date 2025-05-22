@@ -33,7 +33,9 @@ import {
   hasUserThumbedAvatar,
   cacheAvatarThumbCount,
   getCachedAvatarThumbCount,
-  hasCachedAvatarThumbCount
+  hasCachedAvatarThumbCount,
+  queueAvatarThumbnailJobs,
+  getNextAvatarThumbnailJob
 } from './data';
 
 import { RoomServiceClient } from 'livekit-server-sdk';
@@ -328,13 +330,19 @@ export async function loadPublicAvatars(): Promise<{
 
           if (exists) {
             // Update Redis value into DB-backed avatar cache if needed
-            const cachedCount = await getCachedAvatarThumbCount(avatarId);
-            avatar.thumb_count = cachedCount;
+            // update: we just do nothing. since we return immediately. 
+            // const cachedCount = await getCachedAvatarThumbCount(avatarId);
+            // avatar.thumb_count = cachedCount;
           } else {
-            // Trigger async update
-            // console.log("avatarId cache not exists, updating thumb count");
             try {
-              await updateAvatarThumbCountAction(avatarId);
+              // old way, directly update the data. 
+              // await updateAvatarThumbCountAction(avatarId);
+
+              // instead, we just call action to add those avatarids into the queue. 
+              // make sure we internally use the redis to check if the id has been processed recently.
+              await queueAvatarThumbnailsAction([avatarId]);
+
+
             } catch (error) {
               console.error(`Error updating thumb count for avatar ${avatarId}:`, error);
             }
@@ -342,6 +350,8 @@ export async function loadPublicAvatars(): Promise<{
         })
       );
     });
+
+    
     
     return { 
       success: true, 
@@ -1438,5 +1448,94 @@ export async function updateAvatarThumbCountAction(
   } catch (error) {
     console.error('Error in updateAvatarThumbCountAction:', error);
     return { success: false, message: 'An error occurred while updating thumb count' };
+  }
+}
+
+/**
+ * Server action to queue avatar thumbnail generation jobs
+ * @param avatarIds Array of avatar IDs to generate thumbnails for
+ * @returns Promise<{ success: boolean; message: string }> Response indicating success or failure
+ */
+export async function queueAvatarThumbnailsAction(
+  avatarIds: string[]
+): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    if (!Array.isArray(avatarIds) || avatarIds.length === 0) {
+      return {
+        success: false,
+        message: 'No avatar IDs provided'
+      };
+    }
+
+    // Validate that all IDs follow the expected format
+    const validIds = avatarIds.filter(id => typeof id === 'string' && id.startsWith('a-'));
+    if (validIds.length !== avatarIds.length) {
+      return {
+        success: false,
+        message: 'Invalid avatar IDs provided'
+      };
+    }
+
+    // Filter out duplicates at the action level
+    const uniqueAvatarIds = [...new Set(validIds)];
+    
+    // console.log(`Queueing ${uniqueAvatarIds.length} unique avatar thumbnail jobs`);
+    const success = await queueAvatarThumbnailJobs(uniqueAvatarIds);
+    
+    if (success) {
+      return {
+        success: true,
+        message: `Successfully queued ${uniqueAvatarIds.length} avatar(s) for thumbnail generation`
+      };
+    } else {
+      return {
+        success: false,
+        message: 'Failed to queue avatar thumbnails'
+      };
+    }
+  } catch (error) {
+    console.error('Error in queueAvatarThumbnailsAction:', error);
+    return {
+      success: false,
+      message: 'An error occurred while queuing avatar thumbnails'
+    };
+  }
+}
+
+/**
+ * Server action to get the next avatar thumbnail job from the queue
+ * @returns Promise<{ success: boolean; avatarId: string | null; message: string }> Response with the next avatar ID or error
+ */
+export async function getNextAvatarThumbnailJobAction(): Promise<{ 
+  success: boolean; 
+  avatarId: string | null;
+  message: string 
+}> {
+  try {
+    const avatarId = await getNextAvatarThumbnailJob();
+    
+    if (avatarId) {
+      return {
+        success: true,
+        avatarId,
+        message: 'Successfully retrieved next avatar thumbnail job'
+      };
+    } else {
+      return {
+        success: true,
+        avatarId: null,
+        message: 'No pending avatar thumbnail jobs in queue'
+      };
+    }
+  } catch (error) {
+    console.error('Error in getNextAvatarThumbnailJobAction:', error);
+    return {
+      success: false,
+      avatarId: null,
+      message: 'An error occurred while retrieving the next avatar thumbnail job'
+    };
   }
 }
