@@ -228,6 +228,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
 
   return (
     <Suspense fallback={<LoadingState />}>
+      <p className="text-s text-white mt-3 font-['Montserrat',Helvetica] space-y-1">Chats are temporarily down as our gpu provider is having issues. We will be back shortly.</p>
       <div className="flex flex-col w-full items-center gap-[2vh] py-[2vh]">
         {sections.map((section) => (
           <React.Fragment key={section.id}>
