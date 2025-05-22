@@ -1025,7 +1025,7 @@ export async function hasCachedRequestAvatarThumbCount(avatarId: string): Promis
  * @param ttlSeconds Optional time-to-live in seconds (default: 60 seconds)
  * @returns Promise<boolean> True if successful, false otherwise
  */
-export async function cacheAvatarThumbRequest(avatarId: string, ttlSeconds: number = 30): Promise<boolean> {
+export async function cacheAvatarThumbRequest(avatarId: string, ttlSeconds: number = 300): Promise<boolean> {
   try {
     const key = `thumb_request_${avatarId}`;
     await redis.set(key, 1, { ex: ttlSeconds }); // Set TTL (default: 1 minute)
