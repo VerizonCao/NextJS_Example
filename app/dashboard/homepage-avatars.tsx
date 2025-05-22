@@ -1,16 +1,26 @@
 'use client';
 
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, Suspense, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { startStreamingSession, incrementAvatarRequestCounter, storeUserRoomAction, deleteUserPreviousRoomAction, hasUserThumbedAvatarAction, removeAvatarThumbAction, addAvatarThumbAction } from '@/app/lib/actions';
+import { 
+  startStreamingSession, 
+  incrementAvatarRequestCounter, 
+  storeUserRoomAction, 
+  deleteUserPreviousRoomAction, 
+  hasUserThumbedAvatarAction, 
+  removeAvatarThumbAction, 
+  addAvatarThumbAction,
+  loadPaginatedPublicAvatarsAction ,
+  getPresignedUrl
+} from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useSession } from 'next-auth/react';
 import AvatarPopup from '@/app/ui/rita/avatar-popup';
 import LoginPopup from '@/app/ui/rita/login-popup';
 import { Card } from '@/app/components/card';
 import MyAvatars from '@/app/ui/rita/my-avatars';
-import { X, AlertCircle, ThumbsUp } from 'lucide-react';
+import { X, AlertCircle, ThumbsUp, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type UserAvatar = {
@@ -100,6 +110,79 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
   const [streamCount, setStreamCount] = useState({ current: 0, max: 6 });
   const { data: session } = useSession();
   const [avatarThumbCounts, setAvatarThumbCounts] = useState<Record<string, number>>({});
+  
+  // New state for pagination
+  const [avatars, setAvatars] = useState<UserAvatar[]>(initialAvatars.avatars || []);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(initialAvatars.avatars?.length || 0);
+  
+  // Observer for infinite scrolling
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastAvatarElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMoreAvatars();
+      }
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [isLoading, hasMore]);
+  
+  // Function to load more avatars
+  const loadMoreAvatars = async () => {
+    if (isLoading || !hasMore) return;
+    
+    setIsLoading(true);
+    try {
+      const result = await loadPaginatedPublicAvatarsAction(offset);
+      
+      if (result.success && result.avatars && result.avatars.length > 0) {
+        // Process the new avatars to add presigned URLs
+        const processedAvatars = await Promise.all(
+          result.avatars.map(async (avatar) => {
+            if (!avatar.image_uri) return avatar;
+            try {
+              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+              return { 
+                ...avatar,
+                create_time: new Date(avatar.create_time),
+                presignedUrl 
+              };
+            } catch (e) {
+              console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
+              return avatar;
+            }
+          })
+        );
+        
+        // Update avatars state with new avatars
+        setAvatars(prev => [...prev, ...processedAvatars]);
+        
+        // Update thumb counts
+        const newThumbCounts = { ...avatarThumbCounts };
+        processedAvatars.forEach(avatar => {
+          newThumbCounts[avatar.avatar_id] = avatar.thumb_count || 0;
+        });
+        setAvatarThumbCounts(newThumbCounts);
+        
+        // Update offset for next load
+        setOffset(prev => prev + processedAvatars.length);
+        
+        // Check if there are more avatars to load
+        setHasMore(result.hasMore);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more avatars:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
  
   // Initialize thumb counts from initialAvatars
   useEffect(() => {
@@ -176,7 +259,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
     }
   };
 
-  const selectedAvatar = initialAvatars.avatars?.find(avatar => 
+  const selectedAvatar = avatars.find(avatar => 
     globalSelectedAvatar?.id === avatar.avatar_id && 
     globalSelectedAvatar?.type === 'rita'
   );
@@ -207,40 +290,63 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
       title: "Explore Trending Characters",
       component: (
         <div className="flex flex-wrap justify-start gap-x-[1.5%] gap-y-[2vh] w-full max-w-[90vw]">
-          {initialAvatars.avatars.map((avatar) => (
-            <Card
-              key={avatar.avatar_id}
-              className="relative w-[18.75%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
-              onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
-            >
-              {avatar.presignedUrl && (
-                <>
-                  <Image
-                    src={avatar.presignedUrl}
-                    alt={avatar.avatar_name}
-                    fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                    priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-3 bg-gradient-to-t from-black/80 via-black/45 to-black/1">
-                    <div className="self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-base leading-tight truncate">
-                      {avatar.avatar_name}
+          {avatars.map((avatar, index) => {
+            // Add ref to last element for infinite scrolling
+            const isLastElement = index === avatars.length - 1;
+            
+            return (
+              <Card
+                key={avatar.avatar_id}
+                ref={isLastElement ? lastAvatarElementRef : undefined}
+                className="relative w-[18.75%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
+                onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
+              >
+                {avatar.presignedUrl && (
+                  <>
+                    <Image
+                      src={avatar.presignedUrl}
+                      alt={avatar.avatar_name}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                      priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-3 bg-gradient-to-t from-black/80 via-black/45 to-black/1">
+                      <div className="self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-base leading-tight truncate">
+                        {avatar.avatar_name}
+                      </div>
+                      <div className="self-stretch font-['Montserrat',Helvetica] font-normal text-neutral-300 text-xs leading-snug overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                        {avatar.agent_bio}
+                      </div>
+                      <div className="absolute bottom-3 right-3 flex items-center p-1.5 rounded-full bg-black/30 z-10">
+                        <ThumbsUp size={18} className="text-gray-300" />
+                        <span className="ml-1 text-xs text-gray-300">
+                          {avatarThumbCounts[avatar.avatar_id] || '0'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="self-stretch font-['Montserrat',Helvetica] font-normal text-neutral-300 text-xs leading-snug overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                      {avatar.agent_bio}
-                    </div>
-                    <div className="absolute bottom-3 right-3 flex items-center p-1.5 rounded-full bg-black/30 z-10">
-                      <ThumbsUp size={18} className="text-gray-300" />
-                      <span className="ml-1 text-xs text-gray-300">
-                        {avatarThumbCounts[avatar.avatar_id] || '0'}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              )}
-            </Card>
-          ))}
+                  </>
+                )}
+              </Card>
+            );
+          })}
+          
+          {/* Loading indicator */}
+          {isLoading && (
+            <div className="w-full flex justify-center py-4">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+                <span className="text-white">Loading more characters...</span>
+              </div>
+            </div>
+          )}
+          
+          {/* End of results message */}
+          {!hasMore && !isLoading && avatars.length > 0 && (
+            <div className="w-full text-center py-4 text-gray-400">
+              No more characters to load
+            </div>
+          )}
         </div>
       ),
     },

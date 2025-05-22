@@ -479,6 +479,43 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
 }
 
 /**
+ * Load paginated public avatars
+ * @param offset Number of avatars to skip (for pagination)
+ * @param limit Maximum number of avatars to return (default: 20)
+ * @returns Promise<Avatar[]> Array of public avatar objects with pagination
+ */
+export async function loadPaginatedPublicAvatars(
+  offset: number = 0,
+  limit: number = 20
+): Promise<Avatar[]> {
+  try {
+    const result = await sql<Avatar[]>`
+      SELECT 
+        avatar_id, 
+        avatar_name, 
+        prompt,
+        scene_prompt,
+        agent_bio,
+        voice_id,
+        owner_id, 
+        image_uri, 
+        create_time, 
+        update_time,
+        thumb_count
+      FROM avatars 
+      WHERE is_public = true
+      ORDER BY create_time DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    
+    return result;
+  } catch (error) {
+    console.error('Error loading paginated public avatars:', error);
+    return [];
+  }
+}
+
+/**
  * Get a presigned URL from Redis using a URI key
  * @param uri The URI key to look up
  * @returns Promise<string | null> The presigned URL if found, null otherwise

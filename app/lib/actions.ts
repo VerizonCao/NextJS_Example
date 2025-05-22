@@ -37,7 +37,8 @@ import {
   cacheAvatarThumbRequest,
   hasCachedRequestAvatarThumbCount,
   queueAvatarThumbnailJobs,
-  getNextAvatarThumbnailJob
+  getNextAvatarThumbnailJob,
+  loadPaginatedPublicAvatars
 } from './data';
 
 import { RoomServiceClient } from 'livekit-server-sdk';
@@ -370,6 +371,63 @@ export async function loadPublicAvatars(): Promise<{
       success: false, 
       avatars: null, 
       message: 'An error occurred while loading public avatars' 
+    };
+  }
+}
+
+/**
+ * Server action to load public avatars with pagination
+ * @param offset Number of avatars to skip (for pagination)
+ * @param limit Maximum number of avatars to return (default: 20)
+ * @returns Promise<{ success: boolean; avatars: any[] | null; message: string }> Response with paginated avatars
+ */
+export async function loadPaginatedPublicAvatarsAction(
+  offset: number = 0,
+  limit: number = 20
+): Promise<{ 
+  success: boolean; 
+  avatars: any[] | null; 
+  message: string;
+  hasMore: boolean;
+}> {
+  try {
+    // Load paginated public avatars
+    const avatars = await loadPaginatedPublicAvatars(offset, limit);
+    
+    // Check if there are potentially more avatars (if we got a full page)
+    const hasMore = avatars.length === limit;
+    
+    // Fire-and-forget async process for thumb count updates
+    Promise.resolve().then(async () => {
+      await Promise.all(
+        avatars.map(async (avatar) => {
+          const avatarId = avatar.avatar_id;
+          const exists = await hasCachedRequestAvatarThumbCount(avatarId);
+          if (!exists) {
+            try {
+              await cacheAvatarThumbRequest(avatarId);
+              await queueAvatarThumbnailsAction([avatarId]);
+            } catch (error) {
+              console.error(`Error updating thumb count for avatar ${avatarId}:`, error);
+            }
+          }
+        })
+      );
+    });
+    
+    return { 
+      success: true, 
+      avatars, 
+      message: 'Paginated public avatars loaded successfully',
+      hasMore
+    };
+  } catch (error) {
+    console.error('Error in loadPaginatedPublicAvatarsAction:', error);
+    return { 
+      success: false, 
+      avatars: null, 
+      message: 'An error occurred while loading paginated public avatars',
+      hasMore: false
     };
   }
 }

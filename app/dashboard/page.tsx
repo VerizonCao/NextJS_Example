@@ -1,4 +1,4 @@
-import { loadPublicAvatars, getPresignedUrl, loadUserAvatars } from '@/app/lib/actions';
+import { loadPaginatedPublicAvatarsAction, getPresignedUrl, loadUserAvatars } from '@/app/lib/actions';
 import HomepageAvatars from './homepage-avatars';
 import { auth } from '@/auth';
 import { Suspense } from 'react';
@@ -7,31 +7,16 @@ import { Suspense } from 'react';
 export const revalidate = 60;
 
 function LoadingState() {
-  // return (
-  //   <div className="flex flex-col items-center gap-6 p-6">
-  //     <div className="animate-pulse w-full max-w-7xl">
-  //       <div className="h-8 w-48 bg-gray-700 rounded mb-4"></div>
-  //       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-  //         {[...Array(8)].map((_, i) => (
-  //           <div key={i} className="flex flex-col gap-2">
-  //             <div className="aspect-square bg-gray-700 rounded-lg"></div>
-  //             <div className="h-4 w-3/4 bg-gray-700 rounded"></div>
-  //           </div>
-  //         ))}
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
   return null;
 }
 
 export default async function RitaStreamingPage() {
   const session = await auth();
   
-  // Load public avatars
-  const publicResult = await loadPublicAvatars();
-  const publicAvatars = await Promise.all(
-    (publicResult.avatars ?? []).map(async (avatar) => {
+  // Load first 20 public avatars using the new pagination function
+  const publicAvatarsResult = await loadPaginatedPublicAvatarsAction(0, 20);
+  const processedPublicAvatars = await Promise.all(
+    (publicAvatarsResult.avatars ?? []).map(async (avatar: any) => {
       if (!avatar.image_uri) return avatar;
       try {
         const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
@@ -47,13 +32,20 @@ export default async function RitaStreamingPage() {
     })
   );
 
+  // Create a result object that matches the expected format
+  const publicResult = {
+    success: true,
+    avatars: processedPublicAvatars,
+    message: 'Public avatars loaded successfully'
+  };
+
   // Load user avatars if logged in
   let userAvatars = null;
   if (session?.user?.email) {
     const userResult = await loadUserAvatars(session.user.email);
     if (userResult.success && userResult.avatars) {
       userAvatars = await Promise.all(
-        userResult.avatars.map(async (avatar) => {
+        userResult.avatars.map(async (avatar: any) => {
           if (avatar.image_uri) {
             try {
               const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
@@ -79,7 +71,7 @@ export default async function RitaStreamingPage() {
   return (
     <Suspense fallback={<LoadingState />}>
       <HomepageAvatars 
-        initialAvatars={{ ...publicResult, avatars: publicAvatars }}
+        initialAvatars={publicResult}
         userAvatars={userAvatars}
       />
     </Suspense>
