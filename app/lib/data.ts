@@ -920,6 +920,12 @@ export async function queueAvatarThumbnailJobs(avatarIds: string[]): Promise<boo
       pipeline.rpush(queueName, avatarId);
     }
     
+    // Check if queue exists and set TTL if it's a new queue
+    const exists = await redis.exists(queueName);
+    if (!exists) {
+      pipeline.expire(queueName, 600); // 10 mins TTL
+    }
+    
     await pipeline.exec();
     return true;
   } catch (error) {
