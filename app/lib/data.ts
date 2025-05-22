@@ -966,4 +966,37 @@ export async function getNextAvatarThumbnailJob(): Promise<string | null> {
   }
 }
 
+/**
+ * Check if a cached thumb request exists for an avatar in Redis
+ * @param avatarId The ID of the avatar to check
+ * @returns Promise<boolean> True if a cached request exists, false otherwise
+ */
+export async function hasCachedRequestAvatarThumbCount(avatarId: string): Promise<boolean> {
+  try {
+    const key = `thumb_request_${avatarId}`;
+    const exists = await redis.exists(key);
+    return exists === 1;
+  } catch (error) {
+    console.error('Error checking cached avatar thumb request:', error);
+    return false;
+  }
+}
+
+/**
+ * Cache a thumb request for an avatar in Redis
+ * @param avatarId The ID of the avatar
+ * @param ttlSeconds Optional time-to-live in seconds (default: 60 seconds)
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function cacheAvatarThumbRequest(avatarId: string, ttlSeconds: number = 30): Promise<boolean> {
+  try {
+    const key = `thumb_request_${avatarId}`;
+    await redis.set(key, 1, { ex: ttlSeconds }); // Set TTL (default: 1 minute)
+    return true;
+  } catch (error) {
+    console.error('Error caching avatar thumb request:', error);
+    return false;
+  }
+}
+
 

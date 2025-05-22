@@ -34,6 +34,8 @@ import {
   cacheAvatarThumbCount,
   getCachedAvatarThumbCount,
   hasCachedAvatarThumbCount,
+  cacheAvatarThumbRequest,
+  hasCachedRequestAvatarThumbCount,
   queueAvatarThumbnailJobs,
   getNextAvatarThumbnailJob
 } from './data';
@@ -326,8 +328,9 @@ export async function loadPublicAvatars(): Promise<{
       await Promise.all(
         avatars.map(async (avatar) => {
           const avatarId = avatar.avatar_id;
-          const exists = await hasCachedAvatarThumbCount(avatarId);
-
+          // const exists = await hasCachedAvatarThumbCount(avatarId);
+          // here, instead, we check a new cache. 
+          const exists = await hasCachedRequestAvatarThumbCount(avatarId);
           if (exists) {
             // Update Redis value into DB-backed avatar cache if needed
             // update: we just do nothing. since we return immediately. 
@@ -335,6 +338,9 @@ export async function loadPublicAvatars(): Promise<{
             // avatar.thumb_count = cachedCount;
           } else {
             try {
+              // add into the cache first
+              await cacheAvatarThumbRequest(avatarId);
+              
               // old way, directly update the data. 
               // await updateAvatarThumbCountAction(avatarId);
 
