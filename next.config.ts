@@ -2,7 +2,13 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['rita-avatar-image.s3.us-west-2.amazonaws.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'rita-avatar-image.s3.us-west-2.amazonaws.com',
+        pathname: '/rita-avatars/**',
+      },
+    ],
   },
   experimental: {
     serverActions: {

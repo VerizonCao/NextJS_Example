@@ -482,13 +482,47 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
  * Load paginated public avatars
  * @param offset Number of avatars to skip (for pagination)
  * @param limit Maximum number of avatars to return (default: 20)
+ * @param searchTerm Optional search term to filter avatars (default: '')
  * @returns Promise<Avatar[]> Array of public avatar objects with pagination
  */
 export async function loadPaginatedPublicAvatars(
   offset: number = 0,
-  limit: number = 20
+  limit: number = 20,
+  searchTerm: string = ''
 ): Promise<Avatar[]> {
   try {
+  
+    // If search term is provided, use the full-text search index
+    if (searchTerm && searchTerm.trim() !== '') {
+      const result = await sql<Avatar[]>`
+        SELECT 
+          avatar_id, 
+          avatar_name, 
+          prompt,
+          scene_prompt,
+          agent_bio,
+          voice_id,
+          owner_id, 
+          image_uri, 
+          create_time, 
+          update_time,
+          thumb_count,
+          is_public
+        FROM avatars 
+        WHERE is_public = true
+        AND (
+          search_vector @@ plainto_tsquery('english', ${searchTerm}) OR
+          avatar_name ILIKE ${'%' + searchTerm + '%'} OR
+          agent_bio ILIKE ${'%' + searchTerm + '%'}
+        )
+        ORDER BY ts_rank(search_vector, plainto_tsquery('english', ${searchTerm})) DESC, create_time DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      
+      return result;
+    }
+    
+    // If no search term, use the original query
     const result = await sql<Avatar[]>`
       SELECT 
         avatar_id, 
@@ -501,7 +535,8 @@ export async function loadPaginatedPublicAvatars(
         image_uri, 
         create_time, 
         update_time,
-        thumb_count
+        thumb_count,
+        is_public
       FROM avatars 
       WHERE is_public = true
       ORDER BY create_time DESC

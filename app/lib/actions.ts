@@ -379,11 +379,13 @@ export async function loadPublicAvatars(): Promise<{
  * Server action to load public avatars with pagination
  * @param offset Number of avatars to skip (for pagination)
  * @param limit Maximum number of avatars to return (default: 20)
+ * @param searchTerm Optional search term to filter avatars (default: '')
  * @returns Promise<{ success: boolean; avatars: any[] | null; message: string }> Response with paginated avatars
  */
 export async function loadPaginatedPublicAvatarsAction(
   offset: number = 0,
-  limit: number = 20
+  limit: number = 20,
+  searchTerm: string = ''
 ): Promise<{ 
   success: boolean; 
   avatars: any[] | null; 
@@ -391,8 +393,8 @@ export async function loadPaginatedPublicAvatarsAction(
   hasMore: boolean;
 }> {
   try {
-    // Load paginated public avatars
-    const avatars = await loadPaginatedPublicAvatars(offset, limit);
+    // Load paginated public avatars with search term
+    const avatars = await loadPaginatedPublicAvatars(offset, limit, searchTerm);
     
     // Check if there are potentially more avatars (if we got a full page)
     const hasMore = avatars.length === limit;
