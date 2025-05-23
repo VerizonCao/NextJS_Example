@@ -168,10 +168,10 @@ export function CustomChat({
               />
               <div className="flex flex-col items-start gap-[7.56px] relative flex-1 grow">
                 <div className="relative self-stretch mt-[-0.94px] font-['Montserrat',Helvetica] font-bold text-white text-lg tracking-[0] leading-[normal]">
-                  {avatar_name || 'Ruby Runolfsson'}
+                  {avatar_name || 'Anonymous'}
                 </div>
                 <div className="relative self-stretch font-['Montserrat',Helvetica] font-medium text-white text-sm tracking-[0] leading-[normal]">
-                  {scene || 'Created by Desiree Nolan'}
+                  {scene || 'default'}
                 </div>
                 <div className="relative self-stretch font-['Montserrat',Helvetica] font-medium text-white text-sm tracking-[0] leading-[normal]">
                   {bio || prompt || 'The beautiful range of Apple Naturalé that has an exciting mix of natural ingredients. With the Goodness of 100% Natural Ingredients'}
