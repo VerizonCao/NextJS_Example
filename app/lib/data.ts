@@ -1157,19 +1157,33 @@ export async function getAllAvatarServeCountKeys(): Promise<string[]> {
 }
 
 /**
- * Get the serve_time for an avatar from the database
+ * Get the serve_time for an avatar from the database with Redis caching
  * @param avatarId The avatar ID to get the serve_time for
  * @returns Promise<number> The serve_time value, or 0 if avatar not found
  */
 export async function getAvatarServeTime(avatarId: string): Promise<number> {
   try {
+    const cacheKey = `avatar_total_serve_${avatarId}`;
+    
+    // Try to get from cache first
+    const cachedValue = await redis.get(cacheKey);
+    if (cachedValue !== null) {
+      return Number(cachedValue);
+    }
+    
+    // If not in cache, get from database
     const result = await sql`
       SELECT serve_time
       FROM avatars
       WHERE avatar_id = ${avatarId}
     `;
     
-    return result.length > 0 ? Number(result[0].serve_time || 0) : 0;
+    const serveTime = result.length > 0 ? Number(result[0].serve_time || 0) : 0;
+    
+    // Cache the result with 10 minute TTL
+    await redis.set(cacheKey, serveTime, { ex: 600 }); // 600 seconds = 10 minutes
+    
+    return serveTime;
   } catch (error) {
     console.error('Error getting avatar serve time:', error);
     return 0;
