@@ -4,6 +4,10 @@
       {
         "path": "/api/thumb",
         "schedule": "* * * * *"
+      },
+      {
+        "path": "/api/serve_time",
+        "schedule": "* * * * *"
       }
     ]
   }

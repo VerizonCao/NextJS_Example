@@ -236,7 +236,7 @@ export function PageClientImpl(props: {
                 
                 // Only report if serve time is reasonable (more than 1 second)
                 if (serveTimeSeconds > 1) {
-                  console.log('Reporting avatar serve time:', serveTimeSeconds);
+                  // console.log('Reporting avatar serve time:', serveTimeSeconds);
                   reportAvatarServeTime(props.avatar_id, session.user.email, serveTimeSeconds)
                     .catch(error => console.error('Error reporting avatar serve time:', error));
                 }

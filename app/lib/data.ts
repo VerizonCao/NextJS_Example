@@ -1071,4 +1071,89 @@ export async function cacheAvatarThumbRequest(avatarId: string, ttlSeconds: numb
   }
 }
 
+/**
+ * Increment the serve count for an avatar by a specified value
+ * @param avatarId The avatar ID to increment the serve count for
+ * @param value The value to increment by (or set if key doesn't exist)
+ * @returns Promise<number> The new serve count after incrementing
+ */
+export async function incrementAvatarServeCount(avatarId: string, value: number): Promise<number> {
+  try {
+    const key = `avatar_serve_${avatarId}`;
+    
+    // First check if the key exists
+    const exists = await redis.exists(key);
+    
+    if (!exists) {
+      // If key doesn't exist, set it with the initial value
+      await redis.set(key, value);
+      return value;
+    } else {
+      // If key exists, increment it by the specified value
+      return await redis.incrby(key, value);
+    }
+  } catch (error) {
+    console.error('Error incrementing avatar serve count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Get and remove the serve count for an avatar from Redis
+ * @param avatarId The avatar ID to get and remove the serve count for
+ * @returns Promise<number> The serve count value before removal, or 0 if key doesn't exist
+ */
+export async function getAndRemoveAvatarServeCount(avatarId: string): Promise<number> {
+  try {
+    const key = `avatar_serve_${avatarId}`;
+    
+    // Get the current value and delete the key atomically using GETDEL
+    const value = await redis.getdel(key);
+    
+    // Return the value as a number, or 0 if the key didn't exist
+    return value ? Number(value) : 0;
+  } catch (error) {
+    console.error('Error getting and removing avatar serve count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Add to the serve_time count for an avatar in the database
+ * @param avatarId The avatar ID to update the serve_time for
+ * @param additionalServeTime The value to add to the current serve_time
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function addAvatarServeTime(avatarId: string, additionalServeTime: number): Promise<boolean> {
+  try {
+    const result = await sql`
+      UPDATE avatars
+      SET serve_time = serve_time + ${additionalServeTime}
+      WHERE avatar_id = ${avatarId}
+      RETURNING avatar_id
+    `;
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error adding avatar serve time:', error);
+    return false;
+  }
+}
+
+/**
+ * Get all avatar serve count keys from Redis (up to 100)
+ * @returns Promise<string[]> Array of avatar serve count keys, limited to 100
+ */
+export async function getAllAvatarServeCountKeys(): Promise<string[]> {
+  try {
+    const pattern = 'avatar_serve_*';
+    const keys = await redis.keys(pattern);
+    
+    // Limit to 100 keys to prevent memory issues
+    return keys.slice(0, 100);
+  } catch (error) {
+    console.error('Error getting avatar serve count keys:', error);
+    return [];
+  }
+}
+
 
