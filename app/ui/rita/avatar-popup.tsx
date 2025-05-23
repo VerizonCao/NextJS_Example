@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useSession } from 'next-auth/react';
 import LoginPopup from './login-popup';
+import { getAvatarServeTimeAction } from '@/app/lib/actions/avatar';
 
 type AvatarPopupProps = {
   avatar: UserAvatar | null;
@@ -20,6 +21,8 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
   const [isVisible, setIsVisible] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [serveTime, setServeTime] = useState<number | null>(null);
+  const [isLoadingServeTime, setIsLoadingServeTime] = useState(false);
   const { data: session, status } = useSession();
 
   useEffect(() => {
@@ -31,6 +34,9 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
   useEffect(() => {
     if (avatar) {
       setIsImageLoaded(false);
+      setServeTime(null);
+      setIsLoadingServeTime(true);
+      
       // Preload the image
       const img = new Image();
       img.src = avatar.presignedUrl || '';
@@ -38,6 +44,22 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
         setIsImageLoaded(true);
         setIsVisible(true);
       };
+
+      // Load serve time asynchronously
+      const loadServeTime = async () => {
+        try {
+          const result = await getAvatarServeTimeAction(avatar.avatar_id);
+          if (result.success) {
+            setServeTime(result.serveTime || null);
+          }
+        } catch (error) {
+          console.error('Failed to load serve time:', error);
+        } finally {
+          setIsLoadingServeTime(false);
+        }
+      };
+
+      loadServeTime();
     } else {
       setIsVisible(false);
     }
@@ -91,7 +113,21 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
             )}
             
             {/* Character Info Card */}
-            <Card className="flex flex-col w-full lg:w-[467px] h-auto lg:h-[714px] bg-[#1a1a1e] rounded-r-[5px] lg:rounded-l-none rounded-[5px] border-none">
+            <Card className="flex flex-col w-full lg:w-[467px] h-auto lg:h-[714px] bg-[#1a1a1e] rounded-r-[5px] lg:rounded-l-none rounded-[5px] border-none relative">
+              {/* Serve Time Display */}
+              <div className="absolute top-4 right-16 bg-black bg-opacity-70 rounded-lg px-3 py-2 z-10">
+                <div className="text-white text-sm">
+                  <span className="font-medium">Serve Time: </span>
+                  {isLoadingServeTime ? (
+                    <span className="text-white">Loading...</span>
+                  ) : (
+                    <span className="text-white">
+                      {serveTime !== null ? `${serveTime}ms` : '0ms'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               <CardContent className="flex flex-col justify-between h-full p-4 lg:p-[15.12px]">
                 {/* Top Section */}
                 <div className="flex flex-col gap-4 lg:gap-[16.2px]">

@@ -25,7 +25,8 @@ import {
   incrementAvatarServeCount,
   getAndRemoveAvatarServeCount,
   addAvatarServeTime,
-  getAllAvatarServeCountKeys
+  getAllAvatarServeCountKeys,
+  getAvatarServeTime
 } from '../data';
 import { avatarRequestCounter, avatarServeTimeCounter } from '../metrics';
 import { getAvatarThumbCountAction } from '@/app/lib/actions/thumbnail';
@@ -722,6 +723,33 @@ export async function flushAllAvatarServeTimesAction(): Promise<{
       totalServeTime: 0,
       errors: [error instanceof Error ? error.message : 'Unknown error'],
       message: 'An error occurred while flushing all avatar serve times'
+    };
+  }
+}
+
+/**
+ * Server action to get an avatar's serve time from the database
+ */
+export async function getAvatarServeTimeAction(
+  avatarId: string
+): Promise<{ 
+  success: boolean; 
+  serveTime?: number;
+  message: string 
+}> {
+  try {
+    const serveTime = await getAvatarServeTime(avatarId);
+    
+    return { 
+      success: true, 
+      serveTime,
+      message: 'Avatar serve time retrieved successfully' 
+    };
+  } catch (error) {
+    console.error('Error in getAvatarServeTimeAction:', error);
+    return { 
+      success: false, 
+      message: 'An error occurred while retrieving avatar serve time' 
     };
   }
 } 

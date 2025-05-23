@@ -1156,4 +1156,24 @@ export async function getAllAvatarServeCountKeys(): Promise<string[]> {
   }
 }
 
+/**
+ * Get the serve_time for an avatar from the database
+ * @param avatarId The avatar ID to get the serve_time for
+ * @returns Promise<number> The serve_time value, or 0 if avatar not found
+ */
+export async function getAvatarServeTime(avatarId: string): Promise<number> {
+  try {
+    const result = await sql`
+      SELECT serve_time
+      FROM avatars
+      WHERE avatar_id = ${avatarId}
+    `;
+    
+    return result.length > 0 ? Number(result[0].serve_time || 0) : 0;
+  } catch (error) {
+    console.error('Error getting avatar serve time:', error);
+    return 0;
+  }
+}
+
 
