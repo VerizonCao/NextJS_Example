@@ -507,7 +507,8 @@ export async function loadPaginatedPublicAvatars(
           create_time, 
           update_time,
           thumb_count,
-          is_public
+          is_public,
+          serve_time
         FROM avatars 
         WHERE is_public = true
         AND (
@@ -536,7 +537,8 @@ export async function loadPaginatedPublicAvatars(
         create_time, 
         update_time,
         thumb_count,
-        is_public
+        is_public,
+        serve_time
       FROM avatars 
       WHERE is_public = true
       ORDER BY create_time DESC

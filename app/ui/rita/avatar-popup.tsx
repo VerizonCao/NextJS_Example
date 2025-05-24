@@ -129,17 +129,21 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
             
             {/* Character Info Card */}
             <Card className="flex flex-col w-full lg:w-[467px] h-auto lg:h-[714px] bg-[#1a1a1e] rounded-r-[5px] lg:rounded-l-none rounded-[5px] border-none relative">
-              {/* Serve Time Display */}
-              <div className="absolute top-4 right-16 bg-black bg-opacity-70 rounded-lg px-3 py-2 z-10">
-                <div className="text-white text-sm">
-                  <span className="font-medium">Serve Time: </span>
-                  {isLoadingServeTime ? (
-                    <span className="text-white">Loading...</span>
-                  ) : (
-                    <span className="text-white">
-                      {serveTime !== null ? `${serveTime}ms` : '0ms'}
+              {/* Serve Time and Thumb Count Display - No background, fixed positioning */}
+              <div className="absolute top-4 right-16 z-10">
+                <div className="text-white text-sm space-y-1 w-32">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Time:</span>
+                    <span className="text-white w-16 text-right">
+                      {isLoadingServeTime ? "Loading..." : (serveTime !== null ? `${serveTime}s` : '0s')}
                     </span>
-                  )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-300">Thumb:</span>
+                    <span className="text-white w-8 text-right">
+                      {avatar.thumb_count || 0}
+                    </span>
+                  </div>
                 </div>
               </div>
 

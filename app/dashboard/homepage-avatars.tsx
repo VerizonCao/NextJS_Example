@@ -34,6 +34,7 @@ type UserAvatar = {
   voice_id?: string;
   agent_bio?: string;
   thumb_count?: number;
+  serve_time?: number;
 };
 
 interface HomepageAvatarsProps {
@@ -300,6 +301,10 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
                 ref={isLastElement ? lastAvatarElementRef : undefined}
                 className="relative w-[18.75%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
                 onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
+                showThumbCount={true}
+                thumbCount={avatarThumbCounts[avatar.avatar_id]}
+                thumbIcon={<ThumbsUp size={16} className="text-gray-300" />}
+                serveTime={avatar.serve_time}
               >
                 {avatar.presignedUrl && (
                   <>
@@ -311,18 +316,12 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
                       priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
                       className="object-cover"
                     />
-                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-3 bg-gradient-to-t from-black/80 via-black/45 to-black/1">
+                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-3 pb-12 bg-gradient-to-t from-black/80 via-black/45 to-black/1">
                       <div className="self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-base leading-tight truncate">
                         {avatar.avatar_name}
                       </div>
                       <div className="self-stretch font-['Montserrat',Helvetica] font-normal text-neutral-300 text-xs leading-snug overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                         {avatar.agent_bio}
-                      </div>
-                      <div className="absolute bottom-3 right-3 flex items-center p-1.5 rounded-full bg-black/30 z-10">
-                        <ThumbsUp size={18} className="text-gray-300" />
-                        <span className="ml-1 text-xs text-gray-300">
-                          {avatarThumbCounts[avatar.avatar_id] || '0'}
-                        </span>
                       </div>
                     </div>
                   </>
@@ -379,6 +378,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
             presignedUrl: selectedAvatar.presignedUrl,
             scene_prompt: selectedAvatar.scene_prompt,
             voice_id: selectedAvatar.voice_id,
+            thumb_count: avatarThumbCounts[selectedAvatar.avatar_id] || selectedAvatar.thumb_count || 0,
           } : null}
           onStream={() => selectedAvatar && handleStream(selectedAvatar.avatar_id)}
           onClose={() => setGlobalSelectedAvatar(null)}

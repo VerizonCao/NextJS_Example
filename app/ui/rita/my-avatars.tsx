@@ -31,6 +31,8 @@ type UserAvatar = {
   scene_prompt?: string;
   voice_id?: string;
   presignedUrl?: string;
+  thumb_count?: number;
+  serve_time?: number;
 };
 
 export type { UserAvatar };
