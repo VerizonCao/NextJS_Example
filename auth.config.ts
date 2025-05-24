@@ -23,6 +23,16 @@ export const authConfig = {
         }
         return false; // ❌ Block sign-in if not verified or wrong domain
       }
+      
+      if (account?.provider === "discord") {
+        // Discord emails are always verified if present
+        const email = profile?.email ?? "";
+        if (email) {
+          return true;
+        }
+        return false; // ❌ Block sign-in if no email
+      }
+      
       return true; // ✅ Allow other providers
     },
 

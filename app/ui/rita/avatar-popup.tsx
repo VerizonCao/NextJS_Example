@@ -37,12 +37,14 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
       setServeTime(null);
       setIsLoadingServeTime(true);
       
-      // Preload the image
+      // Show UI immediately instead of waiting for image
+      setIsVisible(true);
+      
+      // Preload the image in background
       const img = new Image();
       img.src = avatar.presignedUrl || '';
       img.onload = () => {
         setIsImageLoaded(true);
-        setIsVisible(true);
       };
 
       // Load serve time asynchronously
@@ -81,7 +83,8 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
     }
   };
 
-  if (!isVisible || !avatar || !isImageLoaded) return null;
+  // Don't block rendering on image load - only check for avatar existence
+  if (!avatar) return null;
 
   return (
     <>
@@ -102,14 +105,26 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
           </button>
 
           <div className="flex flex-col lg:flex-row items-center justify-center gap-0">
-            {/* Character Image */}
+            {/* Character Image with loading state */}
             {avatar.presignedUrl && (
-              <div
-                className="relative w-full lg:w-[400px] h-[400px] lg:h-[714px] rounded-l-[5px] lg:rounded-r-none rounded-[5px] bg-cover bg-center"
-                style={{
-                  backgroundImage: `url(${avatar.presignedUrl})`,
-                }}
-              />
+              <div className="relative w-full lg:w-[400px] h-[400px] lg:h-[714px] rounded-l-[5px] lg:rounded-r-none rounded-[5px] bg-gray-800">
+                {/* Loading placeholder */}
+                {!isImageLoaded && (
+                  <div className="absolute inset-0 bg-gray-800 animate-pulse rounded-l-[5px] lg:rounded-r-none rounded-[5px] flex items-center justify-center">
+                    <div className="text-white text-sm">Loading image...</div>
+                  </div>
+                )}
+                
+                {/* Actual image with fade-in transition */}
+                <div
+                  className={`absolute inset-0 bg-cover bg-center rounded-l-[5px] lg:rounded-r-none rounded-[5px] transition-opacity duration-300 ${
+                    isImageLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{
+                    backgroundImage: `url(${avatar.presignedUrl})`,
+                  }}
+                />
+              </div>
             )}
             
             {/* Character Info Card */}

@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import postgres from 'postgres';
 
 import Google from "next-auth/providers/google"
+import Discord from "next-auth/providers/discord"
  
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
  
@@ -50,6 +51,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           response_type: "code",    // Use standard server-side OAuth flow
         },
       }
+    }),
+    Discord({
+      clientId: process.env.DISCORD_CLIENT_ID!,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET!
     })
   ],
 });
