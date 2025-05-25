@@ -34,6 +34,7 @@ import { RoomServiceClient } from 'livekit-server-sdk';
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 import { customAlphabet } from 'nanoid'
+import { use } from 'react';
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 11)
 
 const FormSchema = z.object({
@@ -677,7 +678,7 @@ export async function getUserServeCountAction(userEmail: string): Promise<{
     }
 
     // if it's our user, just return success with count 0
-    if (userId == 'u-vSOjV52Fssi' || userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH' || userId === 'u-mwpqtYu1f2B') {
+    if (userId == 'u-vSOjV52Fssi' || userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH' || userId === 'u-mwpqtYu1f2B' || userId === 'u-2rco6HuUYIt') {
       return {
         success: true,
         count: 0,
@@ -995,7 +996,7 @@ export async function isUserAvatarOwnerAction(
     }
 
     // Check if user is in the special list
-    if (userId == 'u-vSOjV52Fssi' || userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH' || userId === 'u-mwpqtYu1f2B') {
+    if (userId == 'u-vSOjV52Fssi' || userId === 'u-A6ymSzslVmL' || userId === 'u-oK5KkVLYRTH' || userId === 'u-mwpqtYu1f2B' || userId === 'u-2rco6HuUYIt') {
       return {
         success: true,
         isOwner: true,
