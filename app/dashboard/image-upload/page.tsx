@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { saveAvatarData, generatePresignedUrl, cloneVoice } from '@/app/lib/actions';
+import { saveAvatarData, generatePresignedUrl, cloneVoice, sendImageForModeration } from '@/app/lib/actions';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -249,9 +249,14 @@ export default function ImageUploadPage() {
               is_public: isPublic
             });
             
-            if (result.success) {
+            if (result.success && result.avatar_id) {
               console.log('Avatar saved successfully with name:', name);
-              // You could add a success message or redirect here
+              
+              // Send the image for moderation
+              const moderationResult = await sendImageForModeration(key, result.avatar_id);
+              if (!moderationResult.success) {
+                console.error('Failed to send image for moderation:', moderationResult.message);
+              }
             } else {
               console.error('Failed to save avatar to database:', result.message);
             }

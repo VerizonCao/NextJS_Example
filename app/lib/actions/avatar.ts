@@ -26,10 +26,12 @@ import {
   getAndRemoveAvatarServeCount,
   addAvatarServeTime,
   getAllAvatarServeCountKeys,
-  getAvatarServeTime
+  getAvatarServeTime,
+  sendImageModerationTask
 } from '../data';
 import { avatarRequestCounter, avatarServeTimeCounter } from '../metrics';
 import { getAvatarThumbCountAction } from '@/app/lib/actions/thumbnail';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 11);
 
@@ -45,7 +47,7 @@ export async function saveAvatarData(avatarData: {
   image_uri?: string;
   voice_id?: string;
   is_public?: boolean;
-}): Promise<{ success: boolean; message: string }> {
+}): Promise<{ success: boolean; message: string; avatar_id?: string }> {
   try {
     const owner_id = await getUserByIdEmail(avatarData.owner_email);
     
@@ -61,7 +63,7 @@ export async function saveAvatarData(avatarData: {
       owner_id: owner_id
     });
     if (success) {
-      return { success: true, message: 'Avatar saved successfully' };
+      return { success: true, message: 'Avatar saved successfully', avatar_id: avatarId };
     } else {
       return { success: false, message: 'Failed to save avatar' };
     }
@@ -752,4 +754,24 @@ export async function getAvatarServeTimeAction(
       message: 'An error occurred while retrieving avatar serve time' 
     };
   }
-} 
+}
+
+/**
+ * Server action to send an image for moderation
+ */
+export async function sendImageForModeration(
+  imagePath: string,
+  avatarId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const success = await sendImageModerationTask(imagePath, avatarId);
+    if (success) {
+      return { success: true, message: 'Image sent for moderation successfully' };
+    } else {
+      return { success: false, message: 'Failed to send image for moderation' };
+    }
+  } catch (error) {
+    console.error('Error sending image for moderation:', error);
+    return { success: false, message: 'Failed to send image for moderation' };
+  }
+}

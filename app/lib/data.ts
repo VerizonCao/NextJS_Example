@@ -11,6 +11,7 @@ import {
 import { formatCurrency } from './utils';
 
 import { Redis } from '@upstash/redis'
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 const sql = postgres(process.env.POSTGRES_URL!, { 
   ssl: 'require',
@@ -1189,6 +1190,40 @@ export async function getAvatarServeTime(avatarId: string): Promise<number> {
   } catch (error) {
     console.error('Error getting avatar serve time:', error);
     return 0;
+  }
+}
+
+/**
+ * Send a message to the image moderation SQS queue
+ * @param imgPath The path of the image to be moderated
+ * @param avatarId The ID of the avatar associated with the image
+ * @returns Promise<boolean> True if message was sent successfully, false otherwise
+ */
+export async function sendImageModerationTask(imgPath: string, avatarId: string): Promise<boolean> {
+  try {
+    const sqsClient = new SQSClient({
+      region: 'us-west-2',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+
+    const messageBody = {
+      img_path: imgPath,
+      avatar_id: avatarId,
+    };
+
+    const command = new SendMessageCommand({
+      QueueUrl: process.env.AWS_SQS_IMAGE_MODERATION_URL!,
+      MessageBody: JSON.stringify(messageBody),
+    });
+
+    await sqsClient.send(command);
+    return true;
+  } catch (error) {
+    console.error('Error sending message to SQS:', error);
+    return false;
   }
 }
 
