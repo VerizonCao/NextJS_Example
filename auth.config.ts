@@ -88,6 +88,7 @@ export const authConfig = {
       const isEditAvatar = pathname.startsWith('/dashboard/edit-avatar');
       const isMyAvatars = pathname.startsWith('/dashboard/my-avatars');
       const isAvatarStudio = pathname.startsWith('/dashboard/avatar-studio');
+      const isChat = pathname.startsWith('/dashboard/chat');
     
       // ✅ Allow audio file requests to go through without redirect
       if (isAudioSample) {
@@ -97,6 +98,11 @@ export const authConfig = {
       // Redirect from / to /dashboard
       if (pathname === '/') {
         return Response.redirect(new URL('/dashboard', nextUrl));
+      }
+
+      if (isChat) {
+        if (isLoggedIn) return true;
+        return false;
       }
     
       if (isOnDashboard) {

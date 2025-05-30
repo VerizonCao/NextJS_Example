@@ -83,6 +83,13 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
     }
   };
 
+  // Add new chat handler
+  const handleChat = () => {
+    if (avatar) {
+      router.push(`/dashboard/chat/${avatar.avatar_id}`);
+    }
+  };
+
   // Don't block rendering on image load - only check for avatar existence
   if (!avatar) return null;
 
@@ -214,6 +221,12 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
                     className="w-full sm:w-auto px-4 lg:px-[18px] py-2 lg:py-[7.2px] bg-[rgb(79,70,229)] hover:bg-[rgb(60,52,181)] rounded-[10.8px] text-sm lg:text-[12.6px] transition-colors duration-200"
                   >
                     Stream with {avatar.avatar_name}
+                  </Button>
+                  <Button 
+                    onClick={handleChat}
+                    className="w-full sm:w-auto px-4 lg:px-[18px] py-2 lg:py-[7.2px] bg-[rgb(34,197,94)] hover:bg-[rgb(22,163,74)] rounded-[10.8px] text-sm lg:text-[12.6px] transition-colors duration-200"
+                  >
+                    Chat with {avatar.avatar_name}
                   </Button>
                   <Button
                     onClick={handleEdit}
