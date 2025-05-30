@@ -5,9 +5,9 @@ import NavLinks from '@/app/ui/dashboard/nav-links-top';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen flex-col bg-[#121214]">
+    <div className="min-h-screen flex-col bg-[#121214]">
       <SideNav />
-      <div className="flex-grow overflow-y-auto pt-[78px]">
+      <div className="pt-[78px]">
         <div className="px-[110px] py-6">
           {children}
         </div>
