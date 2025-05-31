@@ -5,23 +5,30 @@ import { notFound } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { generateRoomId } from '@/lib/client-utils';
 import { ConnectionDetails } from '@/lib/types';
 import { 
   LiveKitRoom, 
-  LocalUserChoices 
+  LocalUserChoices,
+  useChat,
+  ChatEntry,
+  TrackToggle,
+  useRoomContext
 } from '@livekit/components-react';
 import { 
   Room, 
   RoomOptions, 
   VideoCodec, 
-  VideoPresets 
+  VideoPresets,
+  Track
 } from 'livekit-client';
 import { VideoConferenceCustom } from '@/app/components/VideoConferenceCustom';
+import { Mic, MicOff } from 'lucide-react';
 
 type PageParams = {
   avatarId: string;
@@ -38,6 +45,184 @@ interface Avatar {
 }
 
 const CONN_DETAILS_ENDPOINT = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
+
+// Add microphone control component
+function MicrophoneControl() {
+  const [isMicEnabled, setIsMicEnabled] = useState(true);
+
+  const handleMicChange = useCallback((enabled: boolean) => {
+    setIsMicEnabled(enabled);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 bg-black/20 rounded-lg px-4 py-3">
+      <TrackToggle
+        source={Track.Source.Microphone}
+        onChange={handleMicChange}
+        className="flex items-center justify-center w-12 h-12 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors border-0"
+      >
+        {isMicEnabled ? (
+          <Mic className="w-6 h-6 text-green-400" />
+        ) : (
+          <MicOff className="w-6 h-6 text-red-400" />
+        )}
+      </TrackToggle>
+      <div className="flex flex-col">
+        <span className="text-white text-sm font-medium">
+          {isMicEnabled ? 'Microphone On' : 'Microphone Off'}
+        </span>
+        <span className="text-gray-400 text-xs">
+          Click to {isMicEnabled ? 'mute' : 'unmute'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Add exit video button component that properly disconnects from the room
+function ExitVideoButton() {
+  const room = useRoomContext();
+
+  const handleExitVideo = useCallback(() => {
+    if (room && room.state === 'connected') {
+      // Disconnect from the room properly, just like LiveKit's DisconnectButton
+      room.disconnect();
+      // The onDisconnected callback will handle the navigation
+    }
+  }, [room]);
+
+  return (
+    <Button 
+      onClick={handleExitVideo}
+      className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors w-full sm:w-auto"
+    >
+      Exit Video Chat
+    </Button>
+  );
+}
+
+// Updated Chat component that integrates with LiveKit and handles voice transcriptions
+function VideoTextChat({ avatar_name }: { avatar_name: string }) {
+  const { chatMessages, send, isSending } = useChat();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const room = useRoomContext();
+  const lastProcessedIndex = useRef<number>(-1);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages]);
+
+  // Add voice transcription handling
+  useEffect(() => {
+    if (!room) return;
+
+    // Handle incoming data messages for voice transcription
+    const handleDataReceived = async (payload: Uint8Array, participant: any) => {
+      try {
+        const data = JSON.parse(new TextDecoder().decode(payload));
+        
+        // Handle voice transcription data
+        if (data.type === 'voice_transcription' && data.resp.index !== undefined) {
+          // Only process if this is a new index
+          if (data.resp.index <= lastProcessedIndex.current) {
+            return;
+          }
+          
+          // Update last processed index
+          lastProcessedIndex.current = data.resp.index;
+          
+          // Add transcription to chat history using send function
+          console.log('Adding voice transcription to chat:', data.resp.text);
+          await send(data.resp.text);
+        }
+      } catch (error) {
+        console.error('Error processing received data:', error);
+      }
+    };
+
+    // Subscribe to data messages
+    room.on('dataReceived', handleDataReceived);
+
+    return () => {
+      room.off('dataReceived', handleDataReceived);
+    };
+  }, [room, send]);
+
+  // Reset transcription index when leaving
+  useEffect(() => {
+    return () => {
+      lastProcessedIndex.current = -1;
+    };
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (inputRef.current && inputRef.current.value.trim() !== '') {
+      await send(inputRef.current.value);
+      inputRef.current.value = '';
+      inputRef.current.focus();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Chat Header */}
+      <div className="flex-shrink-0 pb-4">
+        <h3 className="font-bold text-white text-lg">Chat with {avatar_name}</h3>
+        <p className="text-gray-400 text-sm mt-1">Send messages to interact during video chat</p>
+        <p className="text-gray-500 text-xs mt-1">Voice transcriptions will appear automatically</p>
+      </div>
+
+      {/* Chat Messages */}
+      <div className="flex-1 min-h-0 bg-black/20 rounded-lg p-3 mb-4 overflow-y-auto">
+        {chatMessages.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+            Start a conversation with {avatar_name}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {chatMessages.map((msg, idx, allMsg) => {
+              const hideName = idx >= 1 && allMsg[idx - 1].from === msg.from;
+              return (
+                <div key={msg.id ?? idx} className="text-white">
+                  <ChatEntry
+                    hideName={hideName}
+                    hideTimestamp={false}
+                    entry={msg}
+                  />
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      {/* Chat Input */}
+      <form onSubmit={handleSubmit} className="flex-shrink-0 flex gap-2">
+        <Input
+          ref={inputRef}
+          type="text"
+          placeholder={`Message ${avatar_name}...`}
+          disabled={isSending}
+          className="flex-1 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+        />
+        <Button 
+          type="submit" 
+          disabled={isSending}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4"
+        >
+          Send
+        </Button>
+      </form>
+    </div>
+  );
+}
 
 export default function ChatPage({
   params,
@@ -321,7 +506,7 @@ export default function ChatPage({
       );
     }
 
-    // Show video interface
+    // Show video interface with chat
     return (
       <>
         <style jsx global>{`
@@ -441,110 +626,86 @@ export default function ChatPage({
                   </div>
                 </div>
                 
-                {/* Character Info Card */}
+                {/* Character Info Card with Integrated Chat */}
                 <div className="w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
                   <Card className="flex flex-col w-full h-full bg-[#1a1a1e] rounded-[5px] border-none overflow-hidden">
-                    <CardContent className="flex flex-col h-full p-4 lg:p-[15.12px] overflow-y-auto">
+                    <CardContent className="flex flex-col h-full p-4 lg:p-[15.12px]">
                       
-                      {/* Top Section - Scrollable */}
-                      <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-1 min-h-0">
-                        
-                        {/* Profile Header */}
-                        <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-shrink-0">
-                          <div className="flex items-center gap-4 lg:gap-[15.12px]">
-                            {presignedUrl && (
-                              <img
-                                className="w-16 h-16 lg:w-[68.04px] lg:h-[68.04px] object-cover rounded-full flex-shrink-0"
-                                alt="Avatar"
-                                src={presignedUrl}
-                              />
-                            )}
+                      {/* Profile Header */}
+                      <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-shrink-0">
+                        <div className="flex items-center gap-4 lg:gap-[15.12px]">
+                          {presignedUrl && (
+                            <img
+                              className="w-16 h-16 lg:w-[68.04px] lg:h-[68.04px] object-cover rounded-full flex-shrink-0"
+                              alt="Avatar"
+                              src={presignedUrl}
+                            />
+                          )}
 
-                            <div className="flex flex-col gap-2 lg:gap-[7.56px] flex-1 min-w-0">
-                              <h2 className="font-bold text-white text-lg lg:text-[16.4px]">
-                                {avatar.avatar_name || 'Unknown Avatar'}
-                              </h2>
-                              
-                              {/* Status indicator */}
-                              <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full ${
-                                  firstFrameReceived ? 'bg-green-500' : 
-                                  (roomInitiating || room) ? 'bg-yellow-500 animate-pulse' : 
-                                  'bg-gray-500'
-                                }`}></div>
-                                <p className={`font-medium text-sm ${
-                                  firstFrameReceived ? 'text-green-400' : 
-                                  (roomInitiating || room) ? 'text-yellow-400' : 
-                                  'text-gray-400'
-                                }`}>
-                                  {firstFrameReceived ? 'Live Video Active' : 
-                                   roomInitiating ? 'Connecting...' :
-                                   room ? 'Loading Video...' :
-                                   'Waiting...'}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <Separator className="w-full h-px bg-[rgb(29,29,30)]" />
-                        </div>
-
-                        {/* Video Ready Notification */}
-                        {firstFrameReceived && (
-                          <div className="bg-green-900/30 border border-green-600 rounded-lg p-3 flex-shrink-0 animate-fade-in">
+                          <div className="flex flex-col gap-2 lg:gap-[7.56px] flex-1 min-w-0">
+                            <h2 className="font-bold text-white text-lg lg:text-[16.4px]">
+                              {avatar.avatar_name || 'Unknown Avatar'}
+                            </h2>
+                            
+                            {/* Status indicator */}
                             <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                              <p className="text-green-400 text-sm font-medium">
-                                🎥 Video chat is now active!
+                              <div className={`w-2 h-2 rounded-full ${
+                                firstFrameReceived ? 'bg-green-500' : 
+                                (roomInitiating || room) ? 'bg-yellow-500 animate-pulse' : 
+                                'bg-gray-500'
+                              }`}></div>
+                              <p className={`font-medium text-sm ${
+                                firstFrameReceived ? 'text-green-400' : 
+                                (roomInitiating || room) ? 'text-yellow-400' : 
+                                'text-gray-400'
+                              }`}>
+                                {firstFrameReceived ? 'Live Video Active' : 
+                                 roomInitiating ? 'Connecting...' :
+                                 room ? 'Loading Video...' :
+                                 'Waiting...'}
                               </p>
                             </div>
-                          </div>
-                        )}
-
-                        {/* About Section */}
-                        <div className="flex flex-col gap-4 lg:gap-[16.2px]">
-                          <h3 className="font-bold text-white text-lg">About</h3>
-
-                          <div className="space-y-4">
-                            <div>
-                              <h4 className="font-semibold text-white text-base">
-                                Prompt
-                              </h4>
-                              <p className="font-medium text-white text-sm mt-2 break-words">
-                                {avatar.prompt || 'No prompt available'}
-                              </p>
-                            </div>
-
-                            <div>
-                              <h4 className="font-semibold text-white text-base lg:text-[14.6px]">
-                                Scene
-                              </h4>
-                              <p className="font-medium text-white text-sm lg:text-[12.8px] mt-2 break-words">
-                                {avatar.scene_prompt || 'No scene prompt available'}
-                              </p>
-                            </div>
-
-                            {avatar.voice_id && (
-                              <div>
-                                <h4 className="font-semibold text-white text-base lg:text-[14.6px]">
-                                  Voice
-                                </h4>
-                                <p className="font-medium text-white text-sm lg:text-[12.8px] mt-2 break-words">
-                                  {avatar.voice_id}
-                                </p>
-                              </div>
-                            )}
                           </div>
                         </div>
+
+                        <Separator className="w-full h-px bg-[rgb(29,29,30)]" />
+                        
+                        {/* Add Microphone Control */}
+                        <LiveKitRoom
+                          room={room}
+                          token={connectionDetails.participantToken}
+                          serverUrl={connectionDetails.serverUrl}
+                          video={false}
+                          audio={false}
+                        >
+                          <MicrophoneControl />
+                        </LiveKitRoom>
+                      </div>
+
+                      {/* Text Chat Section - Replaces the bio display */}
+                      <div className="flex flex-col flex-1 min-h-0 mt-4">
+                        <LiveKitRoom
+                          room={room}
+                          token={connectionDetails.participantToken}
+                          serverUrl={connectionDetails.serverUrl}
+                          video={false}
+                          audio={false}
+                        >
+                          <VideoTextChat avatar_name={avatar.avatar_name} />
+                        </LiveKitRoom>
                       </div>
 
                       {/* Bottom Section - Exit Video Button */}
-                      <div className="flex flex-col items-center gap-4 mt-6 flex-shrink-0">
-                        <Link href={`/dashboard/chat/${avatarId}`}>
-                          <Button className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors w-full sm:w-auto">
-                            Exit Video Chat
-                          </Button>
-                        </Link>
+                      <div className="flex flex-col items-center gap-4 mt-4 flex-shrink-0">
+                        <LiveKitRoom
+                          room={room}
+                          token={connectionDetails.participantToken}
+                          serverUrl={connectionDetails.serverUrl}
+                          video={false}
+                          audio={false}
+                        >
+                          <ExitVideoButton />
+                        </LiveKitRoom>
                         <Link href="/dashboard">
                           <Button className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors w-full sm:w-auto">
                             Back to Dashboard

@@ -192,15 +192,18 @@ export function VideoConferenceCustom({
             // Ignore LiveKit's chat state changes
           }}
         >
-          <div className="lk-video-conference-inner" style={{ 
-            position: 'relative', 
-            display: 'flex', 
-            width: alwaysHideChat ? '100%' : (isChatVisible ? '27%' : '30%'),
-            marginLeft: alwaysHideChat ? '0%' : (isChatVisible ? '20%' : '33%'),
-            height: '95%', 
-            marginTop: '2.5%'
-          }}>
-            <div style={{ flex: 1, position: 'relative' }}>
+          <div 
+            className="lk-video-conference-inner" 
+            style={{ 
+              position: 'relative', 
+              display: 'flex', 
+              width: '100%',
+              height: '100%',
+              marginLeft: '0%',
+              marginTop: '0%'
+            }}
+          >
+            <div style={{ flex: 1, position: 'relative', height: '100%', width: '100%' }}>
               {!hideControlBar && (
                 <div style={controlBarStyle}>
                   <ControlBarCustom 
@@ -213,8 +216,8 @@ export function VideoConferenceCustom({
                   />
                 </div>
               )}
-              <div className="lk-grid-layout-wrapper">
-                <GridLayout tracks={tracks}>
+              <div className="lk-grid-layout-wrapper" style={{ height: '100%', width: '100%' }}>
+                <GridLayout tracks={tracks} style={{ height: '100%', width: '100%' }}>
                   <ParticipantTileCustom ref={tileRef} />
                 </GridLayout>
               </div>

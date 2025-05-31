@@ -84,9 +84,14 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
   };
 
   // Add new chat handler
-  const handleChat = () => {
+  const handleChat = async () => {
+    if (!session) {
+      setShowLoginPopup(true);
+      return;
+    }
     if (avatar) {
-      router.push(`/dashboard/chat/${avatar.avatar_id}`);
+      // Navigate to chat page with video mode parameter
+      router.push(`/dashboard/chat/${avatar.avatar_id}?mode=video`);
     }
   };
 
