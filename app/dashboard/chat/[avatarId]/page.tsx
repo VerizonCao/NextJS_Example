@@ -61,6 +61,10 @@ export default function ChatPage({
   
   const { data: session } = useSession();
 
+  // Add new state for first frame detection
+  const [firstFrameReceived, setFirstFrameReceived] = useState(false);
+  const [avatarConnected, setAvatarConnected] = useState(false);
+
   const preJoinDefaults = useMemo(() => {
     return {
       username: session?.user?.name || 'user',
@@ -113,6 +117,32 @@ export default function ChatPage({
       initiateVideoRoom();
     }
   }, [isVideoMode, avatar, roomInitiating, room]);
+
+  // Simple polling to check for video element
+  useEffect(() => {
+    if (!isVideoMode || !room) return;
+
+    const checkForVideoElement = () => {
+      const videoElement = document.querySelector('.lk-participant-media-video[data-lk-local-participant="false"]');
+      
+      if (videoElement && !firstFrameReceived) {
+        console.log('Remote video element found!');
+        setFirstFrameReceived(true);
+        setAvatarConnected(true);
+      }
+    };
+
+    // Check immediately
+    checkForVideoElement();
+
+    // Then check every 0.5 seconds
+    const interval = setInterval(checkForVideoElement, 500);
+
+    // Cleanup interval when component unmounts or video is found
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isVideoMode, room, firstFrameReceived]);
 
   const initiateVideoRoom = async () => {
     if (!avatar || !session) return;
@@ -334,8 +364,39 @@ export default function ChatPage({
             <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0">
               <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-174px)] gap-8 py-6">
                 
-                {/* LiveKit Video replaced the static image */}
+                {/* Image or LiveKit Video */}
                 <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
+                  {/* Show original image until video is detected */}
+                  {!firstFrameReceived && presignedUrl && (
+                    <div className="relative w-full h-full">
+                      <div
+                        className="absolute inset-0 w-full h-full rounded-[5px] bg-cover bg-center shadow-lg z-10 transition-all duration-500 ease-in-out"
+                        style={{
+                          backgroundImage: `url(${presignedUrl})`,
+                          filter: (roomInitiating || (!roomInitiating && room && !firstFrameReceived)) ? 'blur(4px) brightness(0.7)' : 'none'
+                        }}
+                      />
+                      
+                      {/* Loading overlay when stream is initiating */}
+                      {(roomInitiating || (!roomInitiating && room && !firstFrameReceived)) && (
+                        <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/20 rounded-[5px]">
+                          <div className="flex flex-col items-center gap-4 text-center">
+                            <div className="flex items-center justify-center">
+                              <svg className="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            </div>
+                            <div className="text-white text-sm font-medium">
+                              {roomInitiating ? 'Connecting...' : 'Loading video...'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* LiveKit Video - hidden until video is detected */}
                   <div 
                     data-lk-theme="default" 
                     style={{ 
@@ -344,7 +405,12 @@ export default function ChatPage({
                       backgroundColor: '#000', 
                       borderRadius: '5px', 
                       overflow: 'hidden',
-                      position: 'relative'
+                      position: firstFrameReceived ? 'relative' : 'absolute',
+                      top: firstFrameReceived ? 'auto' : 0,
+                      left: firstFrameReceived ? 'auto' : 0,
+                      opacity: firstFrameReceived ? 1 : 0,
+                      zIndex: firstFrameReceived ? 10 : 1,
+                      transition: 'opacity 0.5s ease-in-out, z-index 0s ease-in-out 0.25s'
                     }}
                   >
                     <LiveKitRoom
@@ -362,7 +428,7 @@ export default function ChatPage({
                       <div style={{ height: '100%', width: '100%', position: 'relative' }}>
                         <VideoConferenceCustom 
                           hideControlBar={false}
-                          alwaysHideChat={false}
+                          alwaysHideChat={true}
                           prompt={avatar.prompt}
                           scene={avatar.scene_prompt}
                           bio={avatar.agent_bio}
@@ -375,7 +441,7 @@ export default function ChatPage({
                   </div>
                 </div>
                 
-                {/* Character Info Card - Same as before */}
+                {/* Character Info Card */}
                 <div className="w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
                   <Card className="flex flex-col w-full h-full bg-[#1a1a1e] rounded-[5px] border-none overflow-hidden">
                     <CardContent className="flex flex-col h-full p-4 lg:p-[15.12px] overflow-y-auto">
@@ -398,15 +464,42 @@ export default function ChatPage({
                               <h2 className="font-bold text-white text-lg lg:text-[16.4px]">
                                 {avatar.avatar_name || 'Unknown Avatar'}
                               </h2>
+                              
+                              {/* Status indicator */}
                               <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <p className="font-medium text-green-400 text-sm">Live Video Chat</p>
+                                <div className={`w-2 h-2 rounded-full ${
+                                  firstFrameReceived ? 'bg-green-500' : 
+                                  (roomInitiating || room) ? 'bg-yellow-500 animate-pulse' : 
+                                  'bg-gray-500'
+                                }`}></div>
+                                <p className={`font-medium text-sm ${
+                                  firstFrameReceived ? 'text-green-400' : 
+                                  (roomInitiating || room) ? 'text-yellow-400' : 
+                                  'text-gray-400'
+                                }`}>
+                                  {firstFrameReceived ? 'Live Video Active' : 
+                                   roomInitiating ? 'Connecting...' :
+                                   room ? 'Loading Video...' :
+                                   'Waiting...'}
+                                </p>
                               </div>
                             </div>
                           </div>
 
                           <Separator className="w-full h-px bg-[rgb(29,29,30)]" />
                         </div>
+
+                        {/* Video Ready Notification */}
+                        {firstFrameReceived && (
+                          <div className="bg-green-900/30 border border-green-600 rounded-lg p-3 flex-shrink-0 animate-fade-in">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                              <p className="text-green-400 text-sm font-medium">
+                                🎥 Video chat is now active!
+                              </p>
+                            </div>
+                          </div>
+                        )}
 
                         {/* About Section */}
                         <div className="flex flex-col gap-4 lg:gap-[16.2px]">
