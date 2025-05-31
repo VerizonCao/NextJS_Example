@@ -17,11 +17,10 @@ export function Loading({ isVideoMode = false }: LoadingProps) {
       <div className="flex flex-row justify-center w-full">
         <div className="w-full relative">
           <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0">
-            <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-174px)] gap-8 py-6">
+            <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-80px)] gap-8 py-6">
               
               {/* Loading video placeholder */}
               <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-gray-800 animate-pulse shadow-lg flex-shrink-0 flex items-center justify-center">
-                <div className="text-white text-sm">Preparing video...</div>
               </div>
               
               {/* Loading placeholder for card */}
@@ -48,7 +47,7 @@ export function Loading({ isVideoMode = false }: LoadingProps) {
     <div className="flex flex-row justify-center w-full">
       <div className="w-full relative">
         <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0">
-          <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-174px)] gap-8 py-6">
+          <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-80px)] gap-8 py-6">
             
             {/* Loading placeholder for image */}
             <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-gray-800 animate-pulse shadow-lg flex-shrink-0" />
@@ -121,7 +120,7 @@ export function Error({ error, avatarName }: ErrorProps) {
     <div className="flex flex-row justify-center w-full">
       <div className="w-full relative">
         <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0">
-          <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-174px)] gap-8 py-6">
+          <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-80px)] gap-8 py-6">
             <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-gray-800 shadow-lg flex-shrink-0 flex items-center justify-center">
               <div className="text-gray-500 text-6xl">?</div>
             </div>
@@ -152,7 +151,7 @@ export function VideoPreparingState({ avatarName }: { avatarName: string }) {
     <div className="flex flex-row justify-center w-full">
       <div className="w-full relative">
         <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0">
-          <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-174px)] gap-8 py-6">
+          <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-80px)] gap-8 py-6">
             
             {/* Character Image Placeholder */}
             <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-gray-800 shadow-lg flex-shrink-0" />
@@ -171,12 +170,6 @@ export function VideoPreparingState({ avatarName }: { avatarName: string }) {
                       </svg>
                     </div>
                     
-                    <div className="flex flex-col text-center gap-2">
-                      <p className="text-white text-xl font-medium">Preparing Video Chat...</p>
-                      <p className="font-normal text-neutral-300 text-sm">
-                        Setting up your video session with {avatarName}. This will only take a few seconds.
-                      </p>
-                    </div>
                   </div>
                 </CardContent>
               </Card>

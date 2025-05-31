@@ -56,67 +56,19 @@ export function ChatInfo({
               {/* Optional controls component (microphone, etc.) */}
               {controlsComponent}
             </div>
-
-            {/* About Section */}
-            <div className="flex flex-col gap-4 lg:gap-[16.2px]">
-              <h3 className="font-bold text-white text-lg">About</h3>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold text-white text-base">
-                    Prompt
-                  </h4>
-                  <p className="font-medium text-white text-sm mt-2 break-words">
-                    {avatar.prompt || 'No prompt available'}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-white text-base lg:text-[14.6px]">
-                    Scene
-                  </h4>
-                  <p className="font-medium text-white text-sm lg:text-[12.8px] mt-2 break-words">
-                    {avatar.scene_prompt || 'No scene prompt available'}
-                  </p>
-                </div>
-
-                {avatar.voice_id && (
-                  <div>
-                    <h4 className="font-semibold text-white text-base lg:text-[14.6px]">
-                      Voice
-                    </h4>
-                    <p className="font-medium text-white text-sm lg:text-[12.8px] mt-2 break-words">
-                      {avatar.voice_id}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Bottom Section with Chat Options */}
           <div className="flex flex-col items-center gap-4 mt-6 flex-shrink-0">
             
             {/* Chat Options */}
-            <div className="flex flex-col text-center gap-4 w-full">
-              <p className="text-white text-lg lg:text-xl font-medium">Choose Chat Mode</p>
-              <p className="font-normal text-neutral-300 text-sm">
-                Chat with {avatar.avatar_name} via text or video
-              </p>
-              
+            <div className="flex flex-col text-center gap-4 w-full">              
               <div className="flex flex-col gap-3 w-full">
                 <Link href={`/dashboard/chat/${avatarId}?mode=video`} className="w-full">
                   <Button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors w-full">
-                    Start Video Chat
+                    Start Chat
                   </Button>
                 </Link>
-                
-                <Button 
-                  disabled 
-                  className="bg-gray-600 text-gray-400 px-6 py-3 rounded-lg w-full cursor-not-allowed"
-                >
-                  Text Chat (Coming Soon)
-                </Button>
               </div>
             </div>
 

@@ -111,19 +111,6 @@ export default function ChatPage({
                 </div>
 
                 <div className="w-full h-px bg-[rgb(29,29,30)]" />
-                
-                {/* Controls - Only show when room is ready */}
-                {room && preJoinChoices && connectionDetails && (
-                  <LiveKitRoom
-                    room={room}
-                    token={connectionDetails.participantToken}
-                    serverUrl={connectionDetails.serverUrl}
-                    video={false}
-                    audio={false}
-                  >
-                    <ChatControls avatarId={avatarId} showExitButton={false} />
-                  </LiveKitRoom>
-                )}
               </div>
 
               {/* Text Chat Section - Only show when room is ready */}

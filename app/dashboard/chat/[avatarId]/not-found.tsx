@@ -7,7 +7,7 @@ export default function NotFound() {
     <div className="flex flex-row justify-center w-full">
       <div className="w-full relative">
         <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0">
-          <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-174px)] gap-8 py-6">
+          <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-80px)] gap-8 py-6">
             
             {/* Placeholder for missing image */}
             <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-gray-800 shadow-lg flex-shrink-0 flex items-center justify-center">
