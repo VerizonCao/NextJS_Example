@@ -1,4 +1,43 @@
+'use client';
+
+import { useSearchParams } from 'next/navigation';
+
 export default function Loading() {
+  const searchParams = useSearchParams();
+  const isVideoMode = searchParams.get('mode') === 'video';
+
+  if (isVideoMode) {
+    return (
+      <div className="flex flex-row justify-center w-full">
+        <div className="w-full relative">
+          <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0">
+            <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-174px)] gap-8 py-6">
+              
+              {/* Loading video placeholder */}
+              <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-gray-800 animate-pulse shadow-lg flex-shrink-0 flex items-center justify-center">
+                <div className="text-white text-sm">Preparing video...</div>
+              </div>
+              
+              {/* Loading placeholder for card */}
+              <div className="w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
+                <div className="flex flex-col w-full h-full bg-[#1a1a1e] rounded-[5px] border-none overflow-hidden">
+                  <div className="flex flex-col justify-center items-center h-full p-4 animate-pulse">
+                    <div className="flex flex-col items-center gap-6">
+                      <div className="h-8 w-8 bg-gray-700 rounded-full animate-spin" />
+                      <div className="h-6 bg-gray-700 rounded w-48" />
+                      <div className="h-4 bg-gray-700 rounded w-64" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular loading (existing code)
   return (
     <div className="flex flex-row justify-center w-full">
       <div className="w-full relative">
