@@ -34,15 +34,9 @@ type PageParams = {
   avatarId: string;
 };
 
-interface Avatar {
-  avatar_id: string;
-  avatar_name: string;
-  image_uri: string | null;
-  prompt: string;
-  agent_bio?: string;
-  scene_prompt?: string;
-  voice_id?: string;
-}
+// Use the exact database Avatar type instead of creating a local one
+// Remove the local interface definition since we'll import the type from actions
+// The loadAvatar action already returns the correct type
 
 const CONN_DETAILS_ENDPOINT = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
 
@@ -230,7 +224,8 @@ export default function ChatPage({
   params: Promise<PageParams>;
 }) {
   const [avatarId, setAvatarId] = useState<string>('');
-  const [avatar, setAvatar] = useState<Avatar | null>(null);
+  // Use the exact type returned by loadAvatar action
+  const [avatar, setAvatar] = useState<Awaited<ReturnType<typeof loadAvatar>>['avatar'] | null>(null);
   const [presignedUrl, setPresignedUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -348,9 +343,9 @@ export default function ChatPage({
         llmUserBio: 'a friend',
         llmAssistantNickname: avatar.avatar_name,
         llmAssistantBio: avatar.agent_bio || 'this is an agent bio',
-        llmAssistantAdditionalCharacteristics: avatar.prompt,
-        llmConversationContext: avatar.scene_prompt,
-        ttsVoiceIdCartesia: avatar.voice_id,
+        llmAssistantAdditionalCharacteristics: avatar.prompt || '',
+        llmConversationContext: avatar.scene_prompt || '',
+        ttsVoiceIdCartesia: avatar.voice_id || '',
         userEmail: session?.user?.email || '',
       });
 
@@ -614,9 +609,9 @@ export default function ChatPage({
                         <VideoConferenceCustom 
                           hideControlBar={false}
                           alwaysHideChat={true}
-                          prompt={avatar.prompt}
-                          scene={avatar.scene_prompt}
-                          bio={avatar.agent_bio}
+                          prompt={avatar.prompt || ''}
+                          scene={avatar.scene_prompt || ''}
+                          bio={avatar.agent_bio || ''}
                           avatar_name={avatar.avatar_name}
                           presignedUrl={presignedUrl}
                           style={{ height: '100%', width: '100%' }}
