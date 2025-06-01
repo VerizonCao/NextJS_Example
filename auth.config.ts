@@ -88,7 +88,7 @@ export const authConfig = {
       const isEditAvatar = pathname.startsWith('/dashboard/edit-avatar');
       const isMyAvatars = pathname.startsWith('/dashboard/my-avatars');
       const isAvatarStudio = pathname.startsWith('/dashboard/avatar-studio');
-      const isChat = pathname.startsWith('/dashboard/chat');
+      const isChat = pathname.startsWith('/chat');
       // add or edit
       const isNewCharacter = pathname.startsWith('/new-character');
       const isEditCharacter = pathname.startsWith('/edit-character');

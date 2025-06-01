@@ -120,7 +120,7 @@ export function VideoStream({
               audio={preJoinChoices.audioEnabled}
               onDisconnected={() => {
                 // Return to regular chat page when disconnected
-                window.location.href = `/dashboard/chat/${avatarId}`;
+                window.location.href = `/chat/${avatarId}`;
               }}
               style={{ height: '100%', width: '100%' }}
             >

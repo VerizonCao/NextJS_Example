@@ -64,7 +64,7 @@ export function ChatInfo({
             {/* Chat Options */}
             <div className="flex flex-col text-center gap-4 w-full">              
               <div className="flex flex-col gap-3 w-full">
-                <Link href={`/dashboard/chat/${avatarId}?mode=video`} className="w-full">
+                <Link href={`/chat/${avatarId}?mode=video`} className="w-full">
                   <Button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors w-full">
                     Start Chat
                   </Button>
