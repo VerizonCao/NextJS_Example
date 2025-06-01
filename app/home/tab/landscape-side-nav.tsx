@@ -36,6 +36,11 @@ export default async function LandscapeSideNav() {
         className: "hover:bg-[#1d1d1e] text-white hover:text-white" 
       },
       { 
+        label: "Profile", 
+        href: "/profile",
+        className: "hover:bg-[#1d1d1e] text-white hover:text-white" 
+      },
+      { 
         label: "Sign Out", 
         href: "#",
         className: "bg-[#4f46e5] hover:bg-[#3c34b5] text-white hover:text-white",

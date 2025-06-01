@@ -92,6 +92,8 @@ export const authConfig = {
       // add or edit
       const isNewCharacter = pathname.startsWith('/new-character');
       const isEditCharacter = pathname.startsWith('/edit-character');
+      // profile
+      const isProfile = pathname.startsWith('/profile');
     
       // ✅ Allow audio file requests to go through without redirect
       if (isAudioSample) {
@@ -102,7 +104,12 @@ export const authConfig = {
       if (pathname === '/') {
         return true;
       }
-
+      
+      // ✅ Allow access to profile page
+      if (isProfile) {
+        if (isLoggedIn) return true;
+        return false;
+      }
       // ✅ Allow access to create page - users can create without login but need login to save
       if (isNewCharacter || isEditCharacter) {
         if (isLoggedIn) return true;
