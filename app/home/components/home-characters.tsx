@@ -36,7 +36,7 @@ type UserAvatar = {
   serve_time?: number;
 };
 
-interface HomepageAvatarsProps {
+interface HomeCharactersProps {
   initialAvatars: {
     success: boolean;
     avatars: UserAvatar[] | null;
@@ -97,7 +97,7 @@ function LoadingState() {
   );
 }
 
-export default function HomepageAvatars({ initialAvatars }: HomepageAvatarsProps) {
+export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) {
   const router = useRouter();
   const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
@@ -235,7 +235,7 @@ export default function HomepageAvatars({ initialAvatars }: HomepageAvatarsProps
       }
 
       await incrementAvatarRequestCounter(avatarId);
-      const returnPath = '/dashboard';
+      const returnPath = '/';
       const presignedUrl = avatar.presignedUrl || '';
 
       const query = new URLSearchParams({
@@ -383,4 +383,4 @@ export default function HomepageAvatars({ initialAvatars }: HomepageAvatarsProps
       </div>
     </Suspense>
   );
-}
+} 

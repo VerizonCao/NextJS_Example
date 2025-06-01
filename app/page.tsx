@@ -1,5 +1,5 @@
 import { loadPaginatedPublicAvatarsAction, getPresignedUrl } from '@/app/lib/actions';
-import HomepageAvatars from '@/app/dashboard/homepage-avatars';
+import HomeCharacters from '@/app/home/components/home-characters';
 import { auth } from '@/auth';
 import { Suspense } from 'react';
 
@@ -41,7 +41,7 @@ export default async function RitaStreamingPage() {
 
   return (
     <Suspense fallback={<LoadingState />}>
-      <HomepageAvatars 
+      <HomeCharacters 
         initialAvatars={publicResult}
       />
     </Suspense>
