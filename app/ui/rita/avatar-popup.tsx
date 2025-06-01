@@ -69,7 +69,7 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
 
   const handleEdit = () => {
     if (avatar) {
-      router.push(`/dashboard/edit-avatar/${avatar.avatar_id}`);
+      router.push(`/edit-character/${avatar.avatar_id}`);
     }
   };
 

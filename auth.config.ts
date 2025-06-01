@@ -89,7 +89,9 @@ export const authConfig = {
       const isMyAvatars = pathname.startsWith('/dashboard/my-avatars');
       const isAvatarStudio = pathname.startsWith('/dashboard/avatar-studio');
       const isChat = pathname.startsWith('/dashboard/chat');
+      // add or edit
       const isNewCharacter = pathname.startsWith('/new-character');
+      const isEditCharacter = pathname.startsWith('/edit-character');
     
       // ✅ Allow audio file requests to go through without redirect
       if (isAudioSample) {
@@ -102,7 +104,7 @@ export const authConfig = {
       }
 
       // ✅ Allow access to create page - users can create without login but need login to save
-      if (isNewCharacter) {
+      if (isNewCharacter || isEditCharacter) {
         if (isLoggedIn) return true;
         return false;
       }

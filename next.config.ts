@@ -21,6 +21,12 @@ const nextConfig: NextConfig = {
         source: '/new-character',
         destination: '/create/new-character',
       },
+      {
+        source: '/edit-character/:id',
+        destination: '/edit/edit-character/:id',
+      },
+    ];
+  },
   productionBrowserSourceMaps: true, // Enable source maps in production
   // You can enable this later if needed:
   // experimental: {
