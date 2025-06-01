@@ -19,7 +19,6 @@ import { useSession } from 'next-auth/react';
 import AvatarPopup from '@/app/ui/rita/avatar-popup';
 import LoginPopup from '@/app/ui/rita/login-popup';
 import { Card } from '@/app/components/card';
-import MyAvatars from '@/app/ui/rita/my-avatars';
 import { X, AlertCircle, ThumbsUp, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -43,11 +42,6 @@ interface HomepageAvatarsProps {
     avatars: UserAvatar[] | null;
     message: string;
   };
-  userAvatars: {
-    success: boolean;
-    avatars: UserAvatar[] | null;
-    message: string;
-  } | null;
 }
 
 function WarningPopup({ 
@@ -103,7 +97,7 @@ function LoadingState() {
   );
 }
 
-export default function HomepageAvatars({ initialAvatars, userAvatars }: HomepageAvatarsProps) {
+export default function HomepageAvatars({ initialAvatars }: HomepageAvatarsProps) {
   const router = useRouter();
   const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
@@ -277,17 +271,8 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
   }
 
   const sections = [
-    (userAvatars && userAvatars.avatars && userAvatars.avatars.length > 0) && {
-      id: 1,
-      title: "My characters",
-      component: (
-        <div className="w-full">
-          <MyAvatars initialAvatars={userAvatars} />
-        </div>
-      ),
-    },
     {
-      id: 2,
+      id: 1,
       title: "Explore Trending Characters",
       component: (
         <div className="flex flex-wrap justify-start gap-x-[1.5%] gap-y-[2vh] w-full max-w-[90vw]">
@@ -349,7 +334,7 @@ export default function HomepageAvatars({ initialAvatars, userAvatars }: Homepag
         </div>
       ),
     },
-  ].filter((section): section is { id: number; title: string; component: React.ReactElement } => Boolean(section));
+  ];
 
   return (
     <Suspense fallback={<LoadingState />}>

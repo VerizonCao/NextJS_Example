@@ -2,7 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { updateUserPreferredNameAction, getUserPreferredNameAction } from '@/app/lib/actions';
+import { updateUserPreferredNameAction, getUserPreferredNameAction, loadUserAvatars, getPresignedUrl } from '@/app/lib/actions';
+import MyAvatars from '@/app/ui/rita/my-avatars';
+
+type UserAvatar = {
+  avatar_id: string;
+  avatar_name: string;
+  image_uri: string | null;
+  create_time: Date;
+  prompt: string;
+  agent_bio?: string;
+  scene_prompt?: string;
+  voice_id?: string;
+  presignedUrl?: string;
+  thumb_count?: number;
+  serve_time?: number;
+};
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -11,31 +26,84 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // User avatars state
+  const [userAvatars, setUserAvatars] = useState<{
+    success: boolean;
+    avatars: UserAvatar[] | null;
+    message: string;
+  } | null>(null);
+  const [isLoadingAvatars, setIsLoadingAvatars] = useState(true);
 
   const userName = session?.user?.name || session?.user?.email || '';
   const userEmail = session?.user?.email || '';
 
   useEffect(() => {
-    const fetchPreferredName = async () => {
+    const fetchData = async () => {
       if (!userEmail) {
         setIsLoading(false);
+        setIsLoadingAvatars(false);
         return;
       }
       
+      // Fetch preferred name
       setIsLoading(true);
       const { success, preferredName, message } = await getUserPreferredNameAction(userEmail);
       if (success && preferredName) {
         setDisplayName(preferredName);
         setPreferredName(preferredName);
       } else {
-        // If no preferred name exists, use the auth session name
         setDisplayName(userName);
         setPreferredName(userName);
       }
       setIsLoading(false);
+
+      // Fetch user avatars
+      setIsLoadingAvatars(true);
+      try {
+        const userResult = await loadUserAvatars(userEmail);
+        if (userResult.success && userResult.avatars) {
+          const processedAvatars = await Promise.all(
+            userResult.avatars.map(async (avatar: any) => {
+              if (avatar.image_uri) {
+                try {
+                  const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+                  return {
+                    ...avatar,
+                    create_time: new Date(avatar.create_time),
+                    presignedUrl
+                  };
+                } catch (error) {
+                  console.error(`Failed to get presigned URL for avatar ${avatar.avatar_id}:`, error);
+                  return {
+                    ...avatar,
+                    create_time: new Date(avatar.create_time)
+                  };
+                }
+              }
+              return {
+                ...avatar,
+                create_time: new Date(avatar.create_time)
+              };
+            })
+          );
+          setUserAvatars({ ...userResult, avatars: processedAvatars });
+        } else {
+          setUserAvatars(userResult);
+        }
+      } catch (error) {
+        console.error('Error loading user avatars:', error);
+        setUserAvatars({
+          success: false,
+          avatars: null,
+          message: 'Failed to load avatars'
+        });
+      } finally {
+        setIsLoadingAvatars(false);
+      }
     };
 
-    fetchPreferredName();
+    fetchData();
   }, [userEmail, userName]);
 
   const handleNameClick = () => {
@@ -82,10 +150,13 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#121214] p-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h1 className="text-white text-3xl font-bold mb-8">Profile</h1>
         
-        <div className="bg-[#1a1a1e] rounded-lg p-6">
+        {/* Profile Settings Section */}
+        <div className="bg-[#1a1a1e] rounded-lg p-6 mb-8">
+          <h2 className="text-white text-xl font-semibold mb-6">Account Settings</h2>
+          
           <div className="mb-6">
             <label className="block text-white text-sm font-medium mb-2">
               Display Name
@@ -147,6 +218,28 @@ export default function ProfilePage() {
               {userEmail}
             </div>
           </div>
+        </div>
+
+        {/* My Characters Section */}
+        <div className="bg-[#1a1a1e] rounded-lg p-6">
+          <h2 className="text-white text-xl font-semibold mb-6">My Characters</h2>
+          
+          {isLoadingAvatars ? (
+            <div className="flex flex-wrap justify-start gap-x-[1.5%] gap-y-[2vh] w-full">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-[18.75%] min-w-[150px] aspect-[0.56] bg-gray-700 rounded-lg animate-pulse"></div>
+              ))}
+            </div>
+          ) : userAvatars && userAvatars.success && userAvatars.avatars && userAvatars.avatars.length > 0 ? (
+            <MyAvatars initialAvatars={userAvatars} />
+          ) : (
+            <div className="flex flex-col items-center gap-6 p-6">
+              <div className="text-gray-400 text-center">
+                <p className="text-lg mb-2">No characters found</p>
+                <p className="text-sm">Create your first character to get started!</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

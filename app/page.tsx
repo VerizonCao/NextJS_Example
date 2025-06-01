@@ -1,5 +1,5 @@
-import { loadPaginatedPublicAvatarsAction, getPresignedUrl, loadUserAvatars } from '@/app/lib/actions';
-import HomepageAvatars from './dashboard/homepage-avatars';
+import { loadPaginatedPublicAvatarsAction, getPresignedUrl } from '@/app/lib/actions';
+import HomepageAvatars from '@/app/dashboard/homepage-avatars';
 import { auth } from '@/auth';
 import { Suspense } from 'react';
 
@@ -39,40 +39,10 @@ export default async function RitaStreamingPage() {
     message: 'Public avatars loaded successfully'
   };
 
-  // Load user avatars if logged in
-  let userAvatars = null;
-  if (session?.user?.email) {
-    const userResult = await loadUserAvatars(session.user.email);
-    if (userResult.success && userResult.avatars) {
-      userAvatars = await Promise.all(
-        userResult.avatars.map(async (avatar: any) => {
-          if (avatar.image_uri) {
-            try {
-              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
-              return {
-                ...avatar,
-                create_time: new Date(avatar.create_time),
-                presignedUrl
-              };
-            } catch (error) {
-              console.error(`Failed to get presigned URL for avatar ${avatar.avatar_id}:`, error);
-              return avatar;
-            }
-          }
-          return avatar;
-        })
-      );
-      userAvatars = { ...userResult, avatars: userAvatars };
-    } else {
-      userAvatars = userResult;
-    }
-  }
-
   return (
     <Suspense fallback={<LoadingState />}>
       <HomepageAvatars 
         initialAvatars={publicResult}
-        userAvatars={userAvatars}
       />
     </Suspense>
   );

@@ -6,7 +6,7 @@ import CreateButton from '@/app/home/tab/buttons/create-button';
 import AuthButton from '@/app/home/tab/buttons/auth-button';
 import SignOutButton from '@/app/home/tab/buttons/signout-button';
 import StatusBar from '@/app/home/tab/runpod-status';
-import NameInput from '@/app/home/tab/buttons/name-input';
+import ProfileButton from '@/app/home/tab/buttons/profile-button';
 
 type NavButton = {
   label: string;
@@ -30,11 +30,6 @@ export default async function LandscapeSideNav() {
       className: "hover:bg-[#1d1d1e] text-white hover:text-white",
     },
     ...(session ? [
-      { 
-        label: userName || "Profile", 
-        href: "/dashboard",
-        className: "hover:bg-[#1d1d1e] text-white hover:text-white" 
-      },
       { 
         label: "Profile", 
         href: "/profile",
@@ -88,9 +83,9 @@ export default async function LandscapeSideNav() {
               <CreateButton button={button} />
             ) : !session && (button.label === "Login" || button.label === "Sign Up") ? (
               <AuthButton button={button} />
-            ) : button.label === userName ? (
-              <NameInput 
-                userName={userName} 
+            ) : button.label === "Profile" && session ? (
+              <ProfileButton 
+                userName={userName || ''} 
                 className={button.className} 
                 userEmail={userEmail || ''} 
               />
