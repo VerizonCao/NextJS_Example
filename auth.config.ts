@@ -87,7 +87,7 @@ export const authConfig = {
       const isAudioSample = pathname.startsWith('/audio_samples');
       const isEditAvatar = pathname.startsWith('/dashboard/edit-avatar');
       const isMyAvatars = pathname.startsWith('/dashboard/my-avatars');
-      const isAvatarStudio = pathname.startsWith('/dashboard/avatar-studio');
+      const isCharacterStudio = pathname.startsWith('/character-studio');
       const isChat = pathname.startsWith('/chat');
       // add or edit
       const isNewCharacter = pathname.startsWith('/new-character');
@@ -111,7 +111,7 @@ export const authConfig = {
         return false;
       }
       // ✅ Allow access to create page - users can create without login but need login to save
-      if (isNewCharacter || isEditCharacter) {
+      if (isNewCharacter || isEditCharacter || isCharacterStudio) {
         if (isLoggedIn) return true;
         return false;
       }
@@ -122,7 +122,7 @@ export const authConfig = {
       }
     
       if (isOnDashboard) {
-        if ((isEditAvatar || isMyAvatars || isAvatarStudio) && !isLoggedIn) {
+        if ((isEditAvatar || isMyAvatars || isCharacterStudio) && !isLoggedIn) {
           return false; // Block access to avatar-related routes if not logged in
         }
         return true; // Allow access to other dashboard routes without login

@@ -248,7 +248,7 @@ export default function EditAvatarPage({
                     </div>
                     <div className="flex flex-row items-center relative self-stretch w-full">
                       <a 
-                        href={`/dashboard/avatar-studio/${avatarId}?avatar_uri=${encodeURIComponent(avatar.image_uri || '')}`}
+                        href={`/character-studio/${avatarId}?avatar_uri=${encodeURIComponent(avatar.image_uri || '')}`}
                         className={`inline-flex items-center justify-center gap-[9px] px-[36px] py-[7.2px] rounded-[10.8px] bg-blue-500 hover:bg-blue-700 text-white transition-colors duration-200 ${!isOwner ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                       >
                         <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">

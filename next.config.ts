@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
         source: '/edit-character/:id',
         destination: '/edit/edit-character/:id',
       },
+      {
+        source: '/character-studio/:id',
+        destination: '/edit/character-studio/:id',
+      },
     ];
   },
   productionBrowserSourceMaps: true, // Enable source maps in production
