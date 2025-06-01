@@ -28,4 +28,4 @@ export default function AuthButton({ button }: { button: NavButton }) {
       />
     </>
   );
-} 
+}

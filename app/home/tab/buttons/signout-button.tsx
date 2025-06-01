@@ -24,4 +24,4 @@ export default function SignOutButton({ className }: SignOutButtonProps) {
       Sign Out
     </button>
   );
-} 
+}

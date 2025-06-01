@@ -94,4 +94,4 @@ export default function NameInput({
       {displayName}
     </button>
   );
-} 
+}

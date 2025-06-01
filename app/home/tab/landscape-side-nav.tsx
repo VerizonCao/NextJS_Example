@@ -2,11 +2,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PlusSquareIcon } from 'lucide-react';
 import { auth } from '@/auth';
-import CreateButton from '@/app/ui/dashboard/sidenav-buttons/create-button';
-import AuthButton from '@/app/ui/dashboard/sidenav-buttons/auth-button';
-import SignOutButton from '@/app/ui/dashboard/sidenav-buttons/signout-button';
-import StatusBar from '@/app/ui/dashboard/runpod-health';
-import NameInput from '@/app/ui/dashboard/sidenav-buttons/name-input';
+import CreateButton from '@/app/home/tab/buttons/create-button';
+import AuthButton from '@/app/home/tab/buttons/auth-button';
+import SignOutButton from '@/app/home/tab/buttons/signout-button';
+import StatusBar from '@/app/home/tab/runpod-status';
+import NameInput from '@/app/home/tab/buttons/name-input';
 
 type NavButton = {
   label: string;
@@ -17,7 +17,7 @@ type NavButton = {
   formAction?: () => Promise<void>;
 };
 
-export default async function SideNav() {
+export default async function LandscapeSideNav() {
   const session = await auth();
   const userName = session?.user?.name || session?.user?.email;
   const userEmail = session?.user?.email;
