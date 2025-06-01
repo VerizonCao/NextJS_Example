@@ -70,7 +70,7 @@ export default function StatusBar() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1d1d1e]">
           <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
           <span className="text-sm text-white">Checking...</span>
@@ -81,7 +81,7 @@ export default function StatusBar() {
 
   if (!health) {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1d1d1e]">
           <div className="w-2 h-2 rounded-full bg-red-500" />
           <span className="text-sm text-white">Offline</span>
@@ -94,7 +94,7 @@ export default function StatusBar() {
   const isHealthy = health.workers.unhealthy === 0;
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1d1d1e]">
         <div className={`w-2 h-2 rounded-full ${isHealthy ? 'bg-green-500' : 'bg-red-500'}`} />
         <div className="flex flex-col">
