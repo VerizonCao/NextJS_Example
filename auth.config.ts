@@ -105,7 +105,7 @@ export const authConfig = {
       // ✅ Allow access to profile page
       if (isProfile) {
         if (isLoggedIn) return true;
-        return false;
+        return Response.redirect(new URL('/', nextUrl));
       }
       // ✅ Allow access to create page - users can create without login but need login to save
       if (isNewCharacter || isEditCharacter || isCharacterStudio) {
