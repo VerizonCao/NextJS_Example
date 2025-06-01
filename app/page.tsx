@@ -1,77 +1,79 @@
-import { ArrowRightIcon } from '@heroicons/react/24/outline';
-import Link from 'next/link';
-import { lusitana } from '@/app/ui/fonts';
-import Image from 'next/image';
+import { loadPaginatedPublicAvatarsAction, getPresignedUrl, loadUserAvatars } from '@/app/lib/actions';
+import HomepageAvatars from './dashboard/homepage-avatars';
+import { auth } from '@/auth';
+import { Suspense } from 'react';
 
-export default function Page() {
+// This makes the page use ISR and revalidate every 60 seconds
+export const revalidate = 60;
+
+function LoadingState() {
+  return null;
+}
+
+export default async function RitaStreamingPage() {
+  const session = await auth();
+  
+  // Load first 20 public avatars using the new pagination function
+  const publicAvatarsResult = await loadPaginatedPublicAvatarsAction(0, 20);
+  const processedPublicAvatars = await Promise.all(
+    (publicAvatarsResult.avatars ?? []).map(async (avatar: any) => {
+      if (!avatar.image_uri) return avatar;
+      try {
+        const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+        return { 
+          ...avatar,
+          create_time: new Date(avatar.create_time),
+          presignedUrl 
+        };
+      } catch (e) {
+        console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
+        return avatar;
+      }
+    })
+  );
+
+  // Create a result object that matches the expected format
+  const publicResult = {
+    success: true,
+    avatars: processedPublicAvatars,
+    message: 'Public avatars loaded successfully'
+  };
+
+  // Load user avatars if logged in
+  let userAvatars = null;
+  if (session?.user?.email) {
+    const userResult = await loadUserAvatars(session.user.email);
+    if (userResult.success && userResult.avatars) {
+      userAvatars = await Promise.all(
+        userResult.avatars.map(async (avatar: any) => {
+          if (avatar.image_uri) {
+            try {
+              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+              return {
+                ...avatar,
+                create_time: new Date(avatar.create_time),
+                presignedUrl
+              };
+            } catch (error) {
+              console.error(`Failed to get presigned URL for avatar ${avatar.avatar_id}:`, error);
+              return avatar;
+            }
+          }
+          return avatar;
+        })
+      );
+      userAvatars = { ...userResult, avatars: userAvatars };
+    } else {
+      userAvatars = userResult;
+    }
+  }
+
   return (
-    <main className="flex min-h-screen flex-col p-6 bg-gradient-to-br from-purple-50 to-pink-50">
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-8">
-        <div className="flex flex-col items-center gap-6 text-center max-w-3xl">
-          <h1 className={`${lusitana.className} text-5xl font-bold text-purple-900`}>
-            Welcome to Rita
-          </h1>
-          <p className="text-xl text-gray-600">
-            Your next-generation AI companion platform. Experience the future of digital interaction.
-          </p>
-          <div className="flex gap-4 mt-4">
-            <Link
-              href="/login"
-              className="flex items-center gap-2 rounded-lg bg-purple-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-700"
-            >
-              <span>Get Started</span>
-              <ArrowRightIcon className="w-5" />
-            </Link>
-            <Link
-              href="/about"
-              className="flex items-center gap-2 rounded-lg border border-purple-600 px-6 py-3 text-sm font-medium text-purple-600 transition-colors hover:bg-purple-50"
-            >
-              Learn More
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
-          <div className="relative w-32 h-32 rounded-full overflow-hidden shadow-lg">
-            <Image
-              src="/rita-avatars-test/girl_white.png"
-              alt="Rita Avatar"
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="relative w-32 h-32 rounded-full overflow-hidden shadow-lg">
-            <Image
-              src="/rita-avatars-test/girl_red.png"
-              alt="Rita Avatar"
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="relative w-32 h-32 rounded-full overflow-hidden shadow-lg">
-            <Image
-              src="/rita-avatars-test/mingren.png"
-              alt="Rita Avatar"
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="relative w-32 h-32 rounded-full overflow-hidden shadow-lg">
-            <Image
-              src="/rita-avatars-test/tifa_3.png"
-              alt="Rita Avatar"
-              fill
-              className="object-cover"
-            />
-          </div>
-        </div>
-
-        <div className="mt-12 text-center">
-          <p className="text-gray-500">
-            Choose from a variety of avatars to personalize your Rita experience
-          </p>
-        </div>
-      </div>
-    </main>
+    <Suspense fallback={<LoadingState />}>
+      <HomepageAvatars 
+        initialAvatars={publicResult}
+        userAvatars={userAvatars}
+      />
+    </Suspense>
   );
 }

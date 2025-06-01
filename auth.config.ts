@@ -97,7 +97,7 @@ export const authConfig = {
     
       // Redirect from / to /dashboard
       if (pathname === '/') {
-        return Response.redirect(new URL('/dashboard', nextUrl));
+        return true;
       }
 
       if (isChat) {
