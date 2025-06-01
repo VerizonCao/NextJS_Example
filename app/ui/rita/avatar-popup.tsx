@@ -68,6 +68,10 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
   }, [avatar]);
 
   const handleEdit = () => {
+    if (!session) {
+      setShowLoginPopup(true);
+      return;
+    }
     if (avatar) {
       router.push(`/edit-character/${avatar.avatar_id}`);
     }
