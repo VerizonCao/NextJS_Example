@@ -1,7 +1,7 @@
 'use client';
 
 import { signOut } from 'next-auth/react';
-import { PowerIcon } from 'lucide-react';
+import { LogOutIcon } from 'lucide-react';
 
 type SignOutButtonProps = {
   className: string;
@@ -18,10 +18,10 @@ export default function SignOutButton({ className }: SignOutButtonProps) {
   return (
     <button
       onClick={handleSignOut}
-      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${className}`}
+      className={className}
     >
-      <PowerIcon className="w-6" />
-      Sign Out
+      <LogOutIcon className="mr-2 h-4 w-4 text-red-400" />
+      <span className="text-red-400">Logout</span>
     </button>
   );
 }
