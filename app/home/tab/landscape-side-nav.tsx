@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { HomeIcon, PlusSquareIcon, UserIcon } from 'lucide-react';
+import { HomeIcon, PlusSquareIcon, UserIcon, WalletIcon } from 'lucide-react';
 import { auth } from '@/auth';
 import CreateButton from '@/app/home/tab/buttons/create-button';
 import AuthButton from '@/app/home/tab/buttons/auth-button';
 import SignOutButton from '@/app/home/tab/buttons/signout-button';
-import StatusBar from '@/app/home/tab/runpod-status';
 import ProfileButton from '@/app/home/tab/buttons/profile-button';
+import SubscriptionButton from '@/app/home/tab/buttons/subscription-button';
 import { useSession } from 'next-auth/react';
 
 type NavItem = {
@@ -41,6 +41,11 @@ export default function LandscapeSideNav() {
       href: "/new-character",
     },
     {
+      icon: WalletIcon,
+      label: "Subscription",
+      href: "/subscription",
+    },
+    {
       icon: UserIcon,
       label: "Profile",
       href: "/profile",
@@ -67,11 +72,6 @@ export default function LandscapeSideNav() {
       {/* Separator */}
       <div className="w-full h-[1px] bg-[#1d1d1e]" />
 
-      {/* Status Bar */}
-      <div className="px-6 py-4 w-full">
-        <StatusBar />
-      </div>
-
       {/* Navigation menu */}
       <div className="flex flex-col items-start gap-2 px-6 py-4 w-full flex-grow">
         {mainNavItems.map((item, index) => {
@@ -88,6 +88,10 @@ export default function LandscapeSideNav() {
                       icon: <IconComponent className="w-6 h-6" />
                     } as NavButton}
                   />
+                </div>
+              ) : item.label === "Subscription" ? (
+                <div className="w-full">
+                  <SubscriptionButton className="flex items-center gap-3 px-3 py-3.5 w-full justify-start rounded-lg hover:bg-[#ffffff1a] transition-colors duration-200 group text-[#8f9092] hover:text-white" />
                 </div>
               ) : item.label === "Profile" && session ? (
                 <div className="w-full">

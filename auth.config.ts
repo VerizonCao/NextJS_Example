@@ -91,6 +91,8 @@ export const authConfig = {
       const isEditCharacter = pathname.startsWith('/edit-character');
       // profile
       const isProfile = pathname.startsWith('/profile');
+      // subscription
+      const isSubscription = pathname.startsWith('/subscription');
     
       // ✅ Allow audio file requests to go through without redirect
       if (isAudioSample) {
@@ -107,6 +109,13 @@ export const authConfig = {
         if (isLoggedIn) return true;
         return Response.redirect(new URL('/', nextUrl));
       }
+
+      // ✅ Allow access to subscription page - requires login
+      if (isSubscription) {
+        if (isLoggedIn) return true;
+        return Response.redirect(new URL('/', nextUrl));
+      }
+      
       // ✅ Allow access to create page - users can create without login but need login to save
       if (isNewCharacter || isEditCharacter || isCharacterStudio) {
         if (isLoggedIn) return true;
