@@ -439,10 +439,10 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
         </header>
 
         {/* Main Content */}
-        <div className="pl-64 pt-40 pb-6">
+        <div className="pt-40 pb-6">
           <div className="flex flex-col gap-6">
             {/* Character Grid */}
-            <div className="px-6">
+            <div className="px-6 pl-64">
               <div 
                 ref={gridContainerRef}
                 style={{ 
