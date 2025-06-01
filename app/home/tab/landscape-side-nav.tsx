@@ -26,7 +26,7 @@ export default async function LandscapeSideNav() {
     {
       label: "Create",
       icon: <PlusSquareIcon className="w-6 h-6" />,
-      href: "/dashboard/image-upload",
+      href: "/new-character",
       className: "hover:bg-[#1d1d1e] text-white hover:text-white",
     },
     ...(session ? [

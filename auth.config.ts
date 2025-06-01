@@ -89,15 +89,22 @@ export const authConfig = {
       const isMyAvatars = pathname.startsWith('/dashboard/my-avatars');
       const isAvatarStudio = pathname.startsWith('/dashboard/avatar-studio');
       const isChat = pathname.startsWith('/dashboard/chat');
+      const isNewCharacter = pathname.startsWith('/new-character');
     
       // ✅ Allow audio file requests to go through without redirect
       if (isAudioSample) {
         return true;
       }
     
-      // Redirect from / to /dashboard
+      // ✅ Allow root path without redirect - show home page
       if (pathname === '/') {
         return true;
+      }
+
+      // ✅ Allow access to create page - users can create without login but need login to save
+      if (isNewCharacter) {
+        if (isLoggedIn) return true;
+        return false;
       }
 
       if (isChat) {

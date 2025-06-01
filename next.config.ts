@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '10mb', // Increased to 10MB to handle audio file uploads
     },
   },
+  async rewrites() {
+    return [
+      {
+        source: '/new-character',
+        destination: '/create/new-character',
+      },
   productionBrowserSourceMaps: true, // Enable source maps in production
   // You can enable this later if needed:
   // experimental: {
