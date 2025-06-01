@@ -86,6 +86,7 @@ export const authConfig = {
       const isAudioSample = pathname.startsWith('/audio_samples');
       const isCharacterStudio = pathname.startsWith('/character-studio');
       const isChat = pathname.startsWith('/chat');
+      const isPreviousChats = pathname.startsWith('/my-chats');
       // add or edit
       const isNewCharacter = pathname.startsWith('/new-character');
       const isEditCharacter = pathname.startsWith('/edit-character');
@@ -125,6 +126,11 @@ export const authConfig = {
       if (isChat) {
         if (isLoggedIn) return true;
         return false;
+      }
+
+      if (isPreviousChats) {
+        if (isLoggedIn) return true;
+        return Response.redirect(new URL('/', nextUrl));
       }
       
       if (isRoom) {

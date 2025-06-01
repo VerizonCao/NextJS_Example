@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
         source: '/character-studio/:id',
         destination: '/edit/character-studio/:id',
       },
+      {
+        source: '/my-chats',
+        destination: '/chat/previous-chats',
+      },
     ];
   },
   productionBrowserSourceMaps: true, // Enable source maps in production

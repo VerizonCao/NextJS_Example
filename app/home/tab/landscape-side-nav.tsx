@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { HomeIcon, PlusSquareIcon, WalletIcon, UserIcon, MoreVerticalIcon, LogOutIcon } from 'lucide-react';
+import { HomeIcon, PlusSquareIcon, MessageSquareIcon, WalletIcon, UserIcon, MoreVerticalIcon, LogOutIcon } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import AuthButton from '@/app/home/tab/buttons/auth-button';
@@ -67,6 +67,12 @@ export default function LandscapeSideNav() {
       fontFamily: "Inter"
     },
     {
+      icon: MessageSquareIcon,
+      label: "Chat",
+      href: "/my-chats",
+      fontFamily: "Montserrat"
+    },
+    {
       icon: WalletIcon,
       label: "Subscription",
       href: "/subscription",
@@ -84,6 +90,13 @@ export default function LandscapeSideNav() {
     if (label === "Create") {
       if (!session) {
         // Handle create without login - could show login popup
+        return;
+      }
+    }
+    if (label === "Chat") {
+      if (!session) {
+        // Redirect to login for chat history
+        router.push('/api/auth/signin');
         return;
       }
     }
@@ -129,6 +142,11 @@ export default function LandscapeSideNav() {
           
           // Hide Profile when not logged in
           if (item.label === "Profile" && !session) {
+            return null;
+          }
+          
+          // Hide Chat when not logged in
+          if (item.label === "Chat" && !session) {
             return null;
           }
           
