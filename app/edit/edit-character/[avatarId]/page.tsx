@@ -129,7 +129,7 @@ export default function EditAvatarPage({
       if (response.success) {
         setShowDeleteSuccess(true);
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/');
         }, 2000);
       } else {
         console.error('Failed to delete character:', response.message);

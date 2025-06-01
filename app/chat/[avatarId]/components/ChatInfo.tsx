@@ -73,9 +73,9 @@ export function ChatInfo({
             </div>
 
             {/* Back Button */}
-            <Link href="/dashboard">
-              <Button className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors w-full sm:w-auto">
-                Back to Dashboard
+            <Link href="/">
+              <Button className="bg-[#5856d6] hover:bg-[#3c34b5] text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors">
+                Return to Home
               </Button>
             </Link>
           </div>

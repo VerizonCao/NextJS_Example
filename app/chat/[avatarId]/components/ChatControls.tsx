@@ -77,9 +77,12 @@ export function ChatControls({ avatarId, showExitButton = false }: ChatControlsP
       {/* Exit and Back Buttons */}
       {showExitButton && <ExitVideoButton />}
       
-      <Link href="/dashboard">
-        <Button className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors w-full sm:w-auto">
-          Back to Dashboard
+      <Link href="/">
+        <Button 
+          variant="secondary"
+          className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
+        >
+          Return to Home
         </Button>
       </Link>
     </div>

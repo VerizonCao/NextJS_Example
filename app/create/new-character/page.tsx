@@ -263,7 +263,7 @@ export default function ImageUploadPage() {
           }
 
           // redirect to the dashboard
-          router.push('/dashboard');
+          router.push('/');
         } 
         
       } catch (error) {
@@ -608,7 +608,7 @@ export default function ImageUploadPage() {
               className="absolute top-2 right-2 text-white"
               onClick={() => {
                 setShowSuccessPopup(false);
-                router.push('/dashboard');
+                router.push('/');
               }}
             >
               <X size={24} />

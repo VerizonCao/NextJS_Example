@@ -213,7 +213,7 @@ export default function ChatPage({
                 </p>
                 
                 <div className="flex flex-col gap-3 w-full">
-                  <Link href={`/dashboard/chat/${avatarId}?mode=video`} className="w-full">
+                  <Link href={`/chat/${avatarId}?mode=video`} className="w-full">
                     <Button className="bg-green-600/80 hover:bg-green-700/80 backdrop-blur-sm border border-green-500/30 text-white px-6 py-3 rounded-lg transition-colors w-full drop-shadow-md">
                       Start Video Chat
                     </Button>
@@ -229,11 +229,14 @@ export default function ChatPage({
               </div>
 
               {/* Back Button */}
-              <Link href="/dashboard">
-                <Button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 text-white px-6 py-2 rounded-lg transition-colors w-full sm:w-auto drop-shadow-md">
-                  Back to Dashboard
-                </Button>
-              </Link>
+                <Link href="/">
+                    <Button 
+                    variant="secondary"
+                    className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                    >
+                    Return to Home
+                    </Button>
+                </Link>
             </div>
           </div>
         </div>

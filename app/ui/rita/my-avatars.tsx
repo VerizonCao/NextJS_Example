@@ -104,7 +104,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
     }
     
     const roomName = generateRoomId();
-    const returnPath = '/dashboard';
+    const returnPath = '/';
     const presignedUrl = avatar.presignedUrl || '';
 
     const query = new URLSearchParams({
@@ -219,7 +219,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
       {/* Create card - temporarily commented out
       <Card
         className="relative w-[15%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh] bg-[#1A56DB] flex items-center justify-center"
-        onClick={() => router.push('/dashboard/create')}
+        onClick={() => router.push('/create')}
       >
         <div className="text-4xl text-white">+</div>
       </Card>
