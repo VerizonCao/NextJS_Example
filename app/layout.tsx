@@ -20,7 +20,7 @@ export default function RootLayout({
         <Providers>
           <VersionCheck />
           <LandscapeSideNav />
-          <main className="pl-64">
+          <main>
             {children}
           </main>
         </Providers>

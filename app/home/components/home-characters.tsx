@@ -19,7 +19,7 @@ import { useSession } from 'next-auth/react';
 import AvatarPopup from '@/app/ui/rita/avatar-popup';
 import LoginPopup from '@/app/ui/rita/login-popup';
 import { Card } from '@/app/components/card';
-import { X, AlertCircle, ThumbsUp, Loader2 } from 'lucide-react';
+import { X, AlertCircle, ThumbsUp, Loader2, SearchIcon, BellIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type UserAvatar = {
@@ -87,7 +87,7 @@ function LoadingState() {
     <div className="flex flex-col items-center gap-6 p-6">
       <div className="animate-pulse">
         <div className="h-8 w-48 bg-gray-700 rounded mb-4"></div>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 gap-[5px]">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="h-64 bg-gray-700 rounded"></div>
           ))}
@@ -97,7 +97,57 @@ function LoadingState() {
   );
 }
 
+// Dynamic grid calculation function
+function calculateOptimalGrid(containerWidth: number, spacing: number = 5) {
+  // Card aspect ratio (width/height) - based on original design
+  const cardAspectRatio = 217 / 385; // ~0.564
+  
+  // Responsive base card width based on container size
+  let baseCardWidth: number;
+  if (containerWidth <= 1200) {
+    baseCardWidth = 175;
+  } else if (containerWidth <= 2500) {
+    baseCardWidth = 260;
+  } else {
+    baseCardWidth = 300;
+  }
+  
+  // Calculate rough number of cards that can fit using baseCardWidth + 15px margin
+  const cardWithMargin = baseCardWidth + 15;
+  const roughCardCount = containerWidth / cardWithMargin;
+  const remainder = roughCardCount - Math.floor(roughCardCount);
+  
+  // Determine final card count based on remainder logic
+  let finalCardCount: number;
+  if (remainder < 0.9) {
+    // Round down - accommodate fewer cards with larger size
+    finalCardCount = Math.floor(roughCardCount);
+  } else {
+    // Round up - accommodate more cards with smaller size  
+    finalCardCount = Math.ceil(roughCardCount);
+  }
+  
+  // Ensure at least 1 card
+  finalCardCount = Math.max(1, finalCardCount);
+  
+  // Calculate actual card width to fit exactly
+  const availableWidth = containerWidth - (finalCardCount + 1) * spacing;
+  const actualCardWidth = Math.floor(availableWidth / finalCardCount);
+  const actualCardHeight = Math.round(actualCardWidth / cardAspectRatio);
+  
+  return {
+    cardCount: finalCardCount,
+    cardWidth: actualCardWidth,
+    cardHeight: actualCardHeight
+  };
+}
+
 export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) {
+  // ===== SPACING CONFIGURATION - MODIFY THESE VALUES =====
+  const HORIZONTAL_SPACING = 15; // px - spacing between cards horizontally
+  const VERTICAL_SPACING = 15;  // px - spacing between rows
+  // ========================================================
+
   const router = useRouter();
   const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
@@ -106,11 +156,19 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   const { data: session } = useSession();
   const [avatarThumbCounts, setAvatarThumbCounts] = useState<Record<string, number>>({});
   
+  // Tag system state
+  const [activeMainTab, setActiveMainTab] = useState("recommend");
+  const [activeCategoryTag, setActiveCategoryTag] = useState("Girl");
+  
   // New state for pagination
   const [avatars, setAvatars] = useState<UserAvatar[]>(initialAvatars.avatars || []);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(initialAvatars.avatars?.length || 0);
+  
+  // Dynamic grid state
+  const [gridConfig, setGridConfig] = useState({ cardCount: 1, cardWidth: 180, cardHeight: 320 });
+  const gridContainerRef = useRef<HTMLDivElement>(null);
   
   // Observer for infinite scrolling
   const observer = useRef<IntersectionObserver | null>(null);
@@ -126,6 +184,30 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     
     if (node) observer.current.observe(node);
   }, [isLoading, hasMore]);
+  
+  // Resize observer for dynamic grid calculation
+  useEffect(() => {
+    const updateGridConfig = () => {
+      if (gridContainerRef.current) {
+        const containerWidth = gridContainerRef.current.clientWidth;
+        const newConfig = calculateOptimalGrid(containerWidth, HORIZONTAL_SPACING);
+        setGridConfig(newConfig);
+      }
+    };
+    
+    // Initial calculation
+    updateGridConfig();
+    
+    // Set up resize observer
+    const resizeObserver = new ResizeObserver(updateGridConfig);
+    if (gridContainerRef.current) {
+      resizeObserver.observe(gridContainerRef.current);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [HORIZONTAL_SPACING]);
   
   // Function to load more avatars
   const loadMoreAvatars = async () => {
@@ -270,87 +352,194 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     );
   }
 
-  const sections = [
-    {
-      id: 1,
-      title: "Explore Trending Characters",
-      component: (
-        <div className="flex flex-wrap justify-start gap-x-[1.5%] gap-y-[2vh] w-full max-w-[90vw]">
-          {avatars.map((avatar, index) => {
-            // Add ref to last element for infinite scrolling
-            const isLastElement = index === avatars.length - 1;
-            
-            return (
-              <Card
-                key={avatar.avatar_id}
-                ref={isLastElement ? lastAvatarElementRef : undefined}
-                className="relative w-[18.75%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
-                onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
-                showThumbCount={true}
-                thumbCount={avatarThumbCounts[avatar.avatar_id]}
-                thumbIcon={<ThumbsUp size={16} className="text-gray-300" />}
-                serveTime={avatar.serve_time}
-              >
-                {avatar.presignedUrl && (
-                  <>
-                    <Image
-                      src={avatar.presignedUrl}
-                      alt={avatar.avatar_name}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                      priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-3 pb-12 bg-gradient-to-t from-black/80 via-black/45 to-black/1">
-                      <div className="self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-base leading-tight truncate">
-                        {avatar.avatar_name}
-                      </div>
-                      <div className="self-stretch font-['Montserrat',Helvetica] font-normal text-neutral-300 text-xs leading-snug overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                        {avatar.agent_bio}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </Card>
-            );
-          })}
-          
-          {/* Loading indicator */}
-          {isLoading && (
-            <div className="w-full flex justify-center py-4">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin text-white" />
-                <span className="text-white">Loading more characters...</span>
-              </div>
-            </div>
-          )}
-          
-          {/* End of results message */}
-          {!hasMore && !isLoading && avatars.length > 0 && (
-            <div className="w-full text-center py-4 text-gray-400">
-              No more characters to load
-            </div>
-          )}
-        </div>
-      ),
-    },
+  // Define category data
+  const categories = [
+    { name: "Girl", active: activeCategoryTag === "Girl" },
+    { name: "OC", active: activeCategoryTag === "OC" },
+    { name: "BlueArchive", active: activeCategoryTag === "BlueArchive" },
+    { name: "fanart", active: activeCategoryTag === "fanart" },
+    { name: "VTuber", active: activeCategoryTag === "VTuber" },
+    { name: "NEWGAME!", active: activeCategoryTag === "NEWGAME!" },
+    { name: "Helltaker", active: activeCategoryTag === "Helltaker" },
+    { name: "Ghost", active: activeCategoryTag === "Ghost" },
   ];
 
   return (
     <Suspense fallback={<LoadingState />}>
-      <div className="flex flex-col w-full items-center gap-[2vh] py-[2vh]">
-        {sections.map((section) => (
-          <React.Fragment key={section.id}>
-            <div className="flex w-full max-w-[1148px] items-center justify-start gap-[1%] relative flex-[0_0_auto]">
-              <div className="relative flex-1 h-[3.3vh] [font-family:'Montserrat',Helvetica] font-bold text-white text-3xl tracking-[0] leading-[normal]">
-                {section.title}
+      <div className="bg-[#222433] min-h-screen w-full">
+        {/* Header Section with Tags */}
+        <header className="fixed top-0 left-64 right-0 z-10 bg-[#222433] py-6 px-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            {/* Main Tab Group */}
+            <div className="flex items-center gap-2">
+              {["recommend", "trending", "latest"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveMainTab(tab)}
+                  className={`px-6 py-3.5 rounded-[100px] font-medium text-white text-base transition-all duration-200 ${
+                    activeMainTab === tab
+                      ? "bg-[#00000033] shadow-[0px_0px_10px_#ffffff40]"
+                      : "hover:bg-[#ffffff1a]"
+                  }`}
+                >
+                  <span className="font-['Montserrat',Helvetica] capitalize">
+                    {tab}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Search and Notification Buttons */}
+            <div className="flex items-center gap-[18px]">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-12 h-12 bg-[#00000033] rounded-3xl text-white hover:bg-[#ffffff1a]"
+                aria-label="Search"
+              >
+                <SearchIcon className="w-5 h-5" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-12 h-12 bg-[#00000033] rounded-3xl text-white hover:bg-[#ffffff1a]"
+                aria-label="Notifications"
+              >
+                <BellIcon className="w-6 h-6" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Category Tags */}
+          <div className="flex items-center gap-2 py-0 overflow-x-auto">
+            {categories.map((category, index) => (
+              <button
+                key={`${category.name}-${index}`}
+                onClick={() => setActiveCategoryTag(category.name)}
+                className={`px-6 py-2 rounded-[100px] cursor-pointer hover:bg-[#ffffff33] transition-colors flex-shrink-0 ${
+                  category.active
+                    ? "bg-[#ffffff1a] shadow-[0px_0px_10px_#ffffff40]"
+                    : "bg-[#00000033] border-transparent"
+                }`}
+              >
+                <span className="[font-family:'Montserrat',Helvetica] font-medium text-white text-base">
+                  {category.name === "NEWGAME!" ? (
+                    <>
+                      <span className="font-medium">NEWGAME</span>
+                      <span className="font-bold">!</span>
+                    </>
+                  ) : (
+                    category.name
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <div className="pl-64 pt-40 pb-6">
+          <div className="flex flex-col gap-6">
+            {/* Character Grid */}
+            <div className="px-6">
+              <div 
+                ref={gridContainerRef}
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: `${VERTICAL_SPACING}px` 
+                }}
+              >
+                {/* Render avatars in rows */}
+                {Array.from({ length: Math.ceil(avatars.length / gridConfig.cardCount) }, (_, rowIndex) => {
+                  const startIndex = rowIndex * gridConfig.cardCount;
+                  const endIndex = Math.min(startIndex + gridConfig.cardCount, avatars.length);
+                  const rowAvatars = avatars.slice(startIndex, endIndex);
+                  
+                  return (
+                    <div 
+                      key={rowIndex}
+                      className="flex"
+                      style={{
+                        gap: `${HORIZONTAL_SPACING}px`,
+                        paddingLeft: `${HORIZONTAL_SPACING}px`,
+                        paddingRight: `${HORIZONTAL_SPACING}px`
+                      }}
+                    >
+                      {rowAvatars.map((avatar, colIndex) => {
+                        const avatarIndex = startIndex + colIndex;
+                        const isLastElement = avatarIndex === avatars.length - 1;
+                        
+                        return (
+                          <Card
+                            key={avatar.avatar_id}
+                            ref={isLastElement ? lastAvatarElementRef : undefined}
+                            className="relative rounded-[13.79px] overflow-hidden shadow-[0px_0px_9.5px_#ffffff40] border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer"
+                            style={{ 
+                              width: `${gridConfig.cardWidth}px`,
+                              height: `${gridConfig.cardHeight}px`,
+                              flexShrink: 0
+                            }}
+                            onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
+                            showThumbCount={true}
+                            thumbCount={avatarThumbCounts[avatar.avatar_id]}
+                            thumbIcon={<ThumbsUp size={16} className="text-gray-300" />}
+                            serveTime={avatar.serve_time}
+                          >
+                            {avatar.presignedUrl && (
+                              <>
+                                <Image
+                                  src={avatar.presignedUrl}
+                                  alt={avatar.avatar_name}
+                                  fill
+                                  sizes={`${gridConfig.cardWidth}px`}
+                                  priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
+                                  className="object-cover"
+                                />
+                                {/* Character info overlay - positioned above the blur */}
+                                <div className="absolute bottom-8 w-full">
+                                  {/* Character text above blur separator */}
+                                  <div className="relative p-[9.2px] pb-2 z-20">
+                                    <h3 className="w-full font-['Montserrat',Helvetica] font-semibold text-white text-[13.8px] leading-normal truncate mb-1">
+                                      {avatar.avatar_name}
+                                    </h3>
+                                    <p className="w-full font-['Montserrat',Helvetica] font-normal text-white text-[9.2px] leading-normal overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                                      {avatar.agent_bio || avatar.prompt}
+                                    </p>
+                                  </div>
+                                  {/* Blur separator */}
+                                  <div className="absolute w-full h-[60px] bottom-0 bg-[#00000040] blur-[10.35px]" />
+                                </div>
+                              </>
+                            )}
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div className="w-full max-w-[1148px] flex justify-start mt-[1vh]">
-              {section.component}
-            </div>
-          </React.Fragment>
-        ))}
+            
+            {/* Loading indicator */}
+            {isLoading && (
+              <div className="w-full flex justify-center py-4">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                  <span className="text-white">Loading more characters...</span>
+                </div>
+              </div>
+            )}
+            
+            {/* End of results message */}
+            {!hasMore && !isLoading && avatars.length > 0 && (
+              <div className="w-full text-center py-4 text-gray-400">
+                No more characters to load
+              </div>
+            )}
+          </div>
+        </div>
 
         <AvatarPopup
           avatar={selectedAvatar ? {

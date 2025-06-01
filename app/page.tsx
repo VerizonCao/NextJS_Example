@@ -7,7 +7,11 @@ import { Suspense } from 'react';
 export const revalidate = 60;
 
 function LoadingState() {
-  return null;
+  return (
+    <div className="bg-[#222433] min-h-screen w-full flex items-center justify-center">
+      <div className="text-white">Loading...</div>
+    </div>
+  );
 }
 
 export default async function RitaStreamingPage() {
