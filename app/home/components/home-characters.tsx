@@ -188,24 +188,69 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   // Resize observer for dynamic grid calculation
   useEffect(() => {
     const updateGridConfig = () => {
+      let containerWidth = 0;
+      
+      // Method 1: Try to get actual container width
       if (gridContainerRef.current) {
-        const containerWidth = gridContainerRef.current.clientWidth;
-        const newConfig = calculateOptimalGrid(containerWidth, HORIZONTAL_SPACING);
-        setGridConfig(newConfig);
+        const rect = gridContainerRef.current.getBoundingClientRect();
+        containerWidth = rect.width;
       }
+      
+      // Method 2: Fallback to calculated width based on window size
+      if (containerWidth < 200) { // If container width is unreasonably small
+        const navbarWidth = 256; // 64 * 4 = 256px (w-64 in Tailwind)
+        const padding = 24; // px-6 = 24px on each side
+        const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+        containerWidth = Math.max(300, windowWidth - navbarWidth - (padding * 2));
+      }
+      
+      // Method 3: Absolute fallback
+      if (containerWidth < 200) {
+        containerWidth = 800; // Reasonable default
+      }
+      
+      const newConfig = calculateOptimalGrid(containerWidth, HORIZONTAL_SPACING);
+      setGridConfig(newConfig);
     };
     
-    // Initial calculation
-    updateGridConfig();
+    // Initial calculation with retry mechanism
+    const initialUpdate = () => {
+      updateGridConfig();
+      
+      // Retry after a short delay if container width seems incorrect
+      setTimeout(() => {
+        if (gridContainerRef.current) {
+          const rect = gridContainerRef.current.getBoundingClientRect();
+          if (rect.width > 200) { // If we now have a proper width
+            updateGridConfig();
+          }
+        }
+      }, 100);
+    };
+    
+    // Run initial calculation
+    initialUpdate();
     
     // Set up resize observer
-    const resizeObserver = new ResizeObserver(updateGridConfig);
+    const resizeObserver = new ResizeObserver(() => {
+      // Small delay to ensure layout is stable
+      requestAnimationFrame(updateGridConfig);
+    });
+    
     if (gridContainerRef.current) {
       resizeObserver.observe(gridContainerRef.current);
     }
     
+    // Also listen to window resize as backup
+    const handleWindowResize = () => {
+      setTimeout(updateGridConfig, 50);
+    };
+    
+    window.addEventListener('resize', handleWindowResize);
+    
     return () => {
       resizeObserver.disconnect();
+      window.removeEventListener('resize', handleWindowResize);
     };
   }, [HORIZONTAL_SPACING]);
   
