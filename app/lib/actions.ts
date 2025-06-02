@@ -135,7 +135,20 @@ export async function startStreamingSession({
     const lambdaCommand = new InvokeCommand({
       FunctionName: "llm-handler",
       InvocationType: "Event",
-      Payload: Buffer.from(JSON.stringify({ room_name: room })),
+      Payload: Buffer.from(JSON.stringify({ 
+        instruction,
+        seconds,
+        room_name: room,
+        avatarSource,
+        ...(avatar_id !== null && { avatar_id }),
+        ...(llmUserNickname !== null && { llm_user_nickname: llmUserNickname }),
+        ...(llmUserBio !== null && { llm_user_bio: llmUserBio }),
+        ...(llmAssistantNickname !== null && { llm_assistant_nickname: llmAssistantNickname }),
+        ...(llmAssistantBio !== null && { llm_assistant_bio: llmAssistantBio }),
+        ...(llmAssistantAdditionalCharacteristics !== null && { llm_assistant_additional_characteristics: llmAssistantAdditionalCharacteristics }),
+        ...(llmConversationContext !== null && { llm_conversation_context: llmConversationContext }),
+        ...(ttsVoiceIdCartesia !== null && { tts_voice_id_cartesia: ttsVoiceIdCartesia })
+      })),
     });
 
     try {
