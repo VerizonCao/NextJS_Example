@@ -160,6 +160,9 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   const { data: session } = useSession();
   const [avatarThumbCounts, setAvatarThumbCounts] = useState<Record<string, number>>({});
   
+  // Navbar collapse state
+  const [navbarCollapsed, setNavbarCollapsed] = useState(false);
+  
   // Tag system state
   const [activeMainTab, setActiveMainTab] = useState("recommend");
   const [activeCategoryTag, setActiveCategoryTag] = useState("Girl");
@@ -202,7 +205,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
       
       // Method 2: Fallback to calculated width based on window size
       if (containerWidth < 200) { // If container width is unreasonably small
-        const navbarWidth = 256; // 64 * 4 = 256px (w-64 in Tailwind)
+        const navbarWidth = navbarCollapsed ? 64 : 256; // w-16 vs w-64 in Tailwind
         const padding = 24; // px-6 = 24px on each side
         const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
         containerWidth = Math.max(300, windowWidth - navbarWidth - (padding * 2));
@@ -256,7 +259,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleWindowResize);
     };
-  }, [HORIZONTAL_SPACING]);
+  }, [HORIZONTAL_SPACING, navbarCollapsed]);
   
   // Function to load more avatars
   const loadMoreAvatars = async () => {
@@ -390,6 +393,37 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     globalSelectedAvatar?.type === 'rita'
   );
 
+  // Listen for navbar collapse state changes
+  useEffect(() => {
+    const checkNavbarState = () => {
+      // Check if navbar is collapsed by measuring its width
+      const navbar = document.querySelector('nav');
+      if (navbar) {
+        const isCollapsed = navbar.offsetWidth <= 80; // 16 * 4 + padding = ~64-80px
+        setNavbarCollapsed(isCollapsed);
+      }
+    };
+    
+    // Initial check
+    checkNavbarState();
+    
+    // Set up observer to watch for navbar width changes
+    const observer = new MutationObserver(checkNavbarState);
+    const navbar = document.querySelector('nav');
+    if (navbar) {
+      observer.observe(navbar, { attributes: true, attributeFilter: ['class'] });
+    }
+    
+    // Also listen for transition end events
+    const handleTransition = () => setTimeout(checkNavbarState, 50);
+    navbar?.addEventListener('transitionend', handleTransition);
+    
+    return () => {
+      observer.disconnect();
+      navbar?.removeEventListener('transitionend', handleTransition);
+    };
+  }, []);
+
   if (!initialAvatars.success || !initialAvatars.avatars) {
     return (
       <div className="flex flex-col items-center gap-6 p-6">
@@ -416,8 +450,8 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   return (
     <Suspense fallback={<LoadingState />}>
       <div className="bg-[#222433] min-h-screen w-full">
-        {/* Main Content Wrapper with consistent left padding */}
-        <div className="pl-64">
+        {/* Main Content Wrapper with dynamic left padding */}
+        <div className={`transition-all duration-300 ${navbarCollapsed ? 'pl-16' : 'pl-64'}`}>
           {/* Header Section with Tags */}
           <header className="relative bg-[#222433] py-6 px-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
