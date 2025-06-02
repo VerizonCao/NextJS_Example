@@ -459,7 +459,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
             </div>
 
             {/* Category Tags */}
-            <div className="flex items-center gap-2 py-0 overflow-x-auto">
+            <div className="flex items-center gap-2 px-2 py-2 overflow-x-auto">
               {categories.map((category, index) => (
                 <button
                   key={`${category.name}-${index}`}
