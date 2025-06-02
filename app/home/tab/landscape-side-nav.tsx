@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { HomeIcon, PlusSquareIcon, MessageSquareIcon, WalletIcon, UserIcon, MoreVerticalIcon, LogOutIcon } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AuthButton from '@/app/home/tab/buttons/auth-button';
 import SignOutButton from '@/app/home/tab/buttons/signout-button';
 import { useSession } from 'next-auth/react';
@@ -30,6 +30,9 @@ export default function LandscapeSideNav() {
   const pathname = usePathname();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const userButtonRef = useRef<HTMLButtonElement>(null);
+  const moreIconRef = useRef<SVGSVGElement>(null);
   
   const userName = session?.user?.name || session?.user?.email || '';
   const userEmail = session?.user?.email || '';
@@ -113,6 +116,25 @@ export default function LandscapeSideNav() {
     return name.charAt(0).toUpperCase();
   };
 
+  const calculateMenuPosition = () => {
+    if (moreIconRef.current) {
+      const iconRect = moreIconRef.current.getBoundingClientRect();
+      
+      // Calculate position so dropdown's left corner aligns with the icon's left edge
+      const left = iconRect.left + 30;
+      const top = iconRect.top - 60; // Small gap above icon
+      
+      setMenuPosition({ top, left });
+    }
+  };
+
+  const handleUserMenuToggle = () => {
+    if (!showUserMenu) {
+      calculateMenuPosition();
+    }
+    setShowUserMenu(!showUserMenu);
+  };
+
   return (
     <nav className="flex flex-col w-64 h-screen items-start bg-[#121214] fixed left-0 top-0 z-50">
       {/* Header with logo */}
@@ -173,8 +195,9 @@ export default function LandscapeSideNav() {
         {session ? (
           <div className="relative w-full">
             <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
+              onClick={handleUserMenuToggle}
               className="flex w-full h-[54px] items-center justify-center gap-3 px-3 py-3.5 bg-[#ffffff1a] rounded-lg hover:bg-[#ffffff20] transition-colors"
+              ref={userButtonRef}
             >
               {/* Avatar */}
               <div className="w-8 h-8 border border-solid border-[#d9d9d9] rounded-full bg-[#2a2a2e] flex items-center justify-center">
@@ -191,12 +214,18 @@ export default function LandscapeSideNav() {
               </div>
 
               {/* Menu button */}
-              <MoreVerticalIcon className="w-6 h-6 text-white" />
+              <MoreVerticalIcon className="w-6 h-6 text-white" ref={moreIconRef} />
             </button>
 
             {/* Dropdown Menu */}
             {showUserMenu && (
-              <div className="absolute bottom-full left-0 mb-2 min-w-[220px] bg-[#222433] rounded-md shadow-lg border border-[#3a3a4a] z-[9999]">
+              <div 
+                className="fixed min-w-[220px] bg-[#222433] rounded-md shadow-lg border border-[#3a3a4a] z-[9999]"
+                style={{
+                  top: `${menuPosition.top}px`,
+                  left: `${menuPosition.left}px`
+                }}
+              >
                 <div className="p-2">
                   <SignOutButton className="flex items-center px-3 py-2 text-sm text-red-400 hover:bg-[#ffffff1a] rounded-md cursor-pointer w-full justify-start transition-colors" />
                 </div>

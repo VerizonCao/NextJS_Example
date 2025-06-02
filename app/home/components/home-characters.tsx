@@ -412,177 +412,180 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   return (
     <Suspense fallback={<LoadingState />}>
       <div className="bg-[#222433] min-h-screen w-full">
-        {/* Header Section with Tags */}
-        <header className="fixed top-0 left-64 right-0 z-10 bg-[#222433] py-6 px-6 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            {/* Main Tab Group */}
-            <div className="flex items-center gap-2">
-              {["recommend", "trending", "latest"].map((tab) => (
+        {/* Main Content Wrapper with consistent left padding */}
+        <div className="pl-64">
+          {/* Header Section with Tags */}
+          <header className="relative bg-[#222433] py-6 px-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              {/* Main Tab Group */}
+              <div className="flex items-center gap-2">
+                {["recommend", "trending", "latest"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveMainTab(tab)}
+                    className={`px-6 py-3.5 rounded-[100px] font-medium text-white text-base transition-all duration-200 ${
+                      activeMainTab === tab
+                        ? "bg-[#00000033] shadow-[0px_0px_10px_#ffffff40]"
+                        : "hover:bg-[#ffffff1a]"
+                    }`}
+                  >
+                    <span className="font-['Montserrat',Helvetica] capitalize">
+                      {tab}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search and Notification Buttons */}
+              <div className="flex items-center gap-[18px]">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-12 h-12 bg-[#00000033] rounded-3xl text-white hover:bg-[#ffffff1a]"
+                  aria-label="Search"
+                >
+                  <SearchIcon className="w-5 h-5" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-12 h-12 bg-[#00000033] rounded-3xl text-white hover:bg-[#ffffff1a]"
+                  aria-label="Notifications"
+                >
+                  <BellIcon className="w-6 h-6" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Category Tags */}
+            <div className="flex items-center gap-2 py-0 overflow-x-auto">
+              {categories.map((category, index) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveMainTab(tab)}
-                  className={`px-6 py-3.5 rounded-[100px] font-medium text-white text-base transition-all duration-200 ${
-                    activeMainTab === tab
-                      ? "bg-[#00000033] shadow-[0px_0px_10px_#ffffff40]"
-                      : "hover:bg-[#ffffff1a]"
+                  key={`${category.name}-${index}`}
+                  onClick={() => setActiveCategoryTag(category.name)}
+                  className={`px-6 py-2 rounded-[100px] cursor-pointer hover:bg-[#ffffff33] transition-colors flex-shrink-0 ${
+                    category.active
+                      ? "bg-[#ffffff1a] shadow-[0px_0px_10px_#ffffff40]"
+                      : "bg-[#00000033] border-transparent"
                   }`}
                 >
-                  <span className="font-['Montserrat',Helvetica] capitalize">
-                    {tab}
+                  <span className="[font-family:'Montserrat',Helvetica] font-medium text-white text-base">
+                    {category.name === "NEWGAME!" ? (
+                      <>
+                        <span className="font-medium">NEWGAME</span>
+                        <span className="font-bold">!</span>
+                      </>
+                    ) : (
+                      category.name
+                    )}
                   </span>
                 </button>
               ))}
             </div>
+          </header>
 
-            {/* Search and Notification Buttons */}
-            <div className="flex items-center gap-[18px]">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-12 h-12 bg-[#00000033] rounded-3xl text-white hover:bg-[#ffffff1a]"
-                aria-label="Search"
-              >
-                <SearchIcon className="w-5 h-5" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-12 h-12 bg-[#00000033] rounded-3xl text-white hover:bg-[#ffffff1a]"
-                aria-label="Notifications"
-              >
-                <BellIcon className="w-6 h-6" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Category Tags */}
-          <div className="flex items-center gap-2 py-0 overflow-x-auto">
-            {categories.map((category, index) => (
-              <button
-                key={`${category.name}-${index}`}
-                onClick={() => setActiveCategoryTag(category.name)}
-                className={`px-6 py-2 rounded-[100px] cursor-pointer hover:bg-[#ffffff33] transition-colors flex-shrink-0 ${
-                  category.active
-                    ? "bg-[#ffffff1a] shadow-[0px_0px_10px_#ffffff40]"
-                    : "bg-[#00000033] border-transparent"
-                }`}
-              >
-                <span className="[font-family:'Montserrat',Helvetica] font-medium text-white text-base">
-                  {category.name === "NEWGAME!" ? (
-                    <>
-                      <span className="font-medium">NEWGAME</span>
-                      <span className="font-bold">!</span>
-                    </>
-                  ) : (
-                    category.name
-                  )}
-                </span>
-              </button>
-            ))}
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <div className="pt-40 pb-6">
-          <div className="flex flex-col gap-6">
-            {/* Character Grid */}
-            <div className="px-6 pl-64">
-              <div 
-                ref={gridContainerRef}
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: `${VERTICAL_SPACING}px` 
-                }}
-              >
-                {/* Render avatars in rows */}
-                {Array.from({ length: Math.ceil(avatars.length / gridConfig.cardCount) }, (_, rowIndex) => {
-                  const startIndex = rowIndex * gridConfig.cardCount;
-                  const endIndex = Math.min(startIndex + gridConfig.cardCount, avatars.length);
-                  const rowAvatars = avatars.slice(startIndex, endIndex);
-                  
-                  return (
-                    <div 
-                      key={rowIndex}
-                      className="flex"
-                      style={{
-                        gap: `${HORIZONTAL_SPACING}px`,
-                        paddingLeft: `${HORIZONTAL_SPACING}px`,
-                        paddingRight: `${HORIZONTAL_SPACING}px`
-                      }}
-                    >
-                      {rowAvatars.map((avatar, colIndex) => {
-                        const avatarIndex = startIndex + colIndex;
-                        const isLastElement = avatarIndex === avatars.length - 1;
-                        
-                        return (
-                          <Card
-                            key={avatar.avatar_id}
-                            ref={isLastElement ? lastAvatarElementRef : undefined}
-                            className="relative rounded-[13.79px] overflow-hidden shadow-[0px_0px_9.5px_#ffffff40] border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer"
-                            style={{ 
-                              width: `${gridConfig.cardWidth}px`,
-                              height: `${gridConfig.cardHeight}px`,
-                              flexShrink: 0
-                            }}
-                            onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
-                            showThumbCount={true}
-                            thumbCount={avatarThumbCounts[avatar.avatar_id]}
-                            thumbIcon={<ThumbsUp size={16} className="text-gray-300" />}
-                            serveTime={avatar.serve_time}
-                          >
-                            {avatar.presignedUrl && (
-                              <>
-                                <Image
-                                  src={avatar.presignedUrl}
-                                  alt={avatar.avatar_name}
-                                  fill
-                                  sizes={`${gridConfig.cardWidth}px`}
-                                  priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
-                                  className="object-cover"
-                                />
-                                {/* Character info overlay - positioned above the blur */}
-                                <div className="absolute bottom-8 w-full">
-                                  {/* Character text above blur separator */}
-                                  <div className="relative p-[9.2px] pb-2 z-20">
-                                    <h3 className="w-full font-['Montserrat',Helvetica] font-semibold text-white text-[13.8px] leading-normal truncate mb-1">
-                                      {avatar.avatar_name}
-                                    </h3>
-                                    <p className="w-full font-['Montserrat',Helvetica] font-normal text-white text-[9.2px] leading-normal overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                                      {avatar.agent_bio || avatar.prompt}
-                                    </p>
+          {/* Character Grid Section */}
+          <div className="pb-6">
+            <div className="flex flex-col gap-6">
+              {/* Character Grid */}
+              <div className="px-6">
+                <div 
+                  ref={gridContainerRef}
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: `${VERTICAL_SPACING}px` 
+                  }}
+                >
+                  {/* Render avatars in rows */}
+                  {Array.from({ length: Math.ceil(avatars.length / gridConfig.cardCount) }, (_, rowIndex) => {
+                    const startIndex = rowIndex * gridConfig.cardCount;
+                    const endIndex = Math.min(startIndex + gridConfig.cardCount, avatars.length);
+                    const rowAvatars = avatars.slice(startIndex, endIndex);
+                    
+                    return (
+                      <div 
+                        key={rowIndex}
+                        className="flex"
+                        style={{
+                          gap: `${HORIZONTAL_SPACING}px`,
+                          paddingLeft: `${HORIZONTAL_SPACING}px`,
+                          paddingRight: `${HORIZONTAL_SPACING}px`
+                        }}
+                      >
+                        {rowAvatars.map((avatar, colIndex) => {
+                          const avatarIndex = startIndex + colIndex;
+                          const isLastElement = avatarIndex === avatars.length - 1;
+                          
+                          return (
+                            <Card
+                              key={avatar.avatar_id}
+                              ref={isLastElement ? lastAvatarElementRef : undefined}
+                              className="relative rounded-[13.79px] overflow-hidden shadow-[0px_0px_9.5px_#ffffff40] border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer"
+                              style={{ 
+                                width: `${gridConfig.cardWidth}px`,
+                                height: `${gridConfig.cardHeight}px`,
+                                flexShrink: 0
+                              }}
+                              onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
+                              showThumbCount={true}
+                              thumbCount={avatarThumbCounts[avatar.avatar_id]}
+                              thumbIcon={<ThumbsUp size={16} className="text-gray-300" />}
+                              serveTime={avatar.serve_time}
+                            >
+                              {avatar.presignedUrl && (
+                                <>
+                                  <Image
+                                    src={avatar.presignedUrl}
+                                    alt={avatar.avatar_name}
+                                    fill
+                                    sizes={`${gridConfig.cardWidth}px`}
+                                    priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
+                                    className="object-cover"
+                                  />
+                                  {/* Character info overlay - positioned above the blur */}
+                                  <div className="absolute bottom-8 w-full">
+                                    {/* Character text above blur separator */}
+                                    <div className="relative p-[9.2px] pb-2 z-20">
+                                      <h3 className="w-full font-['Montserrat',Helvetica] font-semibold text-white text-[13.8px] leading-normal truncate mb-1">
+                                        {avatar.avatar_name}
+                                      </h3>
+                                      <p className="w-full font-['Montserrat',Helvetica] font-normal text-white text-[9.2px] leading-normal overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                                        {avatar.agent_bio || avatar.prompt}
+                                      </p>
+                                    </div>
+                                    {/* Blur separator */}
+                                    <div className="absolute w-full h-[60px] bottom-0 bg-[#00000040] blur-[10.35px]" />
                                   </div>
-                                  {/* Blur separator */}
-                                  <div className="absolute w-full h-[60px] bottom-0 bg-[#00000040] blur-[10.35px]" />
-                                </div>
-                              </>
-                            )}
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            
-            {/* Loading indicator */}
-            {isLoading && (
-              <div className="w-full flex justify-center py-4">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-white" />
-                  <span className="text-white">Loading more characters...</span>
+                                </>
+                              )}
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            )}
-            
-            {/* End of results message */}
-            {!hasMore && !isLoading && avatars.length > 0 && (
-              <div className="w-full text-center py-4 text-gray-400">
-                No more characters to load
-              </div>
-            )}
+              
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="w-full flex justify-center py-4">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-white" />
+                    <span className="text-white">Loading more characters...</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* End of results message */}
+              {!hasMore && !isLoading && avatars.length > 0 && (
+                <div className="w-full text-center py-4 text-gray-400">
+                  No more characters to load
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
