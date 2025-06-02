@@ -128,6 +128,26 @@ export async function startStreamingSession({
   userEmail?: string | null;
 }) {
   try {
+    // Check user's serve count if email is provided
+    if (userEmail) {
+      const { success, count } = await getUserServeCountAction(userEmail);
+      if (success && count >= 10) {
+        return { 
+          success: false, 
+          message: 'Maximum serve count reached',
+          error: 'LIMIT_REACHED',
+          currentCount: count,
+          maxCount: 10
+        };
+      }
+
+      // Check if user has a preferred name
+      const { success: nameSuccess, preferredName } = await getUserPreferredNameAction(userEmail);
+      if (nameSuccess && preferredName) {
+        llmUserNickname = preferredName;
+      }
+    }
+
     // Initialize AWS Lambda client
     const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
 
@@ -157,26 +177,6 @@ export async function startStreamingSession({
     } catch (lambdaError) {
       console.error("Lambda invocation failed:", lambdaError);
       // Continue with the rest of the function even if Lambda fails
-    }
-
-    // Check user's serve count if email is provided
-    if (userEmail) {
-      const { success, count } = await getUserServeCountAction(userEmail);
-      if (success && count >= 10) {
-        return { 
-          success: false, 
-          message: 'Maximum serve count reached',
-          error: 'LIMIT_REACHED',
-          currentCount: count,
-          maxCount: 10
-        };
-      }
-
-      // Check if user has a preferred name
-      const { success: nameSuccess, preferredName } = await getUserPreferredNameAction(userEmail);
-      if (nameSuccess && preferredName) {
-        llmUserNickname = preferredName;
-      }
     }
 
     const input: Record<string, any> = {
