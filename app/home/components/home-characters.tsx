@@ -100,14 +100,18 @@ function LoadingState() {
 // Dynamic grid calculation function
 function calculateOptimalGrid(containerWidth: number, spacing: number = 5) {
   // Card aspect ratio (width/height) - based on original design
-  const cardAspectRatio = 217 / 385; // ~0.564
+  const cardAspectRatio = 0.625;
   
   // Responsive base card width based on container size
   let baseCardWidth: number;
-  if (containerWidth <= 1200) {
-    baseCardWidth = 175;
-  } else if (containerWidth <= 2500) {
-    baseCardWidth = 260;
+  if (containerWidth <= 1300) {
+    baseCardWidth = 120;
+  } else if (containerWidth <= 1700) {
+    baseCardWidth = 160;
+  } else if (containerWidth <= 2100) {
+    baseCardWidth = 200;
+  } else if (containerWidth <= 2700) {
+    baseCardWidth = 240;
   } else {
     baseCardWidth = 300;
   }
