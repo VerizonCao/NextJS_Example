@@ -1,7 +1,9 @@
 'use server';
 
 import { getUserServeCountAction, incrementUserServeCountAction, getUserPreferredNameAction } from '@/app/lib/actions/user';
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
+// function to start runpod agent for now. 
 export async function startStreamingSession({
   instruction,
   seconds,
@@ -50,6 +52,37 @@ export async function startStreamingSession({
       if (nameSuccess && preferredName) {
         llmUserNickname = preferredName;
       }
+    }
+
+    // Initialize AWS Lambda client
+    const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
+
+    // Invoke Lambda function
+    const lambdaCommand = new InvokeCommand({
+      FunctionName: "llm-handler",
+      InvocationType: "Event",
+      Payload: Buffer.from(JSON.stringify({ 
+        instruction,
+        seconds,
+        room_name: room,
+        avatarSource,
+        ...(avatar_id !== null && { avatar_id }),
+        ...(llmUserNickname !== null && { llm_user_nickname: llmUserNickname }),
+        ...(llmUserBio !== null && { llm_user_bio: llmUserBio }),
+        ...(llmAssistantNickname !== null && { llm_assistant_nickname: llmAssistantNickname }),
+        ...(llmAssistantBio !== null && { llm_assistant_bio: llmAssistantBio }),
+        ...(llmAssistantAdditionalCharacteristics !== null && { llm_assistant_additional_characteristics: llmAssistantAdditionalCharacteristics }),
+        ...(llmConversationContext !== null && { llm_conversation_context: llmConversationContext }),
+        ...(ttsVoiceIdCartesia !== null && { tts_voice_id_cartesia: ttsVoiceIdCartesia })
+      })),
+    });
+
+    try {
+      await lambdaClient.send(lambdaCommand);
+      console.log("Lambda invocation succeeded for room:", room);
+    } catch (lambdaError) {
+      console.error("Lambda invocation failed:", lambdaError);
+      // Continue with the rest of the function even if Lambda fails
     }
 
     const input: Record<string, any> = {
