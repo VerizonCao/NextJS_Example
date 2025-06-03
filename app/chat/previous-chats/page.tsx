@@ -1,16 +1,70 @@
-import { auth } from '@/auth';
-import { redirect } from 'next/navigation';
-import { MessageSquareIcon, ClockIcon, UserIcon, SearchIcon, FilterIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+'use client';
 
-export default async function PreviousChatsPage() {
-  const session = await auth();
-  
-  if (!session) {
-    redirect('/api/auth/signin');
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { MessageSquareIcon, SearchIcon, FilterIcon, ClockIcon, UserIcon } from 'lucide-react';
+
+export default function PreviousChatsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [navbarCollapsed, setNavbarCollapsed] = useState(false);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'loading') return; // Still loading
+    if (!session) {
+      router.push('/api/auth/signin');
+    }
+  }, [session, status, router]);
+
+  // Listen for navbar collapse state changes
+  useEffect(() => {
+    const checkNavbarState = () => {
+      // Check if navbar is collapsed by measuring its width
+      const navbar = document.querySelector('nav');
+      if (navbar) {
+        const isCollapsed = navbar.offsetWidth <= 80; // 16 * 4 + padding = ~64-80px
+        setNavbarCollapsed(isCollapsed);
+      }
+    };
+    
+    // Initial check
+    checkNavbarState();
+    
+    // Set up observer to watch for navbar width changes
+    const observer = new MutationObserver(checkNavbarState);
+    const navbar = document.querySelector('nav');
+    if (navbar) {
+      observer.observe(navbar, { attributes: true, attributeFilter: ['class'] });
+    }
+    
+    // Also listen for transition end events
+    const handleTransition = () => setTimeout(checkNavbarState, 50);
+    navbar?.addEventListener('transitionend', handleTransition);
+    
+    return () => {
+      observer.disconnect();
+      navbar?.removeEventListener('transitionend', handleTransition);
+    };
+  }, []);
+
+  // Show loading state
+  if (status === 'loading') {
+    return (
+      <div className="bg-[#222433] min-h-screen w-full flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
   }
 
-  // Placeholder chat data - replace with actual backend calls when ready
+  // Don't render if not authenticated (will redirect)
+  if (!session) {
+    return null;
+  }
+
+  // Mock data for demonstration
   const mockChats = [
     {
       id: '1',
@@ -57,7 +111,7 @@ export default async function PreviousChatsPage() {
   return (
     <div className="bg-[#222433] min-h-screen w-full">
       {/* Header Section */}
-      <header className="fixed top-0 left-64 right-0 z-10 bg-[#222433] py-6 px-6 border-b border-[#3a3a4a]">
+      <header className={`fixed top-0 right-0 z-10 bg-[#222433] py-6 px-6 border-b border-[#3a3a4a] transition-all duration-300 ${navbarCollapsed ? 'left-16' : 'left-64'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <MessageSquareIcon className="w-8 h-8 text-white" />
@@ -86,7 +140,7 @@ export default async function PreviousChatsPage() {
       </header>
 
       {/* Main Content */}
-      <div className="pl-64 pt-32 pb-6">
+      <div className={`pt-32 pb-6 transition-all duration-300 ${navbarCollapsed ? 'pl-16' : 'pl-64'}`}>
         <div className="px-6">
           {/* Stats Section */}
           <div className="mb-8">

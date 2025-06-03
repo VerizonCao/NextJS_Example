@@ -44,6 +44,30 @@ export default function ChatPage({
     params.then(resolvedParams => setAvatarId(resolvedParams.avatarId));
   }, [params]);
 
+  // Auto-collapse sidebar when entering chat
+  React.useEffect(() => {
+    const collapseNavbar = () => {
+      // Find the navbar collapse button and click it
+      const navbar = document.querySelector('nav');
+      if (navbar) {
+        // Check if navbar is not already collapsed
+        const isCurrentlyCollapsed = navbar.offsetWidth <= 80;
+        if (!isCurrentlyCollapsed) {
+          // Find the collapse button (the MenuIcon button when expanded)
+          const collapseButton = navbar.querySelector('button[class*="w-8 h-8"]');
+          if (collapseButton) {
+            (collapseButton as HTMLButtonElement).click();
+          }
+        }
+      }
+    };
+
+    // Delay to ensure DOM is ready
+    const timer = setTimeout(collapseNavbar, 100);
+    
+    return () => clearTimeout(timer);
+  }, []); // Only run once when component mounts
+
   // Loading state
   if (isLoading) {
     return <Loading isVideoMode={isVideoMode} />;
@@ -54,95 +78,70 @@ export default function ChatPage({
     return <Error error={error || 'Failed to load avatar'} />;
   }
 
-  // Video mode - show video interface immediately when in video mode
+  // Video mode - New layout design
   if (isVideoMode) {
-    const statusComponent = (
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${
-          firstFrameReceived ? 'bg-green-500' : 
-          'bg-yellow-500 animate-pulse'
-        }`}></div>
-        <p className={`font-medium text-sm ${
-          firstFrameReceived ? 'text-green-400' : 
-          'text-yellow-400'
-        }`}>
-          {firstFrameReceived ? 'Live Video Active' : 
-           isInitiating ? 'Connecting...' :
-           room ? 'Loading Video...' :
-           'Preparing...'}
-        </p>
-      </div>
-    );
-
     return (
       <ChatLayout backgroundImage={presignedUrl}>
-        {/* Video Stream - handles its own loading states */}
-        <VideoStream
-          avatar={avatar}
-          presignedUrl={presignedUrl}
-          room={room}
-          preJoinChoices={preJoinChoices}
-          connectionDetails={connectionDetails}
-          firstFrameReceived={firstFrameReceived}
-          isInitiating={isInitiating}
-          avatarId={avatarId}
-        />
+        {/* Video Section - Left */}
+        <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
+          <VideoStream
+            avatar={avatar}
+            presignedUrl={presignedUrl}
+            room={room}
+            preJoinChoices={preJoinChoices}
+            connectionDetails={connectionDetails}
+            firstFrameReceived={firstFrameReceived}
+            isInitiating={isInitiating}
+            avatarId={avatarId}
+          />
+        </div>
         
-        {/* Chat Panel - Semi-transparent */}
-        <div className="w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
-          <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-sm rounded-[5px] border border-white/10 overflow-hidden">
-            <div className="flex flex-col h-full p-4 lg:p-[15.12px]">
-              
-              {/* Profile Header with Status */}
-              <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-shrink-0">
-                <div className="flex items-center gap-4 lg:gap-[15.12px]">
-                  {presignedUrl && (
-                    <img
-                      className="w-16 h-16 lg:w-[68.04px] lg:h-[68.04px] object-cover rounded-full flex-shrink-0 border-2 border-white/20"
-                      alt="Avatar"
-                      src={presignedUrl}
-                    />
-                  )}
-
-                  <div className="flex flex-col gap-2 lg:gap-[7.56px] flex-1 min-w-0">
-                    <h2 className="font-bold text-white text-lg lg:text-[16.4px] drop-shadow-lg">
-                      {avatar.avatar_name || 'Unknown Avatar'}
-                    </h2>
-                    {statusComponent}
-                  </div>
-                </div>
-
-                <div className="w-full h-px bg-white/20" />
-              </div>
-
-              {/* Text Chat Section - Only show when video is actually received */}
-              {room && preJoinChoices && connectionDetails && firstFrameReceived && (
-                <div className="flex flex-col flex-1 min-h-0 mt-4">
-                  <LiveKitRoom
-                    room={room}
-                    token={connectionDetails.participantToken}
-                    serverUrl={connectionDetails.serverUrl}
-                    video={false}
-                    audio={false}
-                  >
-                    <TextChat avatar_name={avatar.avatar_name} />
-                  </LiveKitRoom>
-                </div>
+        {/* Chat Section - Right */}
+        <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0 min-w-[500px]">
+          <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-sm rounded-r-[5px] border-r border-t border-b border-white/10 overflow-hidden">
+            {/* Chat Header */}
+            <div className="flex items-center gap-3 p-4 border-b border-white/20">
+              {presignedUrl && (
+                <img
+                  className="w-10 h-10 object-cover rounded-full border border-white/20"
+                  alt="Avatar"
+                  src={presignedUrl}
+                />
               )}
-
-              {/* Exit Button - Only show when video is actually received */}
-              {room && preJoinChoices && connectionDetails && firstFrameReceived && (
-                <div className="flex flex-col items-center gap-4 mt-4 flex-shrink-0">
-                  <LiveKitRoom
-                    room={room}
-                    token={connectionDetails.participantToken}
-                    serverUrl={connectionDetails.serverUrl}
-                    video={false}
-                    audio={false}
-                  >
-                    <ChatControls avatarId={avatarId} showExitButton={true} />
-                  </LiveKitRoom>
+              <div className="flex flex-col flex-1">
+                <h2 className="font-semibold text-white text-base drop-shadow-lg">
+                  {avatar.avatar_name || 'Unknown Avatar'}
+                </h2>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    firstFrameReceived ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
+                  }`}></div>
+                  <p className="text-xs text-white/80 drop-shadow-md">
+                    {firstFrameReceived ? 'Live Video Active' : 'Connecting...'}
+                  </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Security Message */}
+            <div className="px-4 py-2 bg-black/20 border-b border-white/20">
+              <p className="text-xs text-white/60 text-center drop-shadow-md">
+                Your chat is secure and encrypted
+              </p>
+            </div>
+
+            {/* Chat Messages Area */}
+            <div className="flex-1 min-h-0">
+              {room && preJoinChoices && connectionDetails && firstFrameReceived && (
+                <LiveKitRoom
+                  room={room}
+                  token={connectionDetails.participantToken}
+                  serverUrl={connectionDetails.serverUrl}
+                  video={false}
+                  audio={false}
+                >
+                  <TextChat avatar_name={avatar.avatar_name} avatarId={avatarId} />
+                </LiveKitRoom>
               )}
             </div>
           </div>
@@ -151,92 +150,60 @@ export default function ChatPage({
     );
   }
 
-  // Regular chat mode (non-video)
+  // Regular chat mode (non-video) - Simplified design
   return (
     <ChatLayout backgroundImage={presignedUrl}>
       {/* Character Image */}
       {presignedUrl && (
         <div
-          className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-cover bg-center shadow-lg flex-shrink-0"
+          className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-l-[5px] bg-cover bg-center shadow-lg flex-shrink-0"
           style={{
             backgroundImage: `url(${presignedUrl})`,
           }}
         />
       )}
       
-      {/* Character Info - Semi-transparent */}
-      <div className="w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
-        <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-sm rounded-[5px] border border-white/10 overflow-hidden">
-          <div className="flex flex-col h-full p-4 lg:p-[15.12px] overflow-y-auto">
+      {/* Character Info - Same container logic as video chat */}
+      <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0 min-w-[500px]">
+        <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-sm rounded-r-[5px] border-r border-t border-b border-white/10 overflow-hidden">
+          <div className="flex flex-col h-full p-4 lg:p-[15.12px]">
             
-            {/* Top Section - Scrollable */}
-            <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-1 min-h-0">
-              
-              {/* Profile Header */}
-              <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-shrink-0">
-                <div className="flex items-center gap-4 lg:gap-[15.12px]">
-                  {presignedUrl && (
-                    <img
-                      className="w-16 h-16 lg:w-[68.04px] lg:h-[68.04px] object-cover rounded-full flex-shrink-0 border-2 border-white/20"
-                      alt="Avatar"
-                      src={presignedUrl}
-                    />
-                  )}
+            {/* Profile Header */}
+            <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-shrink-0">
+              <div className="flex items-center gap-4 lg:gap-[15.12px]">
+                {presignedUrl && (
+                  <img
+                    className="w-16 h-16 lg:w-[68.04px] lg:h-[68.04px] object-cover rounded-full flex-shrink-0 border-2 border-white/20"
+                    alt="Avatar"
+                    src={presignedUrl}
+                  />
+                )}
 
-                  <div className="flex flex-col gap-2 lg:gap-[7.56px] flex-1 min-w-0">
-                    <h2 className="font-bold text-white text-lg lg:text-[16.4px] drop-shadow-lg">
-                      {avatar.avatar_name || 'Unknown Avatar'}
-                    </h2>
-                    <p className="font-medium text-white text-base lg:text-[13.3px] drop-shadow-md">
-                      {avatar.agent_bio || 'No bio available'}
-                    </p>
-                  </div>
+                <div className="flex flex-col gap-2 lg:gap-[7.56px] flex-1 min-w-0">
+                  <h2 className="font-bold text-white text-lg lg:text-[16.4px] drop-shadow-lg">
+                    {avatar.avatar_name || 'Unknown Avatar'}
+                  </h2>
+                  <p className="font-medium text-white text-base lg:text-[13.3px] drop-shadow-md">
+                    {avatar.agent_bio || 'No bio available'}
+                  </p>
                 </div>
-
-                <div className="w-full h-px bg-white/20" />
               </div>
 
-              {/* About Section */}
-              <div className="flex flex-col gap-4 lg:gap-[16.2px]">
-                <h3 className="font-bold text-white text-lg drop-shadow-lg">About</h3>
-              </div>
+              <div className="w-full h-px bg-white/20" />
             </div>
 
-            {/* Bottom Section with Chat Options */}
-            <div className="flex flex-col items-center gap-4 mt-6 flex-shrink-0">
-              
-              {/* Chat Options */}
-              <div className="flex flex-col text-center gap-4 w-full">
-                <p className="text-white text-lg lg:text-xl font-medium drop-shadow-lg">Choose Chat Mode</p>
-                <p className="font-normal text-white/80 text-sm drop-shadow-md">
-                  Chat with {avatar.avatar_name} via text or video
-                </p>
-                
-                <div className="flex flex-col gap-3 w-full">
-                  <Link href={`/chat/${avatarId}?mode=video`} className="w-full">
-                    <Button className="bg-green-600/80 hover:bg-green-700/80 backdrop-blur-sm border border-green-500/30 text-white px-6 py-3 rounded-lg transition-colors w-full drop-shadow-md">
-                      Start Video Chat
-                    </Button>
-                  </Link>
-                  
-                  <Button 
-                    disabled 
-                    className="bg-gray-600/60 backdrop-blur-sm border border-gray-500/30 text-gray-300 px-6 py-3 rounded-lg w-full cursor-not-allowed"
-                  >
-                    Text Chat (Coming Soon)
-                  </Button>
-                </div>
-              </div>
+            {/* Spacer */}
+            <div className="flex-1 min-h-0"></div>
 
-              {/* Back Button */}
-                <Link href="/">
-                    <Button 
-                    variant="secondary"
-                    className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
-                    >
-                    Return to Home
-                    </Button>
+            {/* Bottom Section with Start Chat Button */}
+            <div className="flex flex-col items-center gap-4 mt-6 flex-shrink-0">
+              <div className="border-t border-white/20 p-4 w-full">
+                <Link href={`/chat/${avatarId}?mode=video`} className="w-full block">
+                  <button className="flex items-center justify-center w-full bg-[#00000033] hover:bg-[#ffffff1a] rounded-full py-3 px-6 transition-colors backdrop-blur-sm">
+                    <span className="text-white text-sm font-medium drop-shadow-md">Start Chat</span>
+                  </button>
                 </Link>
+              </div>
             </div>
           </div>
         </div>

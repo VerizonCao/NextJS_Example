@@ -2,20 +2,27 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   useChat,
   ChatEntry,
-  useRoomContext
+  useRoomContext,
+  TrackToggle
 } from '@livekit/components-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Track } from 'livekit-client';
+import { Mic, MicOff, Send, MoreVertical } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface TextChatProps {
   avatar_name: string;
+  avatarId: string;
 }
 
-export function TextChat({ avatar_name }: TextChatProps) {
+export function TextChat({ avatar_name, avatarId }: TextChatProps) {
   const { chatMessages, send, isSending } = useChat();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [inputValue, setInputValue] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
+  const [isMicEnabled, setIsMicEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const room = useRoomContext();
+  const router = useRouter();
   const lastProcessedIndex = useRef<number>(-1);
 
   const scrollToBottom = () => {
@@ -26,26 +33,20 @@ export function TextChat({ avatar_name }: TextChatProps) {
     scrollToBottom();
   }, [chatMessages]);
 
-  // Add voice transcription handling
+  // Handle voice transcription
   useEffect(() => {
     if (!room) return;
 
-    // Handle incoming data messages for voice transcription
     const handleDataReceived = async (payload: Uint8Array, participant: any) => {
       try {
         const data = JSON.parse(new TextDecoder().decode(payload));
         
-        // Handle voice transcription data
         if (data.type === 'voice_transcription' && data.resp.index !== undefined) {
-          // Only process if this is a new index
           if (data.resp.index <= lastProcessedIndex.current) {
             return;
           }
           
-          // Update last processed index
           lastProcessedIndex.current = data.resp.index;
-          
-          // Add transcription to chat history using send function
           console.log('Adding voice transcription to chat:', data.resp.text);
           await send(data.resp.text);
         }
@@ -54,9 +55,7 @@ export function TextChat({ avatar_name }: TextChatProps) {
       }
     };
 
-    // Subscribe to data messages
     room.on('dataReceived', handleDataReceived);
-
     return () => {
       room.off('dataReceived', handleDataReceived);
     };
@@ -69,41 +68,62 @@ export function TextChat({ avatar_name }: TextChatProps) {
     };
   }, []);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (inputRef.current && inputRef.current.value.trim() !== '') {
-      await send(inputRef.current.value);
-      inputRef.current.value = '';
-      inputRef.current.focus();
+    if (inputValue.trim() !== '') {
+      await send(inputValue);
+      setInputValue('');
     }
+  };
+
+  const handleMicChange = useCallback((enabled: boolean) => {
+    setIsMicEnabled(enabled);
+  }, []);
+
+  const handleLeaveChat = () => {
+    if (room && room.state === 'connected') {
+      room.disconnect();
+    }
+    router.push('/');
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chat Header */}
-      <div className="flex-shrink-0 pb-4">
-        <h3 className="font-bold text-white text-lg drop-shadow-lg">Chat with {avatar_name}</h3>
-        <p className="text-white/80 text-sm mt-1 drop-shadow-md">Send messages to interact during video chat</p>
-        <p className="text-white/60 text-xs mt-1 drop-shadow-md">Voice transcriptions will appear automatically</p>
-      </div>
-
-      {/* Chat Messages */}
-      <div className="flex-1 min-h-0 bg-black/30 backdrop-blur-sm border border-white/10 rounded-lg p-3 mb-4 overflow-y-auto">
+      {/* Chat Messages - Direct on panel */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         {chatMessages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-white/60 text-sm">
-            Start a conversation with {avatar_name}
+          <div className="flex items-center justify-center h-full text-white/60 text-sm drop-shadow-md">
+            Start a conversation...
           </div>
         ) : (
-          <div className="space-y-2">
-            {chatMessages.map((msg, idx, allMsg) => {
-              const hideName = idx >= 1 && allMsg[idx - 1].from === msg.from;
+          <div className="space-y-3">
+            {chatMessages.map((msg, idx) => {
+              const isUser = msg.from?.identity !== 'avatar';
               return (
-                <div key={msg.id ?? idx} className="text-white drop-shadow-md">
-                  <ChatEntry
-                    hideName={hideName}
-                    hideTimestamp={false}
-                    entry={msg}
-                  />
+                <div key={msg.id ?? idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[70%] rounded-2xl px-4 py-2 break-words text-xs ${
+                    isUser 
+                      ? 'bg-gray-800 text-white' 
+                      : 'bg-gray-900 text-white'
+                  }`}>
+                    <div className="whitespace-pre-wrap">
+                      {msg.message}
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -112,23 +132,90 @@ export function TextChat({ avatar_name }: TextChatProps) {
         )}
       </div>
 
-      {/* Chat Input */}
-      <form onSubmit={handleSubmit} className="flex-shrink-0 flex gap-2">
-        <Input
-          ref={inputRef}
-          type="text"
-          placeholder={`Message ${avatar_name}...`}
-          disabled={isSending}
-          className="flex-1 bg-black/40 backdrop-blur-sm border-white/20 text-white placeholder-white/60 focus:border-blue-400/50 focus:ring-blue-400/20"
-        />
-        <Button 
-          type="submit" 
-          disabled={isSending}
-          className="bg-blue-600/80 hover:bg-blue-700/80 backdrop-blur-sm border border-blue-500/30 text-white px-4 drop-shadow-md"
-        >
-          Send
-        </Button>
-      </form>
+      {/* Chat Input Area */}
+      <div className="border-t border-white/20 p-4">
+        <form onSubmit={handleSubmit} className="flex items-center gap-3">
+          {/* Microphone Control - Custom button that controls LiveKit */}
+          <button
+            type="button"
+            onClick={() => {
+              // Find the actual LiveKit TrackToggle and trigger it
+              const micToggle = document.querySelector('[data-testid="microphone_toggle"]') as HTMLButtonElement;
+              if (micToggle) {
+                micToggle.click();
+                setIsMicEnabled(!isMicEnabled);
+              }
+            }}
+            className="flex items-center justify-center w-10 h-10 bg-black/40 hover:bg-black/60 rounded-full transition-colors border-0 flex-shrink-0 backdrop-blur-sm"
+          >
+            {isMicEnabled ? (
+              <Mic className="w-5 h-5 text-white" />
+            ) : (
+              <MicOff className="w-5 h-5 text-red-400" />
+            )}
+          </button>
+
+          {/* Hidden LiveKit TrackToggle for actual functionality */}
+          <TrackToggle
+            source={Track.Source.Microphone}
+            onChange={handleMicChange}
+            className="hidden"
+            data-testid="microphone_toggle"
+          />
+
+          {/* Message Input */}
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+              placeholder="Enter to send, Shift+Enter for new line"
+              disabled={isSending}
+              className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-white placeholder-white/60 focus:outline-none focus:border-white/20 text-xs"
+            />
+          </div>
+
+          {/* Send Button */}
+          <button 
+            type="submit" 
+            disabled={isSending || !inputValue.trim()}
+            className="flex items-center justify-center w-10 h-10 bg-[#00000033] hover:bg-[#ffffff1a] disabled:bg-gray-600/60 disabled:cursor-not-allowed rounded-full transition-colors flex-shrink-0 backdrop-blur-sm"
+          >
+            <Send className="w-5 h-5 text-white" />
+          </button>
+
+          {/* 3-Dots Menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setShowMenu(!showMenu)}
+              className="flex items-center justify-center w-10 h-10 bg-black/40 hover:bg-black/60 rounded-full transition-colors flex-shrink-0 backdrop-blur-sm"
+            >
+              <MoreVertical className="w-5 h-5 text-white" />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showMenu && (
+              <div className="absolute bottom-12 right-0 min-w-[150px] bg-black/80 backdrop-blur-sm rounded-md shadow-lg border border-white/20 z-[999999]">
+                <div className="p-1">
+                  <button
+                    onClick={handleLeaveChat}
+                    className="flex items-center px-3 py-2 text-xs text-white bg-gray-800 hover:bg-gray-700 rounded-md cursor-pointer w-full justify-start transition-colors"
+                  >
+                    Leave Chat
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 } 

@@ -56,36 +56,49 @@ export function VideoStream({
           object-fit: cover !important;
         }
         .lk-control-bar {
-          position: absolute !important;
-          bottom: 10px !important;
-          right: 10px !important;
-          z-index: 10 !important;
+          display: none !important;
+        }
+        .lk-participant-metadata {
+          display: none !important;
+        }
+        .lk-connection-quality {
+          display: none !important;
+        }
+        .lk-participant-name {
+          display: none !important;
+        }
+        .lk-speaking-indicator {
+          display: none !important;
+        }
+        .lk-participant-tile.lk-speaking {
+          border: none !important;
+          box-shadow: none !important;
         }
       `}</style>
 
-      <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
+      <div className="relative w-full h-full drop-shadow-lg">
         {/* Show original image until video is detected */}
         {!firstFrameReceived && presignedUrl && (
           <div className="relative w-full h-full">
             <div
-              className="absolute inset-0 w-full h-full rounded-[5px] bg-cover bg-center shadow-lg z-10 transition-all duration-500 ease-in-out"
+              className="absolute inset-0 w-full h-full rounded-l-[5px] bg-cover bg-center z-10 transition-all duration-500 ease-in-out"
               style={{
                 backgroundImage: `url(${presignedUrl})`,
-                filter: (isInitiating || (!isInitiating && room && !firstFrameReceived)) ? 'blur(4px) brightness(0.7)' : 'none'
+                filter: (isInitiating || (!isInitiating && room && !firstFrameReceived)) ? 'blur(4px) brightness(0.4)' : 'none'
               }}
             />
             
-            {/* Loading overlay when stream is initiating */}
+            {/* Loading indicator directly on the blurred/dimmed image */}
             {(isInitiating || (!isInitiating && room && !firstFrameReceived)) && (
-              <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/20 rounded-[5px]">
+              <div className="absolute inset-0 flex items-center justify-center z-20">
                 <div className="flex flex-col items-center gap-4 text-center">
                   <div className="flex items-center justify-center">
-                    <svg className="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   </div>
-                  <div className="text-white text-sm font-medium">
+                  <div className="text-white text-lg font-medium drop-shadow-lg">
                     {isInitiating ? 'Connecting...' : 'Loading video...'}
                   </div>
                 </div>
@@ -101,8 +114,7 @@ export function VideoStream({
             style={{ 
               height: '100%', 
               width: '100%', 
-              backgroundColor: '#000', 
-              borderRadius: '5px', 
+              borderRadius: '5px 0 0 5px',
               overflow: 'hidden',
               position: firstFrameReceived ? 'relative' : 'absolute',
               top: firstFrameReceived ? 'auto' : 0,
@@ -126,7 +138,7 @@ export function VideoStream({
             >
               <div style={{ height: '100%', width: '100%', position: 'relative' }}>
                 <VideoConferenceCustom 
-                  hideControlBar={false}
+                  hideControlBar={true}
                   alwaysHideChat={true}
                   prompt={avatar.prompt || ''}
                   scene={avatar.scene_prompt || undefined}
