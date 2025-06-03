@@ -267,9 +267,9 @@ function RoomContent(props: {
   avatar_name?: string;
 }) {
   const remoteParticipants = useRemoteParticipants();
-  const hasRemoteParticipant = remoteParticipants.length > 0 && remoteParticipants.some(participant => 
-    participant.attributes?.role === 'agent-avatar'
-  );
+  const hasRemoteParticipant = remoteParticipants.length >= 2 && 
+    remoteParticipants.some(participant => participant.attributes?.role === 'agent-avatar') &&
+    remoteParticipants.some(participant => participant.attributes?.role === 'agent-asr');
   const [showVideoConference, setShowVideoConference] = React.useState(false);
   const { send } = useChat();
   const lastProcessedIndex = React.useRef<number>(-1);
