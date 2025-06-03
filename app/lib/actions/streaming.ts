@@ -1,6 +1,7 @@
 'use server';
 
 import { getUserServeCountAction, incrementUserServeCountAction, getUserPreferredNameAction } from '@/app/lib/actions/user';
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
 export async function startStreamingSession({
   instruction,
@@ -32,6 +33,24 @@ export async function startStreamingSession({
   userEmail?: string | null;
 }) {
   try {
+    // Initialize AWS Lambda client
+    const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
+
+    // Invoke Lambda function
+    const lambdaCommand = new InvokeCommand({
+      FunctionName: "llm-handler",
+      InvocationType: "Event",
+      Payload: Buffer.from(JSON.stringify({ room_name: room })),
+    });
+
+    try {
+      await lambdaClient.send(lambdaCommand);
+      console.log("Lambda invocation succeeded for room:", room);
+    } catch (lambdaError) {
+      console.error("Lambda invocation failed:", lambdaError);
+      // Continue with the rest of the function even if Lambda fails
+    }
+
     // Check user's serve count if email is provided
     if (userEmail) {
       const { success, count } = await getUserServeCountAction(userEmail);
