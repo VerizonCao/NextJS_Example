@@ -441,7 +441,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     { name: "OC", active: activeCategoryTag === "OC" },
     { name: "BlueArchive", active: activeCategoryTag === "BlueArchive" },
     { name: "fanart", active: activeCategoryTag === "fanart" },
-    { name: "VTuber", active: activeCategoryTag === "VTuber" },
+    { name: "Vtubers", active: activeCategoryTag === "VTubers" },
     { name: "NEWGAME!", active: activeCategoryTag === "NEWGAME!" },
     { name: "Helltaker", active: activeCategoryTag === "Helltaker" },
     { name: "Ghost", active: activeCategoryTag === "Ghost" },
