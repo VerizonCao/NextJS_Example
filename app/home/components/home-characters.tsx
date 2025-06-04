@@ -484,9 +484,12 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   // Handle search window close
   const handleSearchClose = () => {
     setShowSearchWindow(false);
-    setSearchTerm('');
-    setSubmittedSearchTerm('');
-    setLastClickedTag('');
+    // Only reset search term if clicking outside both search bar and window
+    if (!(document.activeElement as HTMLElement)?.closest('.search-input')) {
+      setSearchTerm('');
+      setSubmittedSearchTerm('');
+      setLastClickedTag('');
+    }
   };
 
   if (!initialAvatars.success || !initialAvatars.avatars) {
@@ -562,7 +565,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                             }
                           }}
                           placeholder="Search characters"
-                          className="h-[34px] w-full pl-1.5 text-sm text-white bg-transparent outline-none placeholder:text-[#634c54]"
+                          className="search-input h-[34px] w-full pl-1.5 text-sm text-white bg-transparent outline-none placeholder:text-[#634c54]"
                         />
                       </div>
                     )}

@@ -30,7 +30,9 @@ export default function SearchWindow({
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (windowRef.current && !windowRef.current.contains(event.target as Node)) {
+      // Don't close if clicking on the search bar (which has class 'search-input')
+      if (windowRef.current && !windowRef.current.contains(event.target as Node) && 
+          !(event.target as Element).closest('.search-input')) {
         onClose();
       }
     }
