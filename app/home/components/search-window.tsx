@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { loadPaginatedPublicAvatarsAction } from '@/app/lib/actions';
+import CharacterSearchTile from './character-search-tile';
+import { getPresignedUrl } from '@/app/lib/actions';
 
 interface SearchWindowProps {
   isOpen: boolean;
@@ -8,6 +11,8 @@ interface SearchWindowProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   handleSearch: () => void;
+  submittedSearchTerm: string;
+  setLastClickedTag: (tag: string) => void;
 }
 
 export default function SearchWindow({ 
@@ -15,9 +20,13 @@ export default function SearchWindow({
   onClose, 
   searchTerm,
   setSearchTerm,
-  handleSearch
+  handleSearch,
+  submittedSearchTerm,
+  setLastClickedTag
 }: SearchWindowProps) {
   const windowRef = useRef<HTMLDivElement>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -35,10 +44,51 @@ export default function SearchWindow({
     };
   }, [isOpen, onClose]);
 
+  // Load search results when submittedSearchTerm changes
+  useEffect(() => {
+    async function loadSearchResults() {
+      if (!submittedSearchTerm.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const result = await loadPaginatedPublicAvatarsAction(0, 10, submittedSearchTerm);
+        
+        if (result.success && result.avatars) {
+          // Process avatars to add presigned URLs
+          const processedAvatars = await Promise.all(
+            result.avatars.map(async (avatar) => {
+              if (!avatar.image_uri) return avatar;
+              try {
+                const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+                return { ...avatar, presignedUrl };
+              } catch (e) {
+                console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
+                return avatar;
+              }
+            })
+          );
+          
+          setSearchResults(processedAvatars);
+        }
+      } catch (error) {
+        console.error('Error loading search results:', error);
+        setSearchResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadSearchResults();
+  }, [submittedSearchTerm]);
+
   // Popular search tags
   const popularTags = [
-    'Sex', 'Mom', '18+', 'horny', 'Femboy', 'Rape', 'Bully', 'Sister',
-    'Milf', 'Daddy', 'Yandere', 'Furry', 'Gay', 'Femdom', 'Babysitter'
+    'Warrior', 'Monster', 'Magical', 'Cyberpunk', 'Fashion',
+    'Travel', 'Guardian', 'Historical', 'Art', 'Music',
+    'Beauty', 'Silence', 'Magic', 'Famous', 'Cool'
   ];
 
   if (!isOpen) return null;
@@ -56,7 +106,7 @@ export default function SearchWindow({
                   key={tag}
                   onClick={() => {
                     setSearchTerm(tag);
-                    handleSearch();
+                    setLastClickedTag(tag);
                   }}
                   className="flex items-center border border-transparent transition duration-500 rounded-full border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.2)] px-3 py-1 text-xs text-[rgba(255,255,255,0.7)] text-[#847379]"
                 >
@@ -66,7 +116,7 @@ export default function SearchWindow({
             </div>
           </div>
 
-          {searchTerm && (
+          {submittedSearchTerm && (
             <>
               <div className="scrollbar-none mb-1 mt-3 flex flex-none flex-row gap-4 overflow-x-auto border-b border-white/10 px-2.5">
                 <div className="flex flex-1 flex-row gap-4">
@@ -85,8 +135,27 @@ export default function SearchWindow({
               </div>
               
               {/* Search Results */}
-              <div className="text-white text-center p-4">
-                Search results for: {searchTerm}
+              <div className="px-2">
+                {isLoading ? (
+                  <div className="text-white text-center p-4">Loading results...</div>
+                ) : searchResults.length > 0 ? (
+                  <div className="space-y-1">
+                    {searchResults.map((avatar) => (
+                      <CharacterSearchTile
+                        key={avatar.avatar_id}
+                        avatar={avatar}
+                        onClick={() => {
+                          // Handle avatar selection
+                          console.log('Selected avatar:', avatar);
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-white text-center p-4">
+                    No results found for: {submittedSearchTerm}
+                  </div>
+                )}
               </div>
             </>
           )}

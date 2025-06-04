@@ -426,6 +426,8 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
 
   const [showSearchWindow, setShowSearchWindow] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
+  const [lastClickedTag, setLastClickedTag] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when search is opened
@@ -435,10 +437,34 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     }
   }, [showSearchWindow]);
 
+  // Effect to handle immediate search when tag is clicked
+  useEffect(() => {
+    if (lastClickedTag) {
+      setSubmittedSearchTerm(lastClickedTag);
+      setLastClickedTag(''); // Reset after handling
+    }
+  }, [lastClickedTag]);
+
+  // Debounced search effect
+  useEffect(() => {
+    if (!searchTerm.trim()) return;
+    // Don't trigger debounce if the search term was just set by a tag click
+    if (searchTerm === submittedSearchTerm) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setSubmittedSearchTerm(searchTerm);
+      handleSearch();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, submittedSearchTerm]);
+
   // Handle search logic
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      console.log('Searching for:', searchTerm);
+      setSubmittedSearchTerm(searchTerm);
     }
   };
 
@@ -459,6 +485,8 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   const handleSearchClose = () => {
     setShowSearchWindow(false);
     setSearchTerm('');
+    setSubmittedSearchTerm('');
+    setLastClickedTag('');
   };
 
   if (!initialAvatars.success || !initialAvatars.avatars) {
@@ -528,7 +556,11 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                           type="text"
                           value={searchTerm}
                           onChange={handleInputChange}
-                          onKeyPress={handleKeyPress}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSearch();
+                            }
+                          }}
                           placeholder="Search characters"
                           className="h-[34px] w-full pl-1.5 text-sm text-white bg-transparent outline-none placeholder:text-[#634c54]"
                         />
@@ -712,6 +744,8 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           handleSearch={handleSearch}
+          submittedSearchTerm={submittedSearchTerm}
+          setLastClickedTag={setLastClickedTag}
         />
       </div>
     </Suspense>
