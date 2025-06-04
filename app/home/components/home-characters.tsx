@@ -20,6 +20,7 @@ import LoginPopup from '@/app/ui/rita/login-popup';
 import { Card } from '@/app/components/card';
 import { X, AlertCircle, ThumbsUp, Loader2, SearchIcon, BellIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import SearchWindow from './search-window';
 
 type UserAvatar = {
   avatar_id: string;
@@ -423,6 +424,43 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     };
   }, []);
 
+  const [showSearchWindow, setShowSearchWindow] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when search is opened
+  useEffect(() => {
+    if (showSearchWindow && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showSearchWindow]);
+
+  // Handle search logic
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      console.log('Searching for:', searchTerm);
+    }
+  };
+
+  // Handle input changes with debounce
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+  };
+
+  // Handle enter key press
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      handleSearch();
+    }
+  };
+
+  // Handle search window close
+  const handleSearchClose = () => {
+    setShowSearchWindow(false);
+    setSearchTerm('');
+  };
+
   if (!initialAvatars.success || !initialAvatars.avatars) {
     return (
       <div className="flex flex-col items-center gap-6 p-6">
@@ -475,14 +513,29 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
 
               {/* Search and Notification Buttons */}
               <div className="flex items-center gap-[18px]">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-12 h-12 bg-[#00000033] rounded-3xl text-white hover:bg-[#ffffff1a]"
-                  aria-label="Search"
-                >
-                  <SearchIcon className="w-5 h-5" />
-                </Button>
+                <div className="relative ml-3 flex max-w-[600px] flex-1 justify-end">
+                  <div className={`flex h-9 min-w-[36px] cursor-pointer justify-end rounded-full bg-[#00000033] transition-all duration-300 ${showSearchWindow ? 'flex-1 border-white' : 'hover:border-hover-border'}`}>
+                    <div className="pointer-events-auto flex h-full items-center justify-center text-2xl w-9">
+                      <SearchIcon 
+                        className={`w-5 h-5 ${showSearchWindow ? 'text-[rgba(255,255,255,0.3)]' : 'text-white'}`}
+                        onClick={() => setShowSearchWindow(true)}
+                      />
+                    </div>
+                    {showSearchWindow && (
+                      <div className="pointer-events-auto flex-1">
+                        <input
+                          ref={searchInputRef}
+                          type="text"
+                          value={searchTerm}
+                          onChange={handleInputChange}
+                          onKeyPress={handleKeyPress}
+                          placeholder="Search characters"
+                          className="h-[34px] w-full pl-1.5 text-sm text-white bg-transparent outline-none placeholder:text-[#634c54]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <Button
                   variant="ghost"
@@ -651,6 +704,14 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
           onClose={() => setShowWarningPopup(false)}
           currentCount={streamCount.current}
           maxCount={streamCount.max}
+        />
+
+        <SearchWindow 
+          isOpen={showSearchWindow}
+          onClose={handleSearchClose}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          handleSearch={handleSearch}
         />
       </div>
     </Suspense>
