@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { startStreamingSession } from '@/app/lib/actions';
 import { incrementAvatarRequestCounter } from '@/app/lib/actions';
@@ -194,13 +193,11 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
         >
           {avatar.presignedUrl ? (
             <>
-              <Image
+              <img
                 src={avatar.presignedUrl}
                 alt={avatar.avatar_name}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                priority={selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my'}
-                className="object-cover"
+                className="object-cover w-full h-full"
+                loading={selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? 'eager' : 'lazy'}
               />
               <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-3 bg-gradient-to-t from-black/80 via-black/45 to-black/1">
                 <div className="self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-base leading-tight truncate">

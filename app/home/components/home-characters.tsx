@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, Suspense, useEffect, useRef, useCallback } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { 
   startStreamingSession, 
@@ -574,13 +573,11 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                             >
                               {avatar.presignedUrl && (
                                 <>
-                                  <Image
+                                  <img
                                     src={avatar.presignedUrl}
                                     alt={avatar.avatar_name}
-                                    fill
-                                    sizes={`${gridConfig.cardWidth}px`}
-                                    priority={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita'}
-                                    className="object-cover"
+                                    className="object-cover w-full h-full"
+                                    loading={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? 'eager' : 'lazy'}
                                   />
                                   {/* Character info overlay - positioned above the blur */}
                                   <div className="absolute bottom-8 w-full">
