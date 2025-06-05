@@ -509,7 +509,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     { name: "OC", active: activeCategoryTag === "OC" },
     { name: "BlueArchive", active: activeCategoryTag === "BlueArchive" },
     { name: "fanart", active: activeCategoryTag === "fanart" },
-    { name: "Vtubers", active: activeCategoryTag === "VTubers" },
+    { name: "Vtuber", active: activeCategoryTag === "VTuber" },
     { name: "NEWGAME!", active: activeCategoryTag === "NEWGAME!" },
     { name: "Helltaker", active: activeCategoryTag === "Helltaker" },
     { name: "Ghost", active: activeCategoryTag === "Ghost" },
@@ -517,11 +517,11 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
 
   return (
     <Suspense fallback={<LoadingState />}>
-      <div className="bg-[#222433] min-h-screen w-full">
+      <div className="bg-[#111C28] min-h-screen w-full">
         {/* Main Content Wrapper with dynamic left padding */}
         <div className={`transition-all duration-300 ${navbarCollapsed ? 'pl-16' : 'pl-64'}`}>
           {/* Header Section with Tags */}
-          <header className="relative bg-[#222433] py-6 px-6 flex flex-col gap-4">
+          <header className="relative bg-[#111C28] py-6 px-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               {/* Main Tab Group */}
               <div className="flex items-center gap-2">
@@ -545,8 +545,8 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
               {/* Search and Notification Buttons */}
               <div className="flex items-center gap-[18px]">
                 <div className="relative ml-3 flex max-w-[600px] flex-1 justify-end">
-                  <div className={`flex h-9 min-w-[36px] cursor-pointer justify-end rounded-full bg-[#00000033] transition-all duration-300 ${showSearchWindow ? 'flex-1 border-white' : 'hover:border-hover-border'}`}>
-                    <div className="pointer-events-auto flex h-full items-center justify-center text-2xl w-9">
+                  <div className={`flex h-12 min-w-[48px] cursor-pointer justify-end rounded-full bg-[#00000033] transition-all duration-300 ${showSearchWindow ? 'flex-1 border-white' : 'hover:border-hover-border'}`}>
+                    <div className="pointer-events-auto flex h-full items-center justify-center text-2xl w-12">
                       <SearchIcon 
                         className={`w-5 h-5 ${showSearchWindow ? 'text-[rgba(255,255,255,0.3)]' : 'text-white'}`}
                         onClick={() => setShowSearchWindow(true)}
@@ -647,17 +647,14 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                             <Card
                               key={avatar.avatar_id}
                               ref={isLastElement ? lastAvatarElementRef : undefined}
-                              className="relative rounded-[13.79px] overflow-hidden shadow-[0px_0px_9.5px_#ffffff40] border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer"
+                              className="relative rounded-[13.79px] overflow-hidden shadow-[0px_0px_9.5px_#ffffff40] border-0 transition-transform duration-300 ease-in-out cursor-pointer"
                               style={{ 
                                 width: `${gridConfig.cardWidth}px`,
                                 height: `${gridConfig.cardHeight}px`,
                                 flexShrink: 0
                               }}
                               onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
-                              showThumbCount={true}
-                              thumbCount={avatarThumbCounts[avatar.avatar_id]}
-                              thumbIcon={<ThumbsUp size={16} className="text-gray-300" />}
-                              serveTime={avatar.serve_time}
+                              showThumbCount={false}
                             >
                               {avatar.presignedUrl && (
                                 <>
@@ -667,19 +664,28 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                                     className="object-cover w-full h-full"
                                     loading={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? 'eager' : 'lazy'}
                                   />
-                                  {/* Character info overlay - positioned above the blur */}
-                                  <div className="absolute bottom-8 w-full">
-                                    {/* Character text above blur separator */}
-                                    <div className="relative p-[9.2px] pb-2 z-20">
+                                  {/* Character info overlay - positioned at the bottom */}
+                                  <div className="absolute bottom-0 w-full">
+                                    {/* Character text with proper padding */}
+                                    <div className="relative p-3 z-20">
                                       <h3 className="w-full font-['Montserrat',Helvetica] font-semibold text-white text-[13.8px] leading-normal truncate mb-1">
                                         {avatar.avatar_name}
                                       </h3>
+                                      <p className="w-full font-['Montserrat',Helvetica] font-normal text-white/70 text-[9.2px] leading-normal truncate mb-1">
+                                        by Creator
+                                      </p>
                                       <p className="w-full font-['Montserrat',Helvetica] font-normal text-white text-[9.2px] leading-normal overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                                         {avatar.agent_bio || avatar.prompt}
                                       </p>
+                                      
+                                      {/* Thumb count positioned on the right */}
+                                      <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full px-2 py-1">
+                                        <ThumbsUp size={12} className="text-gray-300" />
+                                        <span className="text-xs text-white font-medium">
+                                          {avatarThumbCounts[avatar.avatar_id] || '0'}
+                                        </span>
+                                      </div>
                                     </div>
-                                    {/* Blur separator */}
-                                    <div className="absolute w-full h-[60px] bottom-0 bg-[#00000040] blur-[10.35px]" />
                                   </div>
                                 </>
                               )}

@@ -137,7 +137,7 @@ export default function LandscapeSideNav() {
   };
 
   return (
-    <nav className={`flex flex-col h-screen items-start bg-[#121214] fixed left-0 top-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>
+    <nav className={`flex flex-col h-screen items-start bg-black/25 fixed left-0 top-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>
       {/* Header with logo/menu button */}
       <div className={`flex items-center justify-between w-full transition-all duration-300 ${isCollapsed ? 'px-2 py-10' : 'px-6 py-10'}`}>
         {isCollapsed ? (
@@ -193,7 +193,7 @@ export default function LandscapeSideNav() {
             <div key={item.label} className="w-full">
               <button
                 onClick={() => handleNavClick(item.href, item.label)}
-                className={`flex items-center gap-3 w-full rounded-lg h-auto transition-colors duration-200 group ${active ? "bg-[#ffffff1a]" : ""} hover:bg-[#ffffff1a] ${isCollapsed ? 'justify-center px-2 py-3' : 'justify-start px-3 py-3.5'}`}
+                className={`flex items-center gap-3 w-full rounded-[12px] h-auto transition-colors duration-200 group ${active ? "bg-[#ffffff1a]" : ""} hover:bg-[#ffffff1a] ${isCollapsed ? 'justify-center px-2 py-3' : 'justify-start px-3 py-3.5'}`}
                 title={isCollapsed ? item.label : undefined}
               >
                 <IconComponent className={`w-6 h-6 ${active ? "text-white" : "text-[#8f9092] group-hover:text-white"} ${isCollapsed ? '' : ''}`} />
