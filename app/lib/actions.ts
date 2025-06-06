@@ -128,8 +128,11 @@ export async function startStreamingSession({
   userEmail?: string | null;
 }) {
   try {
+    let user_id: string | null = null;
+
     // Check user's serve count if email is provided
     if (userEmail) {
+      user_id = await getUserByIdEmail(userEmail);
       const { success, count } = await getUserServeCountAction(userEmail);
       if (success && count >= 10) {
         return { 
@@ -161,6 +164,7 @@ export async function startStreamingSession({
         room_name: room,
         avatarSource,
         ...(avatar_id !== null && { avatar_id }),
+        ...(user_id !== null && { user_id }),
         ...(llmUserNickname !== null && { llm_user_nickname: llmUserNickname }),
         ...(llmUserBio !== null && { llm_user_bio: llmUserBio }),
         ...(llmAssistantNickname !== null && { llm_assistant_nickname: llmAssistantNickname }),
@@ -188,6 +192,7 @@ export async function startStreamingSession({
 
     // Only add fields that are not null
     if (avatar_id !== null) input.avatar_id = avatar_id;
+    if (user_id !== null) input.user_id = user_id;
     if (llmUserNickname !== null) input.llm_user_nickname = llmUserNickname;
     if (llmUserBio !== null) input.llm_user_bio = llmUserBio;
     if (llmAssistantNickname !== null) input.llm_assistant_nickname = llmAssistantNickname;
