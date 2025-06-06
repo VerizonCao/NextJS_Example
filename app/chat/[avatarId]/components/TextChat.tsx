@@ -33,6 +33,8 @@ interface TextChatProps {
   avatarId: string;
   initialMessages?: DisplayMessage[]; // Previous chat messages to display
   previewMode?: boolean; // If true, chat input is disabled
+  isVideoMode?: boolean; // If true, we're in video mode
+  firstFrameReceived?: boolean; // If true, video is actively streaming
   onLeaveChat?: () => void; // Callback for when user wants to leave chat
 }
 
@@ -45,7 +47,7 @@ const convertDisplayToText = (displayMessages: DisplayMessage[]): TextMessage[] 
   }));
 };
 
-export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, onLeaveChat }: TextChatProps) {
+export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, isVideoMode, firstFrameReceived, onLeaveChat }: TextChatProps) {
   // LiveKit chat for sending messages and receiving responses - only use when not in preview mode
   const { chatMessages: liveKitMessages, send: liveKitSend, isSending } = previewMode ? 
     { chatMessages: [], send: async () => {}, isSending: false } : 
@@ -317,7 +319,11 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
       >
         {textMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-white/60 text-sm drop-shadow-md">
-            {previewMode ? 'No previous conversation found...' : 'Start a conversation...'}
+            {previewMode 
+              ? (isVideoMode && !firstFrameReceived 
+                  ? 'Loading chat...' 
+                  : `Click below to meet ${avatar_name}.`)
+              : 'Start a conversation.'}
           </div>
         ) : (
           <div className="space-y-3">

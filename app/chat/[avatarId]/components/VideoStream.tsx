@@ -99,7 +99,7 @@ export function VideoStream({
                     </svg>
                   </div>
                   <div className="text-white text-lg font-medium drop-shadow-lg">
-                    {isInitiating ? 'Connecting...' : 'Loading video...'}
+                    {isInitiating ? 'Connecting...' : 'Launching character...'}
                   </div>
                 </div>
               </div>

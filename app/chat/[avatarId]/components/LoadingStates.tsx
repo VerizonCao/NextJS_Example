@@ -22,7 +22,7 @@ export function Loading({ isVideoMode = false }: LoadingProps) {
               
               {/* Loading video placeholder */}
               <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
-                <div className="w-full h-full rounded-l-[5px] bg-gray-800 animate-pulse shadow-lg flex items-center justify-center">
+                <div className="w-full h-full rounded-l-[5px] bg-black animate-pulse shadow-lg flex items-center justify-center">
                   <div className="flex items-center justify-center">
                     <svg className="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -59,7 +59,7 @@ export function Loading({ isVideoMode = false }: LoadingProps) {
           <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-0 py-[15px]">
             
             {/* Loading placeholder for image */}
-            <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-l-[5px] bg-gray-800 animate-pulse shadow-lg flex-shrink-0" />
+            <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-l-[5px] bg-black animate-pulse shadow-lg flex-shrink-0" />
             
             {/* Loading placeholder for card */}
             <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0 min-w-[500px]">
@@ -103,7 +103,7 @@ export function Error({ error, avatarName }: ErrorProps) {
       <div className="w-full relative">
         <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0 pl-64">
           <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-8 py-[15px]">
-            <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-gray-800 shadow-lg flex-shrink-0 flex items-center justify-center">
+            <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-black shadow-lg flex-shrink-0 flex items-center justify-center">
               <div className="text-gray-500 text-6xl">?</div>
             </div>
             <div className="w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
@@ -136,7 +136,7 @@ export function VideoPreparingState({ avatarName }: { avatarName: string }) {
           <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-8 py-[15px]">
             
             {/* Character Image Placeholder */}
-            <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-gray-800 shadow-lg flex-shrink-0" />
+            <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] rounded-[5px] bg-black shadow-lg flex-shrink-0" />
             
             {/* Loading Card */}
             <div className="w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">

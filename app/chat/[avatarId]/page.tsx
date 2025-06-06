@@ -205,6 +205,8 @@ export default function ChatPage({
                     avatar_name={avatar.avatar_name} 
                     avatarId={avatarId}
                     initialMessages={chatHistory}
+                    isVideoMode={isVideoMode}
+                    firstFrameReceived={firstFrameReceived}
                     onLeaveChat={handleLeaveVideoChat}
                   />
                 </LiveKitRoom>
@@ -214,6 +216,8 @@ export default function ChatPage({
                   avatarId={avatarId}
                   initialMessages={chatHistory}
                   previewMode={true}
+                  isVideoMode={isVideoMode}
+                  firstFrameReceived={firstFrameReceived}
                   onLeaveChat={handleLeaveVideoChat}
                 />
               )}
@@ -270,7 +274,6 @@ export default function ChatPage({
             {showChatPreview && hasHistory && (
               <div className="px-4 py-2 bg-black/20 border-b border-white/20">
                 <h3 className="text-white text-sm font-medium">Previous Conversation</h3>
-                <p className="text-white/60 text-xs">Continue your chat or start a new session</p>
               </div>
             )}
             
@@ -292,6 +295,8 @@ export default function ChatPage({
                   avatarId={avatarId}
                   initialMessages={chatHistory}
                   previewMode={true}
+                  isVideoMode={isVideoMode}
+                  firstFrameReceived={firstFrameReceived}
                 />
               </div>
             )}
@@ -305,7 +310,7 @@ export default function ChatPage({
                 className="flex items-center justify-center w-full bg-[#00000033] hover:bg-[#ffffff1a] rounded-full py-2 px-6 transition-colors backdrop-blur-sm"
               >
                 <span className="text-white text-sm font-medium drop-shadow-md">
-                  {hasHistory ? 'Continue Video Chat' : 'Start Video Chat'}
+                  {hasHistory ? 'Continue Chat' : 'Start'}
                 </span>
               </button>
             </div>
