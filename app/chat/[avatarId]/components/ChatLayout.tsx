@@ -134,12 +134,13 @@ export function ChatLayout({ children, className = '', backgroundImage }: ChatLa
       <div className="w-full relative z-10">
         <main className={`flex flex-col w-full h-full items-center justify-center px-4 lg:px-0 transition-all duration-300 ${navbarCollapsed ? 'pl-8' : 'pl-32'}`}>
           <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-0 py-[15px] relative" style={{ backgroundColor: 'transparent' }}>
-            {/* Pass toggle function to children via React context or props */}
-            {React.Children.map(children, child =>
-              React.isValidElement(child)
-                ? React.cloneElement(child, { onToggleThirdPanel: toggleThirdPanel } as any)
-                : child
-            )}
+            {/* Pass toggle function only to UnifiedChatPanel components */}
+            {React.Children.map(children, child => {
+              if (React.isValidElement(child) && child.type === UnifiedChatPanel) {
+                return React.cloneElement(child, { onToggleThirdPanel: toggleThirdPanel } as any);
+              }
+              return child;
+            })}
           </div>
 
           {/* Independent Third Panel - positioned 10px to the right of the right panel */}
