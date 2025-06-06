@@ -40,8 +40,8 @@ export default function ChatPage({
   // Get avatar ID for navigation
   const [avatarId, setAvatarId] = React.useState<string>('');
   
-  // Chat history state - loaded asynchronously after UI loads
-  const [chatHistory, setChatHistory] = React.useState<any[]>([]);
+  // UNIFIED CHAT MESSAGE STATE - Single source of truth
+  const [allChatMessages, setAllChatMessages] = React.useState<ChatMessage[]>([]);
   const [hasHistory, setHasHistory] = React.useState<boolean>(false);
   const [historyLoading, setHistoryLoading] = React.useState<boolean>(false);
   
@@ -63,23 +63,18 @@ export default function ChatPage({
             if (result.error) {
               console.error('Error loading chat history:', result.error);
               setHasHistory(false);
-              setChatHistory([]);
+              setAllChatMessages([]);
             } else {
               setHasHistory(result.hasHistory || false);
-              // Convert to display format for TextChat
-              const convertedMessages = (result.messages || []).map((msg: ChatMessage) => ({
-                id: msg.id,
-                content: msg.content,
-                role: msg.role as 'user' | 'assistant',
-                timestamp: new Date(msg.created_at)
-              }));
-              setChatHistory(convertedMessages);
-              console.log('Loaded chat history:', { hasHistory: result.hasHistory, messageCount: convertedMessages.length });
+              // Store the raw ChatMessage format - don't convert here
+              const loadedMessages = result.messages || [];
+              setAllChatMessages(loadedMessages);
+              console.log('Loaded chat history:', { hasHistory: result.hasHistory, messageCount: loadedMessages.length });
             }
           } catch (error) {
             console.error('Failed to load chat history:', error);
             setHasHistory(false);
-            setChatHistory([]);
+            setAllChatMessages([]);
           } finally {
             setHistoryLoading(false);
           }
@@ -87,13 +82,51 @@ export default function ChatPage({
       } catch (error) {
         console.error('Failed to load chat history:', error);
         setHasHistory(false);
-        setChatHistory([]);
+        setAllChatMessages([]);
         setHistoryLoading(false);
       }
     }
 
     loadHistory();
   }, [avatarId]);
+
+  // Callback to add new messages from live chat
+  const handleNewMessage = React.useCallback((message: {
+    id: string;
+    content: string;
+    role: 'user' | 'assistant';
+    timestamp: Date;
+    isLocal?: boolean;
+    isStreaming?: boolean;
+  }) => {
+    // Convert to ChatMessage format and add to unified state
+    const chatMessage: ChatMessage = {
+      id: message.id,
+      content: message.content,
+      role: message.role,
+      sender_id: message.role === 'user' ? 'user' : 'assistant',
+      sender_name: message.role === 'user' ? 'User' : avatar?.avatar_name || 'Assistant',
+      created_at: message.timestamp.toISOString()
+    };
+    
+    setAllChatMessages(prev => [...prev, chatMessage]);
+  }, [avatarId, avatar]);
+
+  // Callback to update streaming message
+  const handleUpdateMessage = React.useCallback((messageId: string, content: string, isStreaming?: boolean) => {
+    setAllChatMessages(prev => 
+      prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, content }
+          : msg
+      )
+    );
+  }, []);
+
+  // Callback to clear messages (if needed for reset)
+  const handleClearMessages = React.useCallback(() => {
+    setAllChatMessages([]);
+  }, []);
 
   // Auto-collapse sidebar when entering chat
   React.useEffect(() => {
@@ -175,7 +208,7 @@ export default function ChatPage({
           avatarId={avatarId}
           presignedUrl={presignedUrl}
           chatState={chatState}
-          chatHistory={chatHistory}
+          chatHistory={allChatMessages}
           hasHistory={hasHistory}
           historyLoading={historyLoading}
           isVideoMode={isVideoMode}
@@ -183,6 +216,9 @@ export default function ChatPage({
           room={room}
           connectionDetails={connectionDetails}
           onLeaveChat={handleLeaveVideoChat}
+          onNewMessage={handleNewMessage}
+          onUpdateMessage={handleUpdateMessage}
+          onClearMessages={handleClearMessages}
         />
       </ChatLayout>
     );
@@ -207,12 +243,15 @@ export default function ChatPage({
         avatarId={avatarId}
         presignedUrl={presignedUrl}
         chatState="info"
-        chatHistory={chatHistory}
+        chatHistory={allChatMessages}
         hasHistory={hasHistory}
         historyLoading={historyLoading}
         isVideoMode={false}
         firstFrameReceived={false}
         onStartChat={() => setIsVideoModeOverride(true)}
+        onNewMessage={handleNewMessage}
+        onUpdateMessage={handleUpdateMessage}
+        onClearMessages={handleClearMessages}
       />
     </ChatLayout>
   );

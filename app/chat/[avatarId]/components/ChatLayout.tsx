@@ -6,12 +6,23 @@ import { Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import type { Avatar } from '../types/chat.types';
+import type { ChatMessage } from '@/app/lib/data';
 
 interface ChatLayoutProps {
   children: React.ReactNode;
   className?: string;
   backgroundImage?: string;
 }
+
+// Helper function to convert ChatMessage to DisplayMessage format for TextChat
+const convertChatMessagesToDisplay = (messages: ChatMessage[]) => {
+  return messages.map(msg => ({
+    id: msg.id,
+    content: msg.content,
+    role: msg.role as 'user' | 'assistant',
+    timestamp: new Date(msg.created_at)
+  }));
+};
 
 export function ChatLayout({ children, className = '', backgroundImage }: ChatLayoutProps) {
   const [navbarCollapsed, setNavbarCollapsed] = useState(false);
@@ -180,6 +191,18 @@ interface UnifiedChatPanelProps {
   onLeaveChat?: () => void;
   onStartChat?: () => void;
   onToggleThirdPanel?: () => void;
+  
+  // Message management callbacks
+  onNewMessage?: (message: {
+    id: string;
+    content: string;
+    role: 'user' | 'assistant';
+    timestamp: Date;
+    isLocal?: boolean;
+    isStreaming?: boolean;
+  }) => void;
+  onUpdateMessage?: (messageId: string, content: string, isStreaming?: boolean) => void;
+  onClearMessages?: () => void;
 }
 
 interface ProfileHeaderProps {
@@ -278,6 +301,18 @@ interface ChatMessagesContainerProps {
   connectionDetails?: any;
   onStartChat?: () => void;
   hasHistory: boolean;
+  
+  // Message management callbacks
+  onNewMessage?: (message: {
+    id: string;
+    content: string;
+    role: 'user' | 'assistant';
+    timestamp: Date;
+    isLocal?: boolean;
+    isStreaming?: boolean;
+  }) => void;
+  onUpdateMessage?: (messageId: string, content: string, isStreaming?: boolean) => void;
+  onClearMessages?: () => void;
 }
 
 function ChatMessagesContainer({ 
@@ -292,7 +327,10 @@ function ChatMessagesContainer({
   room,
   connectionDetails,
   onStartChat,
-  hasHistory
+  hasHistory,
+  onNewMessage,
+  onUpdateMessage,
+  onClearMessages
 }: ChatMessagesContainerProps & { onStartChat?: () => void; hasHistory: boolean }) {
   // Prepare custom controls for info and loading states
   const getCustomControls = () => {
@@ -332,11 +370,14 @@ function ChatMessagesContainer({
         <TextChat 
           avatar_name={avatar.avatar_name} 
           avatarId={avatarId}
-          initialMessages={historyLoading ? [] : chatHistory}
+          initialMessages={convertChatMessagesToDisplay(chatHistory)}
           previewMode={true}
           isVideoMode={false}
           firstFrameReceived={false}
           customControls={customControls}
+          onNewMessage={onNewMessage}
+          onUpdateMessage={onUpdateMessage}
+          onClearMessages={onClearMessages}
         />
         {/* Show loading indicator inside chat if history is loading */}
         {historyLoading && (
@@ -358,12 +399,15 @@ function ChatMessagesContainer({
         <TextChat 
           avatar_name={avatar.avatar_name} 
           avatarId={avatarId}
-          initialMessages={historyLoading ? [] : chatHistory}
+          initialMessages={convertChatMessagesToDisplay(chatHistory)}
           previewMode={true}
           isVideoMode={isVideoMode}
           firstFrameReceived={firstFrameReceived}
           onLeaveChat={onLeaveChat}
           customControls={customControls}
+          onNewMessage={onNewMessage}
+          onUpdateMessage={onUpdateMessage}
+          onClearMessages={onClearMessages}
         />
         {/* Show loading indicator inside chat if history is loading */}
         {historyLoading && (
@@ -392,10 +436,13 @@ function ChatMessagesContainer({
           <TextChat 
             avatar_name={avatar.avatar_name} 
             avatarId={avatarId}
-            initialMessages={chatHistory}
+            initialMessages={convertChatMessagesToDisplay(chatHistory)}
             isVideoMode={isVideoMode}
             firstFrameReceived={firstFrameReceived}
             onLeaveChat={onLeaveChat}
+            onNewMessage={onNewMessage}
+            onUpdateMessage={onUpdateMessage}
+            onClearMessages={onClearMessages}
           />
         </LiveKitRoom>
       </div>
@@ -424,7 +471,10 @@ export function UnifiedChatPanel({
   connectionDetails,
   onLeaveChat,
   onStartChat,
-  onToggleThirdPanel
+  onToggleThirdPanel,
+  onNewMessage,
+  onUpdateMessage,
+  onClearMessages
 }: UnifiedChatPanelProps) {
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
 
@@ -484,6 +534,9 @@ export function UnifiedChatPanel({
             connectionDetails={connectionDetails}
             onStartChat={onStartChat}
             hasHistory={hasHistory}
+            onNewMessage={onNewMessage}
+            onUpdateMessage={onUpdateMessage}
+            onClearMessages={onClearMessages}
           />
 
         </div>

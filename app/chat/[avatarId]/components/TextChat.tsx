@@ -37,6 +37,18 @@ interface TextChatProps {
   firstFrameReceived?: boolean; // If true, video is actively streaming
   onLeaveChat?: () => void; // Callback for when user wants to leave chat
   customControls?: React.ReactNode; // Custom controls to render in the control wrapper
+  
+  // Message management callbacks - for unified state management
+  onNewMessage?: (message: {
+    id: string;
+    content: string;
+    role: 'user' | 'assistant';
+    timestamp: Date;
+    isLocal?: boolean;
+    isStreaming?: boolean;
+  }) => void;
+  onUpdateMessage?: (messageId: string, content: string, isStreaming?: boolean) => void;
+  onClearMessages?: () => void;
 }
 
 // Convert display messages to text message format
@@ -48,13 +60,13 @@ const convertDisplayToText = (displayMessages: DisplayMessage[]): TextMessage[] 
   }));
 };
 
-export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, isVideoMode, firstFrameReceived, onLeaveChat, customControls }: TextChatProps) {
+export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, isVideoMode, firstFrameReceived, onLeaveChat, customControls, onNewMessage, onUpdateMessage, onClearMessages }: TextChatProps) {
   // LiveKit chat for sending messages and receiving responses - only use when not in preview mode
   const { chatMessages: liveKitMessages, send: liveKitSend, isSending } = previewMode ? 
     { chatMessages: [], send: async () => {}, isSending: false } : 
     useChat();
   
-  // Text chat state
+  // Text chat state - use local state if no parent callbacks provided
   const [textMessages, setTextMessages] = useState<TextMessage[]>(
     initialMessages ? convertDisplayToText(initialMessages) : []
   );
@@ -72,6 +84,50 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
   const lastLiveKitMessageCount = useRef<number>(0);
   const streamingMessageId = useRef<string | null>(null);
 
+  // Determine if we're using parent state management
+  const useParentState = !!(onNewMessage && onUpdateMessage);
+  
+  // Get effective messages - either from parent state (initialMessages) or local state
+  const effectiveMessages = useParentState ? (initialMessages ? convertDisplayToText(initialMessages) : []) : textMessages;
+
+  // Helper function to add message - either to parent or local state
+  const addMessage = useCallback((message: TextMessage) => {
+    if (useParentState && onNewMessage) {
+      onNewMessage({
+        id: message.id,
+        content: message.content,
+        role: message.role,
+        timestamp: message.timestamp,
+        isLocal: message.isLocal,
+        isStreaming: message.isStreaming
+      });
+    } else {
+      setTextMessages(prev => [...prev, message]);
+    }
+  }, [useParentState, onNewMessage]);
+
+  // Helper function to update message - either in parent or local state
+  const updateMessage = useCallback((messageId: string, content: string, isStreaming?: boolean) => {
+    if (useParentState && onUpdateMessage) {
+      onUpdateMessage(messageId, content, isStreaming);
+    } else {
+      setTextMessages(prev => 
+        prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, content, isStreaming }
+            : msg
+        )
+      );
+    }
+  }, [useParentState, onUpdateMessage]);
+
+  // Sync initialMessages to local state when parent state changes (but only if not using parent state management)
+  useEffect(() => {
+    if (!useParentState && initialMessages) {
+      setTextMessages(convertDisplayToText(initialMessages));
+    }
+  }, [initialMessages, useParentState]);
+
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       // Instant scroll to bottom with no animation
@@ -82,7 +138,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
   // Default to bottom on any state change or transition
   useEffect(() => {
     scrollToBottom();
-  }, [textMessages, currentStreamingMessage, previewMode]);
+  }, [effectiveMessages, currentStreamingMessage, previewMode]);
 
   // Also scroll to bottom when component first mounts
   useEffect(() => {
@@ -118,7 +174,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
             isLocal: true
           };
           
-          setTextMessages(prev => [...prev, userMessage]);
+          addMessage(userMessage);
           
           // Send to LiveKit for model processing
           await liveKitSend(data.resp.text);
@@ -142,17 +198,11 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
               isStreaming: true
             };
             
-            setTextMessages(prev => [...prev, assistantMessage]);
+            addMessage(assistantMessage);
           } else if (data.text === '[DONE]' || data.text === '[INTERRUPTED]') {
             // Finalize the streaming message
             if (streamingMessageId.current) {
-              setTextMessages(prev => 
-                prev.map(msg => 
-                  msg.id === streamingMessageId.current 
-                    ? { ...msg, content: currentStreamingMessage, isStreaming: false }
-                    : msg
-                )
-              );
+              updateMessage(streamingMessageId.current, currentStreamingMessage, false);
               setCurrentStreamingMessage('');
               streamingMessageId.current = null;
             }
@@ -162,13 +212,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
             
             // Update the streaming message in real-time
             if (streamingMessageId.current) {
-              setTextMessages(prev => 
-                prev.map(msg => 
-                  msg.id === streamingMessageId.current 
-                    ? { ...msg, content: currentStreamingMessage + data.text }
-                    : msg
-                )
-              );
+              updateMessage(streamingMessageId.current, currentStreamingMessage + data.text, true);
             }
           }
         }
@@ -210,7 +254,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
       if (msg.from?.identity === 'avatar' || 
           (msg.from?.identity !== 'user' && 
            msg.message?.trim() && 
-           !textMessages.some(existingMsg => 
+           !effectiveMessages.some(existingMsg => 
              existingMsg.content === msg.message && 
              existingMsg.role === 'user' && 
              Math.abs(new Date().getTime() - existingMsg.timestamp.getTime()) < 5000
@@ -225,7 +269,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
         };
         
         console.log('Adding assistant message to text chat:', assistantMessage);
-        setTextMessages(prev => [...prev, assistantMessage]);
+        addMessage(assistantMessage);
       } else {
         console.log('Skipping message (likely user echo):', {
           identity: msg.from?.identity,
@@ -235,7 +279,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
     });
     
     lastLiveKitMessageCount.current = liveKitMessages.length;
-  }, [liveKitMessages, textMessages, previewMode]);
+  }, [liveKitMessages, effectiveMessages, previewMode, addMessage]);
 
   // Reset transcription index when leaving
   useEffect(() => {
@@ -272,7 +316,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
         isLocal: true
       };
       
-      setTextMessages(prev => [...prev, userMessage]);
+      addMessage(userMessage);
       
       // Send to LiveKit for model processing
       await liveKitSend(inputValue.trim());
@@ -307,18 +351,18 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
         {!previewMode && isVideoMode && (
           <div className="bg-blue-900/20 border border-blue-500/30 rounded px-3 py-2 mb-3 text-xs text-blue-200">
             <div className="flex justify-between items-center">
-              <span>Debug | Messages: {textMessages.length} | LiveKit: {liveKitMessages.length} | Streaming: {streamingMessageId.current ? 'Yes' : 'No'}</span>
+              <span>Debug | Messages: {effectiveMessages.length} | LiveKit: {liveKitMessages.length} | Streaming: {streamingMessageId.current ? 'Yes' : 'No'}</span>
               <div className="text-xs text-blue-300">
                 Last LK: {liveKitMessages.length > 0 ? liveKitMessages[liveKitMessages.length - 1]?.from?.identity || 'unknown' : 'none'}
               </div>
             </div>
             <div className="mt-1 text-xs text-blue-300/80">
-              Recent: {textMessages.slice(-2).map(m => `${m.role}(${m.isLocal ? 'local' : 'remote'})`).join(', ')}
+              Recent: {effectiveMessages.slice(-2).map(m => `${m.role}(${m.isLocal ? 'local' : 'remote'})`).join(', ')}
             </div>
           </div>
         )}
 
-        {textMessages.length === 0 ? (
+        {effectiveMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-white/60 text-sm drop-shadow-md">
             {previewMode 
               ? (isVideoMode && !firstFrameReceived 
@@ -328,7 +372,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
           </div>
         ) : (
           <div className="space-y-3">
-            {textMessages.map((msg) => {
+            {effectiveMessages.map((msg) => {
               const isUser = msg.role === 'user';
               return (
                 <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
