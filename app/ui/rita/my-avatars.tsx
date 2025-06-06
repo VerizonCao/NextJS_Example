@@ -6,7 +6,6 @@ import { startStreamingSession } from '@/app/lib/actions';
 import { incrementAvatarRequestCounter } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useSession } from 'next-auth/react';
-import AvatarPopup from './avatar-popup';
 import LoginPopup from './login-popup';
 import { Card } from '@/app/components/card';
 import { X, AlertCircle } from 'lucide-react';
@@ -85,81 +84,18 @@ function WarningPopup({
 export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
   const router = useRouter();
   const { data: session } = useSession();
-  const [selectedAvatar, setSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [showWarningPopup, setShowWarningPopup] = useState(false);
   const [streamCount, setStreamCount] = useState({ current: 0, max: 6 });
 
-  const handleStream = async (avatar: UserAvatar) => {
+  const handleCardClick = (avatar: UserAvatar) => {
     if (!session) {
       setShowLoginPopup(true);
-      setSelectedAvatar(null);
       return;
     }
-
-    if (!avatar.image_uri) {
-      console.error('No image URI available for this avatar');
-      return;
-    }
-    
-    const roomName = generateRoomId();
-    const returnPath = '/';
-    const presignedUrl = avatar.presignedUrl || '';
-
-    const query = new URLSearchParams({
-      returnPath,
-      presignedUrl,
-      prompt: avatar.prompt || '',
-      scene: avatar.scene_prompt || '',
-      bio: avatar.agent_bio || '',
-      avatar_name: avatar.avatar_name || '',
-      avatar_id: avatar.avatar_id || '',
-    }).toString();
-
-    // Delete any previous room for this user
-    if (session?.user?.email) {
-      deleteUserPreviousRoomAction(session.user.email, roomName);
-    }
-
-    try {
-      const response = await startStreamingSession({
-        instruction: "test",
-        seconds: 600,
-        room: roomName,
-        avatarSource: avatar.image_uri,
-        avatar_id: avatar.avatar_id,
-        llmUserNickname: session?.user?.name || 'Friend',
-        llmUserBio: 'a friend',
-        llmAssistantNickname: avatar.avatar_name,
-        llmAssistantBio: avatar.agent_bio || 'this is an agent bio',
-        llmAssistantAdditionalCharacteristics: avatar.prompt,
-        llmConversationContext: avatar.scene_prompt,
-        ttsVoiceIdCartesia: avatar.voice_id,
-        userEmail: session?.user?.email || '',
-      });
-
-      // Store the room ID for this user
-      if (session?.user?.email) {
-        storeUserRoomAction(session.user.email, roomName);
-      }
-    
-      if (!response.success && response.error === 'LIMIT_REACHED') {
-        setStreamCount({ current: response.currentCount, max: response.maxCount });
-        setShowWarningPopup(true);
-        return;
-      }
-
-      await incrementAvatarRequestCounter(avatar.avatar_id);
-      router.push(`/rooms/${roomName}?${query}`);
-    } catch (error) {
-      console.error('Failed to start streaming session:', error);
-    }
+    // Navigate directly to chat page
+    router.push(`/chat/${avatar.avatar_id}`);
   };
-
-  const currentSelectedAvatar = initialAvatars.avatars?.find(avatar => 
-    selectedAvatar?.id === avatar.avatar_id && 
-    selectedAvatar?.type === 'my'
-  );
 
   if (!initialAvatars.success || !initialAvatars.avatars) {
     return (
@@ -189,7 +125,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
         <Card
           key={avatar.avatar_id}
           className="relative w-[18.75%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh]"
-          onClick={() => setSelectedAvatar(selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? null : {id: avatar.avatar_id, type: 'my'})}
+          onClick={() => handleCardClick(avatar)}
         >
           {avatar.presignedUrl ? (
             <>
@@ -197,7 +133,7 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
                 src={avatar.presignedUrl}
                 alt={avatar.avatar_name}
                 className="object-cover w-full h-full"
-                loading={selectedAvatar?.id === avatar.avatar_id && selectedAvatar?.type === 'my' ? 'eager' : 'lazy'}
+                loading="lazy"
               />
               <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-3 bg-gradient-to-t from-black/80 via-black/45 to-black/1">
                 <div className="self-stretch font-['Montserrat',Helvetica] font-semibold text-white text-base leading-tight truncate">
@@ -213,19 +149,6 @@ export default function MyAvatars({ initialAvatars }: MyAvatarsProps) {
           )}
         </Card>
       ))}
-      {/* Create card - temporarily commented out
-      <Card
-        className="relative w-[15%] min-w-[150px] aspect-[0.56] rounded-[6.59px] overflow-hidden p-0 border-0 transition-transform duration-300 ease-in-out hover:scale-105 cursor-pointer mb-[2vh] bg-[#1A56DB] flex items-center justify-center"
-        onClick={() => router.push('/create')}
-      >
-        <div className="text-4xl text-white">+</div>
-      </Card>
-      */}
-      <AvatarPopup
-        avatar={currentSelectedAvatar || null}
-        onStream={handleStream}
-        onClose={() => setSelectedAvatar(null)}
-      />
       <LoginPopup 
         isOpen={showLoginPopup} 
         onClose={() => setShowLoginPopup(false)} 

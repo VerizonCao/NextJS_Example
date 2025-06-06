@@ -15,7 +15,6 @@ import {
 } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useSession } from 'next-auth/react';
-import AvatarPopup from '@/app/ui/rita/avatar-popup';
 import LoginPopup from '@/app/ui/rita/login-popup';
 import { Card } from '@/app/components/card';
 import { X, AlertCircle, ThumbsUp, Loader2, SearchIcon, BellIcon } from 'lucide-react';
@@ -153,7 +152,6 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   // ========================================================
 
   const router = useRouter();
-  const [globalSelectedAvatar, setGlobalSelectedAvatar] = useState<{id: string | number, type: 'rita' | 'my'} | null>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [showWarningPopup, setShowWarningPopup] = useState(false);
   const [streamCount, setStreamCount] = useState({ current: 0, max: 6 });
@@ -324,74 +322,14 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     }
   }, [initialAvatars.avatars]);
 
-  const handleStream = async (avatarId: string) => {
+  const handleCardClick = (avatar: UserAvatar) => {
     if (!session) {
       setShowLoginPopup(true);
       return;
     }
-
-    const roomName = generateRoomId();
-    const avatar = initialAvatars.avatars?.find(a => a.avatar_id === avatarId);
-    
-    if (!avatar) return;
-    
-    // Delete any previous room for this user
-    if (session?.user?.email) {
-      deleteUserPreviousRoomAction(session.user.email, roomName);
-    }
-
-    try {
-      const response = await startStreamingSession({
-        instruction: "test",
-        seconds: 600,
-        room: roomName,
-        avatarSource: avatar.image_uri,
-        avatar_id: avatar.avatar_id,
-        llmUserNickname: session?.user?.name || 'Friend',
-        llmUserBio: 'a friend',
-        llmAssistantNickname: avatar.avatar_name,
-        llmAssistantBio: avatar.prompt,
-        llmAssistantAdditionalCharacteristics: avatar.prompt,
-        llmConversationContext: avatar.scene_prompt,
-        ttsVoiceIdCartesia: avatar.voice_id,
-        userEmail: session?.user?.email || '',
-      });
-
-      // Store the room ID for this user
-      if (session?.user?.email) {
-        storeUserRoomAction(session.user.email, roomName);
-      }
-
-      if (!response.success && response.error === 'LIMIT_REACHED') {
-        setStreamCount({ current: response.currentCount, max: response.maxCount });
-        setShowWarningPopup(true);
-        return;
-      }
-
-      await incrementAvatarRequestCounter(avatarId);
-      const returnPath = '/';
-      const presignedUrl = avatar.presignedUrl || '';
-
-      const query = new URLSearchParams({
-        returnPath,
-        presignedUrl,
-        prompt: avatar.prompt || '',
-        scene: avatar.scene_prompt || '',
-        bio: avatar.agent_bio || '',
-        avatar_name: avatar.avatar_name || '',
-        avatar_id: avatar.avatar_id || '',
-      }).toString();
-
-      router.push(`/rooms/${roomName}?${query}`);
-    } catch (error) {
-      console.error('Failed to start streaming session:', error);
-    }
+    // Navigate directly to chat page
+    router.push(`/chat/${avatar.avatar_id}`);
   };
-
-  const selectedAvatar = avatars.find(avatar => 
-    globalSelectedAvatar?.id === avatar.avatar_id && 
-    globalSelectedAvatar?.type === 'rita'
-  );
 
   // Listen for navbar collapse state changes
   useEffect(() => {
@@ -646,7 +584,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                                 height: `${gridConfig.cardHeight}px`,
                                 flexShrink: 0
                               }}
-                              onClick={() => setGlobalSelectedAvatar(globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? null : {id: avatar.avatar_id, type: 'rita'})}
+                              onClick={() => handleCardClick(avatar)}
                               showThumbCount={false}
                             >
                               {avatar.presignedUrl && (
@@ -655,7 +593,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                                     src={avatar.presignedUrl}
                                     alt={avatar.avatar_name}
                                     className="object-cover w-full h-full"
-                                    loading={globalSelectedAvatar?.id === avatar.avatar_id && globalSelectedAvatar?.type === 'rita' ? 'eager' : 'lazy'}
+                                    loading="lazy"
                                   />
                                   {/* Character info overlay - positioned at the bottom */}
                                   <div className="absolute bottom-0 w-full">
@@ -713,23 +651,6 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
             </div>
           </div>
         </div>
-
-        <AvatarPopup
-          avatar={selectedAvatar ? {
-            avatar_id: selectedAvatar.avatar_id,
-            avatar_name: selectedAvatar.avatar_name,
-            image_uri: selectedAvatar.image_uri,
-            create_time: selectedAvatar.create_time,
-            prompt: selectedAvatar.prompt,
-            agent_bio: selectedAvatar.agent_bio,
-            presignedUrl: selectedAvatar.presignedUrl,
-            scene_prompt: selectedAvatar.scene_prompt,
-            voice_id: selectedAvatar.voice_id,
-            thumb_count: avatarThumbCounts[selectedAvatar.avatar_id] || selectedAvatar.thumb_count || 0,
-          } : null}
-          onStream={() => selectedAvatar && handleStream(selectedAvatar.avatar_id)}
-          onClose={() => setGlobalSelectedAvatar(null)}
-        />
 
         <LoginPopup 
           isOpen={showLoginPopup} 

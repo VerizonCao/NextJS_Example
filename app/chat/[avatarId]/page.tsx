@@ -40,44 +40,54 @@ export default function ChatPage({
   // Get avatar ID for navigation
   const [avatarId, setAvatarId] = React.useState<string>('');
   
-  // Chat history state - loaded once and maintained throughout
+  // Chat history state - loaded asynchronously after UI loads
   const [chatHistory, setChatHistory] = React.useState<any[]>([]);
   const [hasHistory, setHasHistory] = React.useState<boolean>(false);
-  const [historyLoading, setHistoryLoading] = React.useState<boolean>(true);
+  const [historyLoading, setHistoryLoading] = React.useState<boolean>(false);
   
   React.useEffect(() => {
     params.then(resolvedParams => setAvatarId(resolvedParams.avatarId));
   }, [params]);
 
-  // Load chat history once when avatarId is available
+  // Load chat history asynchronously in background - non-blocking
   React.useEffect(() => {
     async function loadHistory() {
       if (!avatarId) return;
       
       setHistoryLoading(true);
       try {
-        const result = await loadChatHistory(avatarId);
-        if (result.error) {
-          console.error('Error loading chat history:', result.error);
-          setHasHistory(false);
-          setChatHistory([]);
-        } else {
-          setHasHistory(result.hasHistory || false);
-          // Convert to display format for TextChat
-          const convertedMessages = (result.messages || []).map((msg: ChatMessage) => ({
-            id: msg.id,
-            content: msg.content,
-            role: msg.role as 'user' | 'assistant',
-            timestamp: new Date(msg.created_at)
-          }));
-          setChatHistory(convertedMessages);
-          console.log('Loaded chat history:', { hasHistory: result.hasHistory, messageCount: convertedMessages.length });
-        }
+        // Use setTimeout to make this truly non-blocking
+        setTimeout(async () => {
+          try {
+            const result = await loadChatHistory(avatarId);
+            if (result.error) {
+              console.error('Error loading chat history:', result.error);
+              setHasHistory(false);
+              setChatHistory([]);
+            } else {
+              setHasHistory(result.hasHistory || false);
+              // Convert to display format for TextChat
+              const convertedMessages = (result.messages || []).map((msg: ChatMessage) => ({
+                id: msg.id,
+                content: msg.content,
+                role: msg.role as 'user' | 'assistant',
+                timestamp: new Date(msg.created_at)
+              }));
+              setChatHistory(convertedMessages);
+              console.log('Loaded chat history:', { hasHistory: result.hasHistory, messageCount: convertedMessages.length });
+            }
+          } catch (error) {
+            console.error('Failed to load chat history:', error);
+            setHasHistory(false);
+            setChatHistory([]);
+          } finally {
+            setHistoryLoading(false);
+          }
+        }, 0);
       } catch (error) {
         console.error('Failed to load chat history:', error);
         setHasHistory(false);
         setChatHistory([]);
-      } finally {
         setHistoryLoading(false);
       }
     }
@@ -130,7 +140,7 @@ export default function ChatPage({
     setIsVideoModeOverride(false);
   }, [room]);
 
-  // Loading state
+  // Show UI immediately when avatar data is available, don't wait for history
   if (isLoading) {
     return <Loading isVideoMode={isVideoMode} />;
   }
@@ -140,6 +150,7 @@ export default function ChatPage({
     return <Error error={error || 'Failed to load avatar'} />;
   }
 
+  // Show UI immediately - chat history loading happens in background
   // Video mode - New layout design
   if (isVideoMode) {
     return (
