@@ -8,7 +8,8 @@ import { useState, useEffect, useRef } from 'react';
 import AuthButton from '@/app/home/tab/buttons/auth-button';
 import SignOutButton from '@/app/home/tab/buttons/signout-button';
 import { useSession } from 'next-auth/react';
-import { getUserPreferredNameAction } from '@/app/lib/actions';
+import { getUserPreferredNameAction, getRecentChatAvatarsAction, RecentChatAvatarWithUrl } from '@/app/lib/actions';
+import './scrollbar.css';
 
 type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
@@ -32,6 +33,8 @@ export default function LandscapeSideNav() {
   const [displayName, setDisplayName] = useState('');
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [recentChats, setRecentChats] = useState<RecentChatAvatarWithUrl[]>([]);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
   const userButtonRef = useRef<HTMLButtonElement>(null);
   const moreIconRef = useRef<SVGSVGElement>(null);
   
@@ -56,6 +59,33 @@ export default function LandscapeSideNav() {
 
     fetchPreferredName();
   }, [userEmail, userName]);
+
+  // Fetch recent chats
+  useEffect(() => {
+    const fetchRecentChats = async () => {
+      if (!session || !userEmail) {
+        setRecentChats([]);
+        return;
+      }
+      
+      setIsLoadingChats(true);
+      try {
+        const { success, avatars } = await getRecentChatAvatarsAction(userEmail, 10);
+        if (success && avatars) {
+          setRecentChats(avatars);
+        } else {
+          setRecentChats([]);
+        }
+      } catch (error) {
+        console.error('Error fetching recent chats:', error);
+        setRecentChats([]);
+      } finally {
+        setIsLoadingChats(false);
+      }
+    };
+
+    fetchRecentChats();
+  }, [session, userEmail]);
 
   const mainNavItems: NavItem[] = [
     {
@@ -173,7 +203,7 @@ export default function LandscapeSideNav() {
       <div className="w-full h-[1px] bg-[#8f909240]" />
 
       {/* Navigation menu */}
-      <div className={`flex flex-col items-start gap-2 w-full flex-grow overflow-y-auto transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4 2xl:px-6'} py-2 2xl:py-6`}>
+      <div className={`flex flex-col items-start gap-2 w-full transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4 2xl:px-6'} py-2 2xl:py-6`}>
         {mainNavItems.map((item, index) => {
           const IconComponent = item.icon;
           const active = isActive(item.href);
@@ -209,8 +239,62 @@ export default function LandscapeSideNav() {
         })}
       </div>
 
+      {/* Recent Chats Section */}
+      {session && recentChats.length > 0 && (
+        <>
+          {/* Separator */}
+          <div className="w-full h-[1px] bg-[#8f909240]" />
+          
+          <div className={`flex flex-col w-full flex-1 min-h-0 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4 2xl:px-6'} py-2`}>
+            {!isCollapsed && (
+              <div className="flex items-center justify-between mb-2 flex-shrink-0">
+                <h3 className="text-[#8f9092] text-sm font-medium [font-family:'Montserrat',Helvetica]">
+                  Recent Chats
+                </h3>
+              </div>
+            )}
+            
+            <div className={`flex flex-col gap-2 flex-1 overflow-y-auto dark-scrollbar ${isCollapsed ? 'items-center' : ''}`}>
+              {recentChats.map((chat) => (
+                <button
+                  key={chat.avatar_id}
+                  onClick={() => router.push(`/chat/${chat.avatar_id}`)}
+                  className={`flex items-center gap-3 w-full rounded-[12px] h-auto transition-colors duration-200 group hover:bg-[#ffffff1a] flex-shrink-0 ${isCollapsed ? 'justify-center px-2 py-2' : 'justify-start px-3 py-2'}`}
+                  title={isCollapsed ? chat.avatar_name : undefined}
+                >
+                  {/* Avatar Image */}
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-[#d9d9d9]">
+                    {chat.presignedUrl ? (
+                      <img
+                        src={chat.presignedUrl}
+                        alt={chat.avatar_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#2a2a2e] flex items-center justify-center">
+                        <span className="text-white text-xs font-medium">
+                          {chat.avatar_name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {!isCollapsed && (
+                    <div className="flex flex-col items-start justify-center flex-1 min-w-0">
+                      <span className="text-white text-sm font-medium [font-family:'Montserrat',Helvetica] truncate w-full">
+                        {chat.avatar_name}
+                      </span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* User profile section at bottom */}
-      <div className={`flex flex-col items-center justify-end gap-2 w-full transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-6'} py-6`}>
+      <div className={`flex flex-col items-center justify-end gap-2 w-full mt-auto transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-6'} py-6`}>
         {session ? (
           <div className="relative w-full">
             <button

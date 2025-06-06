@@ -150,4 +150,46 @@ export async function hasChatHistory(userId: string, avatarId: string): Promise<
     console.error('Error checking chat history:', error);
     return false;
   }
+}
+
+export type RecentChatAvatar = {
+  avatar_id: string;
+  avatar_name: string;
+  image_uri: string | null;
+  updated_time: Date;
+};
+
+/**
+ * Get the most recent avatars from chat_sessions with their profiles
+ * @param userId The user ID to get recent chats for
+ * @param limit Optional limit on number of avatars to return (default: 10)
+ * @returns Promise<RecentChatAvatar[]> Array of recent chat avatars with profiles
+ */
+export async function getRecentChatAvatars(userId: string, limit: number = 10): Promise<RecentChatAvatar[]> {
+  try {
+    const result = await sql<RecentChatAvatar[]>`
+      WITH latest_chats AS (
+        SELECT DISTINCT ON (avatar_id)
+          avatar_id,
+          updated_time
+        FROM chat_sessions
+        WHERE user_id = ${userId}
+        ORDER BY avatar_id, updated_time DESC
+      )
+      SELECT 
+        lc.avatar_id,
+        a.avatar_name,
+        a.image_uri,
+        lc.updated_time
+      FROM latest_chats lc
+      JOIN avatars a ON lc.avatar_id = a.avatar_id
+      ORDER BY lc.updated_time DESC
+      LIMIT ${limit}
+    `;
+    
+    return result;
+  } catch (error) {
+    console.error('Error getting recent chat avatars:', error);
+    return [];
+  }
 } 

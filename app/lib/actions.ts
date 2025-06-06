@@ -1,6 +1,7 @@
 // Re-export all actions from their respective modules
 export * from './actions/auth';
 export * from './actions/avatar';
+export * from './actions/chat';
 export * from './actions/invoice';
 export * from './actions/room';
 export * from './actions/s3';
