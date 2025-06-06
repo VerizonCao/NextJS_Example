@@ -95,7 +95,7 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
     }
     if (avatar) {
       // Navigate to chat page with video mode parameter
-      router.push(`/chat/${avatar.avatar_id}?mode=video`);
+      router.push(`/chat/${avatar.avatar_id}`);
     }
   };
 

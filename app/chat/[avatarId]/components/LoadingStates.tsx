@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { ChatControlWrapper } from './ChatControls';
 
 interface LoadingProps {
   isVideoMode?: boolean;
@@ -80,12 +81,12 @@ export function Loading({ isVideoMode = false }: LoadingProps) {
                   {/* Spacer */}
                   <div className="flex-1 min-h-0"></div>
 
-                  {/* Bottom Section Skeleton */}
-                  <div className="flex flex-col items-center gap-4 mt-6 flex-shrink-0 animate-pulse">
-                    <div className="border-t border-white/20 p-4 w-full">
-                      <div className="h-12 bg-white/20 rounded-full w-full" />
+                  {/* Bottom Section Skeleton - Using shared ChatControlWrapper */}
+                  <ChatControlWrapper className="border-t border-white/20">
+                    <div className="flex items-center justify-center w-full h-full px-4 animate-pulse">
+                      <div className="h-8 bg-white/20 rounded-full w-full" />
                     </div>
-                  </div>
+                  </ChatControlWrapper>
                 </div>
               </div>
             </div>

@@ -1227,4 +1227,13 @@ export async function sendImageModerationTask(imgPath: string, avatarId: string)
   }
 }
 
+// Chat session database functions - Re-exported from dedicated chat module
+export type { ChatMessage, ChatSession } from './data/chat';
+export {
+  getLatestChatSession,
+  getChatSessions,
+  getLatestChatMessages,
+  hasChatHistory
+} from './data/chat';
+
 

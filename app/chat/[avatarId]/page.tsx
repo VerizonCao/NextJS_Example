@@ -16,6 +16,9 @@ import { TextChat } from './components/TextChat';
 import { ChatControls } from './components/ChatControls';
 import { Loading, Error } from './components/LoadingStates';
 import { PageParams } from './types/chat.types';
+import { loadChatHistory } from '@/app/lib/actions/user';
+import type { ChatMessage } from '@/app/lib/data';
+import { ChatControlWrapper } from './components/ChatControls';
 
 export default function ChatPage({
   params,
@@ -25,9 +28,10 @@ export default function ChatPage({
   // Load avatar data
   const { avatar, presignedUrl, isLoading, error } = useAvatarData(params);
   
-  // Determine if we're in video mode
+  // Determine if we're in video mode - using local state override
   const searchParams = useSearchParams();
-  const isVideoMode = searchParams.get('mode') === 'video';
+  const [isVideoModeOverride, setIsVideoModeOverride] = React.useState<boolean | null>(null);
+  const isVideoMode = isVideoModeOverride !== null ? isVideoModeOverride : searchParams.get('mode') === 'video';
   
   // Setup video streaming
   const {
@@ -40,9 +44,51 @@ export default function ChatPage({
 
   // Get avatar ID for navigation
   const [avatarId, setAvatarId] = React.useState<string>('');
+  
+  // Chat history state - loaded once and maintained throughout
+  const [chatHistory, setChatHistory] = React.useState<any[]>([]);
+  const [hasHistory, setHasHistory] = React.useState<boolean>(false);
+  const [historyLoading, setHistoryLoading] = React.useState<boolean>(true);
+  
   React.useEffect(() => {
     params.then(resolvedParams => setAvatarId(resolvedParams.avatarId));
   }, [params]);
+
+  // Load chat history once when avatarId is available
+  React.useEffect(() => {
+    async function loadHistory() {
+      if (!avatarId) return;
+      
+      setHistoryLoading(true);
+      try {
+        const result = await loadChatHistory(avatarId);
+        if (result.error) {
+          console.error('Error loading chat history:', result.error);
+          setHasHistory(false);
+          setChatHistory([]);
+        } else {
+          setHasHistory(result.hasHistory || false);
+          // Convert to display format for TextChat
+          const convertedMessages = (result.messages || []).map((msg: ChatMessage) => ({
+            id: msg.id,
+            content: msg.content,
+            role: msg.role as 'user' | 'assistant',
+            timestamp: new Date(msg.created_at)
+          }));
+          setChatHistory(convertedMessages);
+          console.log('Loaded chat history:', { hasHistory: result.hasHistory, messageCount: convertedMessages.length });
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+        setHasHistory(false);
+        setChatHistory([]);
+      } finally {
+        setHistoryLoading(false);
+      }
+    }
+
+    loadHistory();
+  }, [avatarId]);
 
   // Auto-collapse sidebar when entering chat
   React.useEffect(() => {
@@ -67,6 +113,21 @@ export default function ChatPage({
     
     return () => clearTimeout(timer);
   }, []); // Only run once when component mounts
+
+  // Determine chat state based on video mode and connection status
+  const isChatActive = isVideoMode && room && preJoinChoices && connectionDetails && firstFrameReceived;
+  const showChatPreview = !isVideoMode && !historyLoading;
+
+  // Handle leaving video chat - return to info mode without page refresh
+  const handleLeaveVideoChat = React.useCallback(() => {
+    // Disconnect from LiveKit room if connected
+    if (room && room.state === 'connected') {
+      room.disconnect();
+    }
+    
+    // Switch back to info mode using state
+    setIsVideoModeOverride(false);
+  }, [room]);
 
   // Loading state
   if (isLoading) {
@@ -130,9 +191,9 @@ export default function ChatPage({
               </p>
             </div>
 
-            {/* Chat Messages Area */}
+            {/* Single TextChat Component - Active or Loading */}
             <div className="flex-1 min-h-0">
-              {room && preJoinChoices && connectionDetails && firstFrameReceived && (
+              {isChatActive ? (
                 <LiveKitRoom
                   room={room}
                   token={connectionDetails.participantToken}
@@ -140,8 +201,21 @@ export default function ChatPage({
                   video={false}
                   audio={false}
                 >
-                  <TextChat avatar_name={avatar.avatar_name} avatarId={avatarId} />
+                  <TextChat 
+                    avatar_name={avatar.avatar_name} 
+                    avatarId={avatarId}
+                    initialMessages={chatHistory}
+                    onLeaveChat={handleLeaveVideoChat}
+                  />
                 </LiveKitRoom>
+              ) : (
+                <TextChat 
+                  avatar_name={avatar.avatar_name} 
+                  avatarId={avatarId}
+                  initialMessages={chatHistory}
+                  previewMode={true}
+                  onLeaveChat={handleLeaveVideoChat}
+                />
               )}
             </div>
           </div>
@@ -150,7 +224,7 @@ export default function ChatPage({
     );
   }
 
-  // Regular chat mode (non-video) - Simplified design
+  // Regular chat mode (non-video) - Simplified design with seamless chat
   return (
     <ChatLayout backgroundImage={presignedUrl}>
       {/* Character Image */}
@@ -163,52 +237,79 @@ export default function ChatPage({
         />
       )}
       
-      {/* Character Info - Same container logic as video chat */}
+      {/* Character Info and Chat */}
       <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0 min-w-[500px]">
         <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-sm rounded-r-[5px] border-r border-t border-b border-white/10 overflow-hidden">
-          <div className="flex flex-col h-full p-4 lg:p-[15.12px]">
-            
-            {/* Profile Header */}
-            <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-shrink-0">
-              <div className="flex items-center gap-4 lg:gap-[15.12px]">
-                {presignedUrl && (
-                  <img
-                    className="w-16 h-16 lg:w-[68.04px] lg:h-[68.04px] object-cover rounded-full flex-shrink-0 border-2 border-white/20"
-                    alt="Avatar"
-                    src={presignedUrl}
-                  />
-                )}
+          
+          {/* Profile Header */}
+          <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-shrink-0 p-4 lg:p-[15.12px]">
+            <div className="flex items-center gap-4 lg:gap-[15.12px]">
+              {presignedUrl && (
+                <img
+                  className="w-16 h-16 lg:w-[68.04px] lg:h-[68.04px] object-cover rounded-full flex-shrink-0 border-2 border-white/20"
+                  alt="Avatar"
+                  src={presignedUrl}
+                />
+              )}
 
-                <div className="flex flex-col gap-2 lg:gap-[7.56px] flex-1 min-w-0">
-                  <h2 className="font-bold text-white text-lg lg:text-[16.4px] drop-shadow-lg">
-                    {avatar.avatar_name || 'Unknown Avatar'}
-                  </h2>
-                  <p className="font-medium text-white text-base lg:text-[13.3px] drop-shadow-md">
-                    {avatar.agent_bio || 'No bio available'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="w-full h-px bg-white/20" />
-            </div>
-
-            {/* Spacer */}
-            <div className="flex-1 min-h-0"></div>
-
-            {/* Bottom Section with Start Chat Button */}
-            <div className="flex flex-col items-center gap-4 mt-6 flex-shrink-0">
-              <div className="border-t border-white/20 p-4 w-full">
-                <div className="flex flex-col gap-3">
-                  {/* Start Video Chat */}
-                  <Link href={`/chat/${avatarId}?mode=video`} className="w-full block">
-                    <button className="flex items-center justify-center w-full bg-[#00000033] hover:bg-[#ffffff1a] rounded-full py-3 px-6 transition-colors backdrop-blur-sm">
-                      <span className="text-white text-sm font-medium drop-shadow-md">Start Video Chat</span>
-                    </button>
-                  </Link>
-                </div>
+              <div className="flex flex-col gap-2 lg:gap-[7.56px] flex-1 min-w-0">
+                <h2 className="font-bold text-white text-lg lg:text-[16.4px] drop-shadow-lg">
+                  {avatar.avatar_name || 'Unknown Avatar'}
+                </h2>
+                <p className="font-medium text-white text-base lg:text-[13.3px] drop-shadow-md">
+                  {avatar.agent_bio || 'No bio available'}
+                </p>
               </div>
             </div>
+
+            <div className="w-full h-px bg-white/20" />
           </div>
+
+          {/* Chat History Section - Seamless Integration */}
+          <div className="flex-1 min-h-0 flex flex-col">
+            {showChatPreview && hasHistory && (
+              <div className="px-4 py-2 bg-black/20 border-b border-white/20">
+                <h3 className="text-white text-sm font-medium">Previous Conversation</h3>
+                <p className="text-white/60 text-xs">Continue your chat or start a new session</p>
+              </div>
+            )}
+            
+            {/* Loading indicator for chat history */}
+            {historyLoading && (
+              <div className="flex items-center justify-center flex-1 p-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  <span className="text-white/60 text-sm">Loading chat history...</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Single TextChat Component - Seamless */}
+            {showChatPreview && (
+              <div className="flex-1 h-full">
+                <TextChat 
+                  avatar_name={avatar.avatar_name} 
+                  avatarId={avatarId}
+                  initialMessages={chatHistory}
+                  previewMode={true}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Section with Start Chat Button - Using shared ChatControlWrapper */}
+          <ChatControlWrapper className="border-t border-white/20">
+            <div className="flex items-center justify-center w-full h-full px-4">
+              <button 
+                onClick={() => setIsVideoModeOverride(true)}
+                className="flex items-center justify-center w-full bg-[#00000033] hover:bg-[#ffffff1a] rounded-full py-2 px-6 transition-colors backdrop-blur-sm"
+              >
+                <span className="text-white text-sm font-medium drop-shadow-md">
+                  {hasHistory ? 'Continue Video Chat' : 'Start Video Chat'}
+                </span>
+              </button>
+            </div>
+          </ChatControlWrapper>
         </div>
       </div>
     </ChatLayout>

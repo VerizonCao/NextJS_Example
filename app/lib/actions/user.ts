@@ -9,6 +9,7 @@ import {
   findUserPreviousRoom,
   storeUserRoom
 } from '../data';
+import { auth } from '@/auth';
 
 /**
  * Server action to get the serve count for a user
@@ -198,5 +199,42 @@ export async function storeUserRoomAction(
       success: false,
       message: 'An error occurred while storing room'
     };
+  }
+}
+
+export async function loadChatHistory(avatarId: string) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user?.email) {
+      return { error: 'User not authenticated' };
+    }
+
+    // Get user_id from email
+    const userId = await getUserByIdEmail(session.user.email);
+    if (!userId) {
+      return { error: 'User not found in database' };
+    }
+
+    // Import chat functions from the new chat module
+    const { getLatestChatMessages, hasChatHistory } = await import('@/app/lib/data/chat');
+    
+    // Check if user has chat history with this avatar
+    const hasHistory = await hasChatHistory(userId, avatarId);
+    if (!hasHistory) {
+      return { messages: [], hasHistory: false };
+    }
+
+    // Get the latest chat messages
+    const messages = await getLatestChatMessages(userId, avatarId);
+    
+    return { 
+      messages, 
+      hasHistory: true,
+      userId 
+    };
+  } catch (error) {
+    console.error('Error loading chat history:', error);
+    return { error: 'Failed to load chat history' };
   }
 } 
