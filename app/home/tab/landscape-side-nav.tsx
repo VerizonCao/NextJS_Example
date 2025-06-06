@@ -97,12 +97,10 @@ export default function LandscapeSideNav() {
         return;
       }
     }
-    if (label === "Chat") {
-      if (!session) {
-        // Redirect to login for chat history
-        router.push('/api/auth/signin');
-        return;
-      }
+    if (label === "Chat" && !session) {
+      // Redirect to login for chat history
+      router.push('/api/auth/signin');
+      return;
     }
     router.push(href);
   };
@@ -185,8 +183,8 @@ export default function LandscapeSideNav() {
             return null;
           }
           
-          // Hide Chat when not logged in
-          if (item.label === "Chat" && !session) {
+          // Hide Chat button (temporarily hidden)
+          if (item.label === "Chat") {
             return null;
           }
           
