@@ -198,11 +198,14 @@ export default function ChatPage({
             {/* Bottom Section with Start Chat Button */}
             <div className="flex flex-col items-center gap-4 mt-6 flex-shrink-0">
               <div className="border-t border-white/20 p-4 w-full">
-                <Link href={`/chat/${avatarId}?mode=video`} className="w-full block">
-                  <button className="flex items-center justify-center w-full bg-[#00000033] hover:bg-[#ffffff1a] rounded-full py-3 px-6 transition-colors backdrop-blur-sm">
-                    <span className="text-white text-sm font-medium drop-shadow-md">Start Chat</span>
-                  </button>
-                </Link>
+                <div className="flex flex-col gap-3">
+                  {/* Start Video Chat */}
+                  <Link href={`/chat/${avatarId}?mode=video`} className="w-full block">
+                    <button className="flex items-center justify-center w-full bg-[#00000033] hover:bg-[#ffffff1a] rounded-full py-3 px-6 transition-colors backdrop-blur-sm">
+                      <span className="text-white text-sm font-medium drop-shadow-md">Start Video Chat</span>
+                    </button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

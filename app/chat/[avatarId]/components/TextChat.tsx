@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   useChat,
-  ChatEntry,
   useRoomContext,
   TrackToggle
 } from '@livekit/components-react';
@@ -9,21 +8,40 @@ import { Track } from 'livekit-client';
 import { Mic, MicOff, Send, MoreVertical } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+// Independent message structure
+interface IndependentMessage {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant';
+  timestamp: Date;
+  isLocal?: boolean; // Flag to distinguish local vs LiveKit messages
+  isStreaming?: boolean; // Flag for streaming assistant messages
+}
+
 interface TextChatProps {
   avatar_name: string;
   avatarId: string;
 }
 
 export function TextChat({ avatar_name, avatarId }: TextChatProps) {
-  const { chatMessages, send, isSending } = useChat();
+  // LiveKit chat for sending messages and receiving responses
+  const { chatMessages: liveKitMessages, send: liveKitSend, isSending } = useChat();
+  
+  // Independent chat state
+  const [independentMessages, setIndependentMessages] = useState<IndependentMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
+  
+  // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const room = useRoomContext();
   const router = useRouter();
   const lastProcessedIndex = useRef<number>(-1);
+  const lastLiveKitMessageCount = useRef<number>(0);
+  const streamingMessageId = useRef<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -31,9 +49,9 @@ export function TextChat({ avatar_name, avatarId }: TextChatProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatMessages]);
+  }, [independentMessages, currentStreamingMessage]);
 
-  // Handle voice transcription
+  // Handle text streaming from LiveKit data channels
   useEffect(() => {
     if (!room) return;
 
@@ -41,14 +59,77 @@ export function TextChat({ avatar_name, avatarId }: TextChatProps) {
       try {
         const data = JSON.parse(new TextDecoder().decode(payload));
         
+        // Handle voice transcription
         if (data.type === 'voice_transcription' && data.resp.index !== undefined) {
           if (data.resp.index <= lastProcessedIndex.current) {
             return;
           }
           
           lastProcessedIndex.current = data.resp.index;
-          console.log('Adding voice transcription to chat:', data.resp.text);
-          await send(data.resp.text);
+          console.log('Adding voice transcription to independent chat:', data.resp.text);
+          
+          // Add user message to independent state immediately
+          const userMessage: IndependentMessage = {
+            id: `user-voice-${data.resp.index}`,
+            content: data.resp.text,
+            role: 'user',
+            timestamp: new Date(),
+            isLocal: true
+          };
+          
+          setIndependentMessages(prev => [...prev, userMessage]);
+          
+          // Send to LiveKit for model processing
+          await liveKitSend(data.resp.text);
+        }
+        
+        // Handle text streaming from the model
+        if (data.topic === 'llm_data') {
+          if (data.text === '[START]') {
+            // Start a new streaming message
+            const messageId = `assistant-stream-${Date.now()}`;
+            streamingMessageId.current = messageId;
+            setCurrentStreamingMessage('');
+            
+            // Add placeholder message
+            const assistantMessage: IndependentMessage = {
+              id: messageId,
+              content: '',
+              role: 'assistant',
+              timestamp: new Date(),
+              isLocal: false,
+              isStreaming: true
+            };
+            
+            setIndependentMessages(prev => [...prev, assistantMessage]);
+          } else if (data.text === '[DONE]' || data.text === '[INTERRUPTED]') {
+            // Finalize the streaming message
+            if (streamingMessageId.current) {
+              setIndependentMessages(prev => 
+                prev.map(msg => 
+                  msg.id === streamingMessageId.current 
+                    ? { ...msg, content: currentStreamingMessage, isStreaming: false }
+                    : msg
+                )
+              );
+              setCurrentStreamingMessage('');
+              streamingMessageId.current = null;
+            }
+          } else {
+            // Append to streaming message
+            setCurrentStreamingMessage(prev => prev + data.text);
+            
+            // Update the streaming message in real-time
+            if (streamingMessageId.current) {
+              setIndependentMessages(prev => 
+                prev.map(msg => 
+                  msg.id === streamingMessageId.current 
+                    ? { ...msg, content: currentStreamingMessage + data.text }
+                    : msg
+                )
+              );
+            }
+          }
         }
       } catch (error) {
         console.error('Error processing received data:', error);
@@ -59,12 +140,68 @@ export function TextChat({ avatar_name, avatarId }: TextChatProps) {
     return () => {
       room.off('dataReceived', handleDataReceived);
     };
-  }, [room, send]);
+  }, [room, liveKitSend, currentStreamingMessage]);
+
+  // Monitor LiveKit messages for assistant responses (fallback)
+  useEffect(() => {
+    if (liveKitMessages.length > lastLiveKitMessageCount.current) {
+      const newMessages = liveKitMessages.slice(lastLiveKitMessageCount.current);
+      
+      console.log('New LiveKit messages:', newMessages.map(msg => ({
+        id: msg.id,
+        message: msg.message,
+        from: msg.from,
+        timestamp: msg.timestamp
+      })));
+      
+      newMessages.forEach((msg) => {
+        console.log('Processing LiveKit message:', {
+          id: msg.id,
+          message: msg.message,
+          from: msg.from,
+          streamingActive: !!streamingMessageId.current,
+          messageContent: msg.message?.substring(0, 50) + '...'
+        });
+        
+        // Only add messages that are clearly from the assistant/avatar
+        // Avoid user message echoes by being more specific
+        if (msg.from?.identity === 'avatar' || 
+            (msg.from?.identity !== 'user' && 
+             msg.message?.trim() && 
+             !independentMessages.some(existingMsg => 
+               existingMsg.content === msg.message && 
+               existingMsg.role === 'user' && 
+               Math.abs(new Date().getTime() - existingMsg.timestamp.getTime()) < 5000
+             ))) {
+          
+          const assistantMessage: IndependentMessage = {
+            id: msg.id ?? `assistant-fallback-${Date.now()}`,
+            content: msg.message,
+            role: 'assistant',
+            timestamp: new Date(),
+            isLocal: false
+          };
+          
+          console.log('Adding assistant message to independent chat:', assistantMessage);
+          setIndependentMessages(prev => [...prev, assistantMessage]);
+        } else {
+          console.log('Skipping message (likely user echo):', {
+            identity: msg.from?.identity,
+            message: msg.message?.substring(0, 30)
+          });
+        }
+      });
+      
+      lastLiveKitMessageCount.current = liveKitMessages.length;
+    }
+  }, [liveKitMessages, independentMessages]);
 
   // Reset transcription index when leaving
   useEffect(() => {
     return () => {
       lastProcessedIndex.current = -1;
+      streamingMessageId.current = null;
+      setCurrentStreamingMessage('');
     };
   }, []);
 
@@ -85,7 +222,19 @@ export function TextChat({ avatar_name, avatarId }: TextChatProps) {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (inputValue.trim() !== '') {
-      await send(inputValue);
+      // Add user message to independent state immediately
+      const userMessage: IndependentMessage = {
+        id: `user-${Date.now()}`,
+        content: inputValue.trim(),
+        role: 'user',
+        timestamp: new Date(),
+        isLocal: true
+      };
+      
+      setIndependentMessages(prev => [...prev, userMessage]);
+      
+      // Send to LiveKit for model processing
+      await liveKitSend(inputValue.trim());
       setInputValue('');
     }
   };
@@ -101,27 +250,63 @@ export function TextChat({ avatar_name, avatarId }: TextChatProps) {
     router.push('/');
   };
 
+  // Clear all messages (test function)
+  const handleClearMessages = () => {
+    setIndependentMessages([]);
+    setCurrentStreamingMessage('');
+    streamingMessageId.current = null;
+    setShowMenu(false);
+  };
+
   return (
     <div className="flex flex-col h-full">
-      {/* Chat Messages - Direct on panel */}
+      {/* Debug Info Bar */}
+      <div className="bg-blue-900/20 border-b border-blue-500/30 px-4 py-2 text-xs text-blue-200">
+        <div className="flex justify-between items-center">
+          <span>Independent Chat | Messages: {independentMessages.length} | LiveKit: {liveKitMessages.length} | Streaming: {streamingMessageId.current ? 'Yes' : 'No'}</span>
+          <div className="text-xs text-blue-300">
+            Last LK: {liveKitMessages.length > 0 ? liveKitMessages[liveKitMessages.length - 1]?.from?.identity || 'unknown' : 'none'}
+          </div>
+        </div>
+        <div className="mt-1 text-xs text-blue-300/80">
+          Recent: {independentMessages.slice(-2).map(m => `${m.role}(${m.isLocal ? 'local' : 'remote'})`).join(', ')}
+        </div>
+      </div>
+
+      {/* Chat Messages - Independent State */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
-        {chatMessages.length === 0 ? (
+        {independentMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-white/60 text-sm drop-shadow-md">
             Start a conversation...
           </div>
         ) : (
           <div className="space-y-3">
-            {chatMessages.map((msg, idx) => {
-              const isUser = msg.from?.identity !== 'avatar';
+            {independentMessages.map((msg) => {
+              const isUser = msg.role === 'user';
               return (
-                <div key={msg.id ?? idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[70%] rounded-2xl px-4 py-2 break-words text-xs ${
+                <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[70%] rounded-2xl px-4 py-2 break-words text-xs relative ${
                     isUser 
                       ? 'bg-gray-800 text-white' 
                       : 'bg-gray-900 text-white'
                   }`}>
+                    {/* Local indicator for testing */}
+                    {msg.isLocal && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+                    )}
+                    {/* Streaming indicator */}
+                    {msg.isStreaming && (
+                      <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    )}
                     <div className="whitespace-pre-wrap">
-                      {msg.message}
+                      {msg.content}
+                      {msg.isStreaming && (
+                        <span className="inline-block w-2 h-4 bg-white/60 ml-1 animate-pulse">|</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-white/40 mt-1">
+                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {msg.isStreaming && ' • Streaming...'}
                     </div>
                   </div>
                 </div>
@@ -175,7 +360,7 @@ export function TextChat({ avatar_name, avatarId }: TextChatProps) {
                   handleSubmit(e);
                 }
               }}
-              placeholder="Enter to send, Shift+Enter for new line"
+              placeholder="Enter to send (Independent Chat)"
               disabled={isSending}
               className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-white placeholder-white/60 focus:outline-none focus:border-white/20 text-xs"
             />
@@ -204,6 +389,12 @@ export function TextChat({ avatar_name, avatarId }: TextChatProps) {
             {showMenu && (
               <div className="absolute bottom-12 right-0 min-w-[150px] bg-black/80 backdrop-blur-sm rounded-md shadow-lg border border-white/20 z-[999999]">
                 <div className="p-1">
+                  <button
+                    onClick={handleClearMessages}
+                    className="flex items-center px-3 py-2 text-xs text-white bg-gray-800 hover:bg-gray-700 rounded-md cursor-pointer w-full justify-start transition-colors mb-1"
+                  >
+                    Clear Messages
+                  </button>
                   <button
                     onClick={handleLeaveChat}
                     className="flex items-center px-3 py-2 text-xs text-white bg-gray-800 hover:bg-gray-700 rounded-md cursor-pointer w-full justify-start transition-colors"
