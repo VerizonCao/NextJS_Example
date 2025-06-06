@@ -165,7 +165,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   
   // Tag system state
   const [activeMainTab, setActiveMainTab] = useState("recommend");
-  const [activeCategoryTag, setActiveCategoryTag] = useState("Girl");
+  const [activeCategoryTag, setActiveCategoryTag] = useState("Original Characters");
   
   // New state for pagination
   const [avatars, setAvatars] = useState<UserAvatar[]>(initialAvatars.avatars || []);
@@ -505,14 +505,14 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
 
   // Define category data
   const categories = [
-    { name: "Girl", active: activeCategoryTag === "Girl" },
-    { name: "OC", active: activeCategoryTag === "OC" },
-    { name: "BlueArchive", active: activeCategoryTag === "BlueArchive" },
-    { name: "fanart", active: activeCategoryTag === "fanart" },
-    { name: "Vtuber", active: activeCategoryTag === "VTuber" },
-    { name: "NEWGAME!", active: activeCategoryTag === "NEWGAME!" },
-    { name: "Helltaker", active: activeCategoryTag === "Helltaker" },
-    { name: "Ghost", active: activeCategoryTag === "Ghost" },
+    { name: "Original Characters", active: activeCategoryTag === "Original Characters" },
+    { name: "Fan Made", active: activeCategoryTag === "Fan Made" },
+    { name: "Fictional", active: activeCategoryTag === "Fictional" },
+    { name: "Realistic", active: activeCategoryTag === "Realistic" },
+    { name: "Anime", active: activeCategoryTag === "Anime" },
+    { name: "Film", active: activeCategoryTag === "Film" },
+    { name: "Game", active: activeCategoryTag === "Game" },
+    { name: "Historical", active: activeCategoryTag === "Historical" },
   ];
 
   return (
@@ -544,7 +544,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
 
               {/* Search and Notification Buttons */}
               <div className="flex items-center gap-[18px]">
-                <div className="relative ml-3 flex max-w-[600px] flex-1 justify-end">
+                <div className="relative ml-3 flex w-[552px] justify-end">
                   <div className={`flex h-12 min-w-[48px] cursor-pointer justify-end rounded-full bg-[#00000033] transition-all duration-300 ${showSearchWindow ? 'flex-1 border-white' : 'hover:border-hover-border'}`}>
                     <div className="pointer-events-auto flex h-full items-center justify-center text-2xl w-12">
                       <SearchIcon 
@@ -565,7 +565,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                             }
                           }}
                           placeholder="Search characters"
-                          className="search-input h-[34px] w-full pl-1.5 text-sm text-white bg-transparent outline-none placeholder:text-[#634c54]"
+                          className="search-input h-full w-full pl-1.5 text-sm text-white bg-transparent outline-none placeholder:text-[rgba(255,255,255,0.3)]"
                         />
                       </div>
                     )}
@@ -596,14 +596,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                   }`}
                 >
                   <span className="[font-family:'Montserrat',Helvetica] font-medium text-white text-base">
-                    {category.name === "NEWGAME!" ? (
-                      <>
-                        <span className="font-medium">NEWGAME</span>
-                        <span className="font-bold">!</span>
-                      </>
-                    ) : (
-                      category.name
-                    )}
+                    {category.name}
                   </span>
                 </button>
               ))}
@@ -666,6 +659,9 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                                   />
                                   {/* Character info overlay - positioned at the bottom */}
                                   <div className="absolute bottom-0 w-full">
+                                    {/* Fade to black gradient overlay */}
+                                    <div className="absolute bottom-0 w-full h-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none"></div>
+                                    
                                     {/* Character text with proper padding */}
                                     <div className="relative p-3 z-20">
                                       <h3 className="w-full font-['Montserrat',Helvetica] font-semibold text-white text-[13.8px] leading-normal truncate mb-1">

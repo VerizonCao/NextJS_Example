@@ -143,26 +143,27 @@ export default function LandscapeSideNav() {
         {isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
-            className="flex items-center justify-center w-12 h-12 text-white hover:bg-[#ffffff1a] rounded-lg transition-colors mx-auto"
+            className="flex items-center justify-center w-12 h-12 text-white hover:bg-[#ffffff1a] rounded-xl transition-colors mx-auto"
           >
             <MenuIcon className="w-6 h-6" />
           </button>
         ) : (
           <>
             <Link href="/" className="flex items-center">
-              <div className="w-40">
+              <div className="w-40 h-10 overflow-hidden">
                 <Image
                   src="/logo2.png"
                   alt="Logo"
                   width={160}
-                  height={30}
+                  height={24}
                   priority
+                  className="object-cover object-center w-full h-full"
                 />
               </div>
             </Link>
             <button
               onClick={() => setIsCollapsed(true)}
-              className="flex items-center justify-center w-8 h-8 text-white hover:bg-[#ffffff1a] rounded-lg transition-colors"
+              className="flex items-center justify-center w-8 h-8 text-white hover:bg-[#ffffff1a] rounded-xl transition-colors"
             >
               <MenuIcon className="w-6 h-6" />
             </button>
@@ -216,7 +217,7 @@ export default function LandscapeSideNav() {
           <div className="relative w-full">
             <button
               onClick={handleUserMenuToggle}
-              className={`flex w-full items-center justify-center gap-3 bg-[#ffffff1a] rounded-lg hover:bg-[#ffffff20] transition-colors ${isCollapsed ? 'h-12 px-2 py-2' : 'h-[54px] px-3 py-3.5'}`}
+              className={`flex w-full items-center justify-center gap-3 bg-[#ffffff1a] rounded-xl hover:bg-[#ffffff20] transition-colors ${isCollapsed ? 'h-12 px-2 py-2' : 'h-[54px] px-3 py-3.5'}`}
               ref={userButtonRef}
               title={isCollapsed ? displayName : undefined}
             >
@@ -245,14 +246,14 @@ export default function LandscapeSideNav() {
             {/* Dropdown Menu */}
             {showUserMenu && (
               <div 
-                className="fixed min-w-[220px] bg-[#222433] rounded-md shadow-lg border border-[#3a3a4a] z-[9999]"
+                className="fixed min-w-[220px] bg-[#2f363e] rounded-xl shadow-2xl z-[9999]"
                 style={{
                   top: `${menuPosition.top}px`,
                   left: `${menuPosition.left}px`
                 }}
               >
-                <div className="p-2">
-                  <SignOutButton className="flex items-center px-3 py-2 text-sm text-red-400 hover:bg-[#ffffff1a] rounded-md cursor-pointer w-full justify-start transition-colors" />
+                <div>
+                  <SignOutButton className="flex items-center px-4 py-4 font-medium text-base tracking-[-0.32px] leading-5 text-red-400 hover:bg-[#ffffff1a] rounded-xl cursor-pointer w-full justify-start transition-colors [font-family:'Montserrat',Helvetica]" />
                 </div>
               </div>
             )}

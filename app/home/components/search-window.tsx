@@ -73,7 +73,12 @@ export default function SearchWindow({
             })
           );
           
-          setSearchResults(processedAvatars);
+          // Deduplicate avatars by avatar_id to prevent duplicate keys
+          const uniqueAvatars = processedAvatars.filter((avatar, index, array) => 
+            array.findIndex(a => a.avatar_id === avatar.avatar_id) === index
+          );
+          
+          setSearchResults(uniqueAvatars);
         }
       } catch (error) {
         console.error('Error loading search results:', error);
@@ -96,12 +101,12 @@ export default function SearchWindow({
   if (!isOpen) return null;
 
   return (
-    <div ref={windowRef} className="absolute right-4 top-[calc(60px+36px)] w-[600px] z-50">
+    <div ref={windowRef} className="fixed right-[42px] top-[calc(24px+48px+24px+8px)] w-[600px] z-50">
       {/* Results Window */}
-      <div className="rounded-[10px] border border-secondary-border bg-secondary-bg" style={{ background: 'linear-gradient(rgba(0, 0, 0, 0.6) 0%, rgba(87, 47, 102, 0.6) 50%, rgba(29, 21, 21, 0.6) 100%)', overflow: 'hidden' }}>
+      <div className="rounded-[10px] bg-secondary-bg relative" style={{ background: 'rgba(37, 44, 52, 0.75)', overflow: 'hidden' }}>
         <div className="max-h-[min(668px,60vh)] min-h-[125px] overflow-y-auto bg-black/30 py-2 [scrollbar-gutter:stable]">
           <div className="m-2 pl-2">
-            <div className="mb-4 text-left text-sm">Popular Search</div>
+            <div className="mb-4 text-left text-sm text-white">Popular Search</div>
             <div className="flex flex-wrap gap-2">
               {popularTags.map((tag) => (
                 <button
@@ -144,7 +149,7 @@ export default function SearchWindow({
                   <div className="space-y-1">
                     {searchResults.map((avatar) => (
                       <CharacterSearchTile
-                        key={avatar.avatar_id}
+                        key={`search-${avatar.avatar_id}`}
                         avatar={avatar}
                         onClick={() => {
                           // Handle avatar selection
@@ -162,6 +167,12 @@ export default function SearchWindow({
             </>
           )}
         </div>
+        
+        {/* Top fade overlay */}
+        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-black/30 to-transparent pointer-events-none rounded-t-[10px]"></div>
+        
+        {/* Bottom fade overlay */}
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/30 to-transparent pointer-events-none rounded-b-[10px]"></div>
       </div>
     </div>
   );
