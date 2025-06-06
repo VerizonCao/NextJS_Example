@@ -15,6 +15,52 @@ interface ChatLayoutProps {
 
 export function ChatLayout({ children, className = '', backgroundImage }: ChatLayoutProps) {
   const [navbarCollapsed, setNavbarCollapsed] = useState(false);
+  const [isThirdPanelOpen, setIsThirdPanelOpen] = useState(false);
+  const [currentAvatar, setCurrentAvatar] = useState<Avatar | null>(null);
+  const [currentAvatarId, setCurrentAvatarId] = useState<string>('');
+  const [thirdPanelPosition, setThirdPanelPosition] = useState({ left: 0, top: 15, height: 0 });
+
+  // Calculate third panel position based on right panel's bounding box
+  useEffect(() => {
+    if (isThirdPanelOpen) {
+      const calculatePosition = () => {
+        // Find the right panel element (UnifiedChatPanel container)
+        const rightPanel = document.querySelector('[data-unified-chat-panel]') || 
+                          document.querySelector('.aspect-\\[9\\/16\\]') ||
+                          document.querySelector('.min-w-\\[500px\\]');
+        
+        if (rightPanel) {
+          const rect = rightPanel.getBoundingClientRect();
+          const newLeft = rect.right + 10; // Right edge of panel + 10px gap
+          const newTop = rect.top;
+          
+          // Calculate height to align bottom with container bottom
+          const containerBottom = window.innerHeight - 30; // Bottom of main container (100vh - 15px)
+          const newHeight = containerBottom - newTop;       // Height from panel top to container bottom
+          
+          setThirdPanelPosition({
+            left: newLeft,
+            top: newTop,
+            height: newHeight
+          });
+        }
+      };
+
+      // Calculate initially and on resize
+      calculatePosition();
+      
+      const handleResize = () => calculatePosition();
+      window.addEventListener('resize', handleResize);
+      
+      // Also recalculate after a short delay to ensure DOM is ready
+      const timer = setTimeout(calculatePosition, 100);
+      
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        clearTimeout(timer);
+      };
+    }
+  }, [isThirdPanelOpen]);
 
   // Listen for navbar collapse state changes
   useEffect(() => {
@@ -47,6 +93,15 @@ export function ChatLayout({ children, className = '', backgroundImage }: ChatLa
     };
   }, []);
 
+  // Toggle function for third panel
+  const toggleThirdPanel = (avatar?: Avatar, avatarId?: string) => {
+    if (avatar && avatarId) {
+      setCurrentAvatar(avatar);
+      setCurrentAvatarId(avatarId);
+    }
+    setIsThirdPanelOpen(!isThirdPanelOpen);
+  };
+
   return (
     <div className={`flex flex-row justify-center w-full min-h-screen relative ${className}`}>
       {/* Blurred background image - contained within window */}
@@ -67,9 +122,33 @@ export function ChatLayout({ children, className = '', backgroundImage }: ChatLa
       {/* Content overlay with dynamic navbar spacing and centering adjustment */}
       <div className="w-full relative z-10">
         <main className={`flex flex-col w-full h-full items-center justify-center px-4 lg:px-0 transition-all duration-300 ${navbarCollapsed ? 'pl-8' : 'pl-32'}`}>
-          <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-0 py-[15px]" style={{ backgroundColor: 'transparent' }}>
-            {children}
+          <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-0 py-[15px] relative" style={{ backgroundColor: 'transparent' }}>
+            {/* Pass toggle function to children via React context or props */}
+            {React.Children.map(children, child =>
+              React.isValidElement(child)
+                ? React.cloneElement(child, { onToggleThirdPanel: toggleThirdPanel } as any)
+                : child
+            )}
           </div>
+
+          {/* Independent Third Panel - positioned 10px to the right of the right panel */}
+          {isThirdPanelOpen && (
+            <div 
+              className="fixed w-[200px] bg-black/40 backdrop-blur-sm rounded-[5px] border border-white/10 z-50"
+              style={{
+                left: `${thirdPanelPosition.left}px`,
+                top: `${thirdPanelPosition.top}px`,
+                height: `${thirdPanelPosition.height}px`
+              }}
+            >
+              <ThirdPanel 
+                isOpen={isThirdPanelOpen}
+                onClose={() => setIsThirdPanelOpen(false)}
+                avatar={currentAvatar}
+                avatarId={currentAvatarId}
+              />
+            </div>
+          )}
         </main>
       </div>
     </div>
@@ -100,15 +179,18 @@ interface UnifiedChatPanelProps {
   // Callbacks
   onLeaveChat?: () => void;
   onStartChat?: () => void;
+  onToggleThirdPanel?: () => void;
 }
 
 interface ProfileHeaderProps {
   avatar: Avatar;
   presignedUrl: string;
   onToggleInfoPanel: () => void;
+  onToggleThirdPanel?: (avatar: Avatar, avatarId: string) => void;
+  avatarId: string;
 }
 
-function ProfileHeader({ avatar, presignedUrl, onToggleInfoPanel }: ProfileHeaderProps) {
+function ProfileHeader({ avatar, presignedUrl, onToggleInfoPanel, onToggleThirdPanel, avatarId }: ProfileHeaderProps) {
   return (
     <div className="flex items-center gap-3 p-4 border-b border-white/20 flex-shrink-0">
       {presignedUrl && (
@@ -126,9 +208,9 @@ function ProfileHeader({ avatar, presignedUrl, onToggleInfoPanel }: ProfileHeade
           {avatar.agent_bio || 'No bio available'}
         </p>
       </div>
-      {/* Profile Info Button */}
+      {/* Profile Info Button - now toggles third panel instead */}
       <button
-        onClick={onToggleInfoPanel}
+        onClick={() => onToggleThirdPanel ? onToggleThirdPanel(avatar, avatarId) : onToggleInfoPanel()}
         data-profile-info-button
         className="flex items-center justify-center w-8 h-8 bg-transparent hover:bg-black/20 rounded-full transition-colors flex-shrink-0"
       >
@@ -328,62 +410,6 @@ function ChatMessagesContainer({
   );
 }
 
-// Side panel component
-interface ProfileInfoPanelProps {
-  isOpen: boolean;
-  avatar: Avatar;
-  avatarId: string;
-}
-
-function ProfileInfoPanel({ isOpen, avatar, avatarId }: ProfileInfoPanelProps) {
-  const router = useRouter();
-  const { data: session } = useSession();
-
-  const handleStream = () => {
-    if (!session) {
-      // Could show login popup or redirect to login
-      router.push('/auth/signin');
-      return;
-    }
-    // Navigate to stream mode
-    router.push(`/chat/${avatarId}?mode=video`);
-  };
-
-  const handleEdit = () => {
-    if (!session) {
-      // Could show login popup or redirect to login  
-      router.push('/auth/signin');
-      return;
-    }
-    // Navigate to edit page
-    router.push(`/edit-character/${avatarId}`);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div 
-      data-profile-info-panel
-      className="absolute top-0 w-[400px] h-full bg-black/40 backdrop-blur-sm rounded-[5px] border border-white/10 z-50"
-    >
-      <div className="flex flex-col h-full p-4 gap-4 pt-6">
-        <button
-          onClick={handleStream}
-          className="w-full px-4 py-3 bg-[rgb(79,70,229)] hover:bg-[rgb(60,52,181)] rounded-[8px] text-sm text-white transition-colors duration-200 text-cenater leading-tight"
-        >
-          Stream with {avatar.avatar_name}
-        </button>
-        <button
-          onClick={handleEdit}
-          className="w-full px-4 py-3 bg-[rgb(29,29,30)] hover:bg-[rgb(40,40,42)] rounded-[8px] text-sm text-white transition-colors duration-200 text-center leading-tight"
-        >
-          Edit Avatar
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export function UnifiedChatPanel({
   avatar,
   avatarId,
@@ -397,7 +423,8 @@ export function UnifiedChatPanel({
   room,
   connectionDetails,
   onLeaveChat,
-  onStartChat
+  onStartChat,
+  onToggleThirdPanel
 }: UnifiedChatPanelProps) {
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
 
@@ -405,7 +432,7 @@ export function UnifiedChatPanel({
     setIsInfoPanelOpen(!isInfoPanelOpen);
   };
 
-  // Close panel when clicking outside
+  // Close panel when clicking outside (keeping for potential future use)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
@@ -425,7 +452,7 @@ export function UnifiedChatPanel({
 
   return (
     <>
-      <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0 min-w-[500px]">
+      <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0 min-w-[500px]" data-unified-chat-panel>
         <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-sm rounded-r-[5px] border-r border-t border-b border-white/10 overflow-hidden relative">
           
           {/* 1. Profile Header */}
@@ -433,6 +460,8 @@ export function UnifiedChatPanel({
             avatar={avatar}
             presignedUrl={presignedUrl}
             onToggleInfoPanel={handleToggleInfoPanel}
+            onToggleThirdPanel={onToggleThirdPanel}
+            avatarId={avatarId}
           />
 
           {/* 2. Status Banner */}
@@ -457,15 +486,74 @@ export function UnifiedChatPanel({
             hasHistory={hasHistory}
           />
 
-          {/* Profile Info Side Panel */}
-          <ProfileInfoPanel
-            isOpen={isInfoPanelOpen}
-            avatar={avatar}
-            avatarId={avatarId}
-          />
-
         </div>
       </div>
     </>
+  );
+}
+
+// Third Panel Component
+interface ThirdPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  avatar: Avatar | null;
+  avatarId: string;
+}
+
+function ThirdPanel({ isOpen, onClose, avatar, avatarId }: ThirdPanelProps) {
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  const handleStream = () => {
+    if (!session) {
+      // Could show login popup or redirect to login
+      router.push('/auth/signin');
+      return;
+    }
+    // Navigate to stream mode
+    router.push(`/chat/${avatarId}?mode=video`);
+  };
+
+  const handleEdit = () => {
+    if (!session) {
+      // Could show login popup or redirect to login  
+      router.push('/auth/signin');
+      return;
+    }
+    // Navigate to edit page
+    router.push(`/edit-character/${avatarId}`);
+  };
+
+  if (!isOpen || !avatar) return null;
+
+  return (
+    <div className="flex flex-col h-full p-4 gap-4 pt-6">
+      {/* Panel Header */}
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-white text-lg font-semibold">Profile</h3>
+        <button
+          onClick={onClose}
+          className="flex items-center justify-center w-6 h-6 bg-transparent hover:bg-black/20 rounded-full transition-colors"
+        >
+          <span className="text-white text-lg">×</span>
+        </button>
+      </div>
+      
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-4">
+        <button
+          onClick={handleStream}
+          className="w-full px-4 py-3 bg-[rgb(79,70,229)] hover:bg-[rgb(60,52,181)] rounded-[8px] text-sm text-white transition-colors duration-200 text-center leading-tight"
+        >
+          Stream with {avatar.avatar_name}
+        </button>
+        <button
+          onClick={handleEdit}
+          className="w-full px-4 py-3 bg-[rgb(29,29,30)] hover:bg-[rgb(40,40,42)] rounded-[8px] text-sm text-white transition-colors duration-200 text-center leading-tight"
+        >
+          Edit Avatar
+        </button>
+      </div>
+    </div>
   );
 } 
