@@ -2,23 +2,18 @@
 
 import React from 'react';
 import { useSearchParams } from 'next/navigation';
-import { LiveKitRoom } from '@livekit/components-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 // Import our organized components and hooks
 import { useAvatarData } from './hooks/useAvatarData';
 import { useVideoStream } from './hooks/useVideoStream';
-import { ChatLayout } from './components/ChatLayout';
-import { ChatInfo } from './components/ChatInfo';
+import { ChatLayout, UnifiedChatPanel } from './components/ChatLayout';
 import { VideoStream } from './components/VideoStream';
-import { TextChat } from './components/TextChat';
-import { ChatControls } from './components/ChatControls';
 import { Loading, Error } from './components/LoadingStates';
 import { PageParams } from './types/chat.types';
 import { loadChatHistory } from '@/app/lib/actions/user';
 import type { ChatMessage } from '@/app/lib/data';
-import { ChatControlWrapper } from './components/ChatControls';
 
 export default function ChatPage({
   params,
@@ -115,8 +110,14 @@ export default function ChatPage({
   }, []); // Only run once when component mounts
 
   // Determine chat state based on video mode and connection status
-  const isChatActive = isVideoMode && room && preJoinChoices && connectionDetails && firstFrameReceived;
-  const showChatPreview = !isVideoMode && !historyLoading;
+  const getChatState = (): 'info' | 'loading' | 'live' => {
+    if (!isVideoMode) return 'info';
+    if (isVideoMode && (!room || !preJoinChoices || !connectionDetails)) return 'loading';
+    if (isVideoMode && room && preJoinChoices && connectionDetails && firstFrameReceived) return 'live';
+    return 'loading';
+  };
+
+  const chatState = getChatState();
 
   // Handle leaving video chat - return to info mode without page refresh
   const handleLeaveVideoChat = React.useCallback(() => {
@@ -157,78 +158,26 @@ export default function ChatPage({
           />
         </div>
         
-        {/* Chat Section - Right */}
-        <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0 min-w-[500px]">
-          <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-sm rounded-r-[5px] border-r border-t border-b border-white/10 overflow-hidden">
-            {/* Chat Header */}
-            <div className="flex items-center gap-3 p-4 border-b border-white/20">
-              {presignedUrl && (
-                <img
-                  className="w-10 h-10 object-cover rounded-full border border-white/20"
-                  alt="Avatar"
-                  src={presignedUrl}
-                />
-              )}
-              <div className="flex flex-col flex-1">
-                <h2 className="font-semibold text-white text-base drop-shadow-lg">
-                  {avatar.avatar_name || 'Unknown Avatar'}
-                </h2>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    firstFrameReceived ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'
-                  }`}></div>
-                  <p className="text-xs text-white/80 drop-shadow-md">
-                    {firstFrameReceived ? 'Live Video Active' : 'Connecting...'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Security Message */}
-            <div className="px-4 py-2 bg-black/20 border-b border-white/20">
-              <p className="text-xs text-white/60 text-center drop-shadow-md">
-                Your chat is secure and encrypted
-              </p>
-            </div>
-
-            {/* Single TextChat Component - Active or Loading */}
-            <div className="flex-1 min-h-0">
-              {isChatActive ? (
-                <LiveKitRoom
-                  room={room}
-                  token={connectionDetails.participantToken}
-                  serverUrl={connectionDetails.serverUrl}
-                  video={false}
-                  audio={false}
-                >
-                  <TextChat 
-                    avatar_name={avatar.avatar_name} 
-                    avatarId={avatarId}
-                    initialMessages={chatHistory}
-                    isVideoMode={isVideoMode}
-                    firstFrameReceived={firstFrameReceived}
-                    onLeaveChat={handleLeaveVideoChat}
-                  />
-                </LiveKitRoom>
-              ) : (
-                <TextChat 
-                  avatar_name={avatar.avatar_name} 
-                  avatarId={avatarId}
-                  initialMessages={chatHistory}
-                  previewMode={true}
-                  isVideoMode={isVideoMode}
-                  firstFrameReceived={firstFrameReceived}
-                  onLeaveChat={handleLeaveVideoChat}
-                />
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Chat Section - Right - Using Unified Component */}
+        <UnifiedChatPanel
+          avatar={avatar}
+          avatarId={avatarId}
+          presignedUrl={presignedUrl}
+          chatState={chatState}
+          chatHistory={chatHistory}
+          hasHistory={hasHistory}
+          historyLoading={historyLoading}
+          isVideoMode={isVideoMode}
+          firstFrameReceived={firstFrameReceived}
+          room={room}
+          connectionDetails={connectionDetails}
+          onLeaveChat={handleLeaveVideoChat}
+        />
       </ChatLayout>
     );
   }
 
-  // Regular chat mode (non-video) - Simplified design with seamless chat
+  // Regular chat mode (non-video) - Using Unified Component
   return (
     <ChatLayout backgroundImage={presignedUrl}>
       {/* Character Image */}
@@ -241,82 +190,19 @@ export default function ChatPage({
         />
       )}
       
-      {/* Character Info and Chat */}
-      <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0 min-w-[500px]">
-        <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-sm rounded-r-[5px] border-r border-t border-b border-white/10 overflow-hidden">
-          
-          {/* Profile Header */}
-          <div className="flex flex-col gap-4 lg:gap-[16.2px] flex-shrink-0 p-4 lg:p-[15.12px]">
-            <div className="flex items-center gap-4 lg:gap-[15.12px]">
-              {presignedUrl && (
-                <img
-                  className="w-16 h-16 lg:w-[68.04px] lg:h-[68.04px] object-cover rounded-full flex-shrink-0 border-2 border-white/20"
-                  alt="Avatar"
-                  src={presignedUrl}
-                />
-              )}
-
-              <div className="flex flex-col gap-2 lg:gap-[7.56px] flex-1 min-w-0">
-                <h2 className="font-bold text-white text-lg lg:text-[16.4px] drop-shadow-lg">
-                  {avatar.avatar_name || 'Unknown Avatar'}
-                </h2>
-                <p className="font-medium text-white text-base lg:text-[13.3px] drop-shadow-md">
-                  {avatar.agent_bio || 'No bio available'}
-                </p>
-              </div>
-            </div>
-
-            <div className="w-full h-px bg-white/20" />
-          </div>
-
-          {/* Chat History Section - Seamless Integration */}
-          <div className="flex-1 min-h-0 flex flex-col">
-            {showChatPreview && hasHistory && (
-              <div className="px-4 py-2 bg-black/20 border-b border-white/20">
-                <h3 className="text-white text-sm font-medium">Previous Conversation</h3>
-              </div>
-            )}
-            
-            {/* Loading indicator for chat history */}
-            {historyLoading && (
-              <div className="flex items-center justify-center flex-1 p-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                  <span className="text-white/60 text-sm">Loading chat history...</span>
-                </div>
-              </div>
-            )}
-            
-            {/* Single TextChat Component - Seamless */}
-            {showChatPreview && (
-              <div className="flex-1 h-full">
-                <TextChat 
-                  avatar_name={avatar.avatar_name} 
-                  avatarId={avatarId}
-                  initialMessages={chatHistory}
-                  previewMode={true}
-                  isVideoMode={isVideoMode}
-                  firstFrameReceived={firstFrameReceived}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Section with Start Chat Button - Using shared ChatControlWrapper */}
-          <ChatControlWrapper className="border-t border-white/20">
-            <div className="flex items-center justify-center w-full h-full px-4">
-              <button 
-                onClick={() => setIsVideoModeOverride(true)}
-                className="flex items-center justify-center w-full bg-[#00000033] hover:bg-[#ffffff1a] rounded-full py-2 px-6 transition-colors backdrop-blur-sm"
-              >
-                <span className="text-white text-sm font-medium drop-shadow-md">
-                  {hasHistory ? 'Continue Chat' : 'Start'}
-                </span>
-              </button>
-            </div>
-          </ChatControlWrapper>
-        </div>
-      </div>
+      {/* Chat Section - Using Unified Component */}
+      <UnifiedChatPanel
+        avatar={avatar}
+        avatarId={avatarId}
+        presignedUrl={presignedUrl}
+        chatState="info"
+        chatHistory={chatHistory}
+        hasHistory={hasHistory}
+        historyLoading={historyLoading}
+        isVideoMode={false}
+        firstFrameReceived={false}
+        onStartChat={() => setIsVideoModeOverride(true)}
+      />
     </ChatLayout>
   );
 }

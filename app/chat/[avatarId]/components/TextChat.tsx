@@ -36,6 +36,7 @@ interface TextChatProps {
   isVideoMode?: boolean; // If true, we're in video mode
   firstFrameReceived?: boolean; // If true, video is actively streaming
   onLeaveChat?: () => void; // Callback for when user wants to leave chat
+  customControls?: React.ReactNode; // Custom controls to render in the control wrapper
 }
 
 // Convert display messages to text message format
@@ -47,7 +48,7 @@ const convertDisplayToText = (displayMessages: DisplayMessage[]): TextMessage[] 
   }));
 };
 
-export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, isVideoMode, firstFrameReceived, onLeaveChat }: TextChatProps) {
+export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, isVideoMode, firstFrameReceived, onLeaveChat, customControls }: TextChatProps) {
   // LiveKit chat for sending messages and receiving responses - only use when not in preview mode
   const { chatMessages: liveKitMessages, send: liveKitSend, isSending } = previewMode ? 
     { chatMessages: [], send: async () => {}, isSending: false } : 
@@ -294,21 +295,6 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
 
   return (
     <div className="flex flex-col h-full">
-      {/* Debug Info Bar - Hidden in preview mode */}
-      {!previewMode && (
-        <div className="bg-blue-900/20 border-b border-blue-500/30 px-4 py-2 text-xs text-blue-200">
-          <div className="flex justify-between items-center">
-            <span>Text Chat | Messages: {textMessages.length} | LiveKit: {liveKitMessages.length} | Streaming: {streamingMessageId.current ? 'Yes' : 'No'}</span>
-            <div className="text-xs text-blue-300">
-              Last LK: {liveKitMessages.length > 0 ? liveKitMessages[liveKitMessages.length - 1]?.from?.identity || 'unknown' : 'none'}
-            </div>
-          </div>
-          <div className="mt-1 text-xs text-blue-300/80">
-            Recent: {textMessages.slice(-2).map(m => `${m.role}(${m.isLocal ? 'local' : 'remote'})`).join(', ')}
-          </div>
-        </div>
-      )}
-
       {/* Chat Messages - Fixed height container */}
       <div 
         className="flex-1 min-h-0 overflow-y-auto px-4 py-4 dark-scrollbar"
@@ -317,6 +303,21 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
           scrollbarColor: 'rgba(0, 0, 0, 0.7) transparent'
         }}
       >
+        {/* Debug Info Bar - Only show when in live video mode (not preview mode) */}
+        {!previewMode && isVideoMode && (
+          <div className="bg-blue-900/20 border border-blue-500/30 rounded px-3 py-2 mb-3 text-xs text-blue-200">
+            <div className="flex justify-between items-center">
+              <span>Debug | Messages: {textMessages.length} | LiveKit: {liveKitMessages.length} | Streaming: {streamingMessageId.current ? 'Yes' : 'No'}</span>
+              <div className="text-xs text-blue-300">
+                Last LK: {liveKitMessages.length > 0 ? liveKitMessages[liveKitMessages.length - 1]?.from?.identity || 'unknown' : 'none'}
+              </div>
+            </div>
+            <div className="mt-1 text-xs text-blue-300/80">
+              Recent: {textMessages.slice(-2).map(m => `${m.role}(${m.isLocal ? 'local' : 'remote'})`).join(', ')}
+            </div>
+          </div>
+        )}
+
         {textMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-white/60 text-sm drop-shadow-md">
             {previewMode 
@@ -365,7 +366,11 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
 
       {/* Chat Input Area - Using shared ChatControlWrapper */}
       <ChatControlWrapper>
-        {!previewMode && (
+        {customControls ? (
+          // Render custom controls if provided
+          customControls
+        ) : !previewMode ? (
+          // Render default active chat controls
           <div className="border-t border-white/20 px-4 py-4 h-full">
             <form onSubmit={handleSubmit} className="flex items-center gap-3 h-full">
               {/* Microphone Control - Custom button that controls LiveKit */}
@@ -449,7 +454,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
               </div>
             </form>
           </div>
-        )}
+        ) : null}
       </ChatControlWrapper>
     </div>
   );
