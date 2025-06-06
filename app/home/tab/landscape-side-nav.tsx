@@ -139,7 +139,7 @@ export default function LandscapeSideNav() {
   return (
     <nav className={`flex flex-col h-screen items-start bg-black/25 fixed left-0 top-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>
       {/* Header with logo/menu button */}
-      <div className={`flex items-center justify-between w-full transition-all duration-300 ${isCollapsed ? 'px-2 py-10' : 'px-6 py-10'}`}>
+      <div className={`flex items-center justify-between w-full transition-all duration-300 ${isCollapsed ? 'px-2 py-4 2xl:py-10' : 'px-4 py-6 2xl:px-6 2xl:py-10'}`}>
         {isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
@@ -175,7 +175,7 @@ export default function LandscapeSideNav() {
       <div className="w-full h-[1px] bg-[#8f909240]" />
 
       {/* Navigation menu */}
-      <div className={`flex flex-col items-start gap-2 w-full flex-grow overflow-y-auto transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-6'} py-6`}>
+      <div className={`flex flex-col items-start gap-2 w-full flex-grow overflow-y-auto transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4 2xl:px-6'} py-2 2xl:py-6`}>
         {mainNavItems.map((item, index) => {
           const IconComponent = item.icon;
           const active = isActive(item.href);
@@ -194,7 +194,7 @@ export default function LandscapeSideNav() {
             <div key={item.label} className="w-full">
               <button
                 onClick={() => handleNavClick(item.href, item.label)}
-                className={`flex items-center gap-3 w-full rounded-[12px] h-auto transition-colors duration-200 group ${active ? "bg-[#ffffff1a]" : ""} hover:bg-[#ffffff1a] ${isCollapsed ? 'justify-center px-2 py-3' : 'justify-start px-3 py-3.5'}`}
+                className={`flex items-center gap-3 w-full rounded-[12px] h-auto transition-colors duration-200 group ${active ? "bg-[#ffffff1a]" : ""} hover:bg-[#ffffff1a] ${isCollapsed ? 'justify-center px-2 py-3' : 'justify-start px-3 py-2.5 2xl:py-3.5'}`}
                 title={isCollapsed ? item.label : undefined}
               >
                 <IconComponent className={`w-6 h-6 ${active ? "text-white" : "text-[#8f9092] group-hover:text-white"} ${isCollapsed ? '' : ''}`} />
