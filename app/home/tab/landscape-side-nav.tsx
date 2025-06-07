@@ -270,7 +270,7 @@ export default function LandscapeSideNav() {
                   
                   {!isCollapsed && (
                     <div className="flex flex-col items-start justify-center flex-1 min-w-0">
-                      <span className="text-white text-sm font-medium [font-family:'Montserrat',Helvetica] truncate w-full">
+                      <span className="text-white text-sm font-medium [font-family:'Montserrat',Helvetica] truncate w-full text-left">
                         {chat.avatar_name}
                       </span>
                     </div>
