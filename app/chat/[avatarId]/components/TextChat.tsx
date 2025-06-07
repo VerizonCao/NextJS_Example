@@ -348,7 +348,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
         }}
       >
         {/* Debug Info Bar - Only show when in live video mode (not preview mode) */}
-        {!previewMode && isVideoMode && (
+        {/* {!previewMode && isVideoMode && (
           <div className="bg-blue-900/20 border border-blue-500/30 rounded px-3 py-2 mb-3 text-xs text-blue-200">
             <div className="flex justify-between items-center">
               <span>Debug | Messages: {effectiveMessages.length} | LiveKit: {liveKitMessages.length} | Streaming: {streamingMessageId.current ? 'Yes' : 'No'}</span>
@@ -360,7 +360,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
               Recent: {effectiveMessages.slice(-2).map(m => `${m.role}(${m.isLocal ? 'local' : 'remote'})`).join(', ')}
             </div>
           </div>
-        )}
+        )} */}
 
         {effectiveMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-white/60 text-sm drop-shadow-md">
