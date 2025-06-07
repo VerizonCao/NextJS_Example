@@ -8,7 +8,8 @@ import { useState, useEffect, useRef } from 'react';
 import AuthButton from '@/app/home/tab/buttons/auth-button';
 import SignOutButton from '@/app/home/tab/buttons/signout-button';
 import { useSession } from 'next-auth/react';
-import { getUserPreferredNameAction, getRecentChatAvatarsAction, RecentChatAvatarWithUrl } from '@/app/lib/actions';
+import { getUserPreferredNameAction } from '@/app/lib/actions';
+import { useChatHistory } from '@/app/lib/contexts/ChatHistoryContext';
 import './scrollbar.css';
 
 type NavItem = {
@@ -33,10 +34,11 @@ export default function LandscapeSideNav() {
   const [displayName, setDisplayName] = useState('');
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [recentChats, setRecentChats] = useState<RecentChatAvatarWithUrl[]>([]);
-  const [isLoadingChats, setIsLoadingChats] = useState(false);
   const userButtonRef = useRef<HTMLButtonElement>(null);
   const moreIconRef = useRef<SVGSVGElement>(null);
+  
+  // Use chat history context instead of local state
+  const { recentChats, isLoadingChats, refreshRecentChats } = useChatHistory();
   
   const userName = session?.user?.name || session?.user?.email || '';
   const userEmail = session?.user?.email || '';
@@ -59,33 +61,6 @@ export default function LandscapeSideNav() {
 
     fetchPreferredName();
   }, [userEmail, userName]);
-
-  // Fetch recent chats
-  useEffect(() => {
-    const fetchRecentChats = async () => {
-      if (!session || !userEmail) {
-        setRecentChats([]);
-        return;
-      }
-      
-      setIsLoadingChats(true);
-      try {
-        const { success, avatars } = await getRecentChatAvatarsAction(userEmail, 10);
-        if (success && avatars) {
-          setRecentChats(avatars);
-        } else {
-          setRecentChats([]);
-        }
-      } catch (error) {
-        console.error('Error fetching recent chats:', error);
-        setRecentChats([]);
-      } finally {
-        setIsLoadingChats(false);
-      }
-    };
-
-    fetchRecentChats();
-  }, [session, userEmail]);
 
   const mainNavItems: NavItem[] = [
     {
@@ -132,6 +107,13 @@ export default function LandscapeSideNav() {
       router.push('/api/auth/signin');
       return;
     }
+    
+    // Trigger chat history refresh when navigating to Home
+    if (label === "Home") {
+      console.log('Home navigation clicked - refreshing chat history');
+      refreshRecentChats();
+    }
+    
     router.push(href);
   };
 
@@ -177,7 +159,14 @@ export default function LandscapeSideNav() {
           </button>
         ) : (
           <>
-            <Link href="/" className="flex items-center">
+            <button
+              onClick={() => {
+                console.log('Logo clicked - refreshing chat history');
+                refreshRecentChats();
+                router.push('/');
+              }}
+              className="flex items-center"
+            >
               <div className="w-40 h-10 overflow-hidden">
                 <Image
                   src="/logo2.png"
@@ -188,7 +177,7 @@ export default function LandscapeSideNav() {
                   className="object-cover object-center w-full h-full"
                 />
               </div>
-            </Link>
+            </button>
             <button
               onClick={() => setIsCollapsed(true)}
               className="flex items-center justify-center w-8 h-8 text-white hover:bg-[#ffffff1a] rounded-xl transition-colors"

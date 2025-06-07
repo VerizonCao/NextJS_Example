@@ -20,6 +20,7 @@ import { Card } from '@/app/components/card';
 import { X, AlertCircle, ThumbsUp, Loader2, SearchIcon, BellIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SearchWindow from './search-window';
+import { useHomePageRefresh } from '@/app/lib/hooks/useHomePageRefresh';
 
 type UserAvatar = {
   avatar_id: string;
@@ -157,6 +158,9 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   const [streamCount, setStreamCount] = useState({ current: 0, max: 6 });
   const { data: session } = useSession();
   const [avatarThumbCounts, setAvatarThumbCounts] = useState<Record<string, number>>({});
+  
+  // Trigger chat history refresh when home page is visited
+  useHomePageRefresh();
   
   // Navbar collapse state
   const [navbarCollapsed, setNavbarCollapsed] = useState(false);

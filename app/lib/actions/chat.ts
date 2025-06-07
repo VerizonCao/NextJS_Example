@@ -63,4 +63,33 @@ export async function getRecentChatAvatarsAction(
       message: 'An error occurred while loading recent chat avatars' 
     };
   }
+}
+
+/**
+ * Server action to trigger a manual refresh of recent chat avatars
+ * This can be called from client components to force a refresh
+ */
+export async function triggerChatHistoryRefreshAction(
+  userEmail: string
+): Promise<{ 
+  success: boolean; 
+  message: string 
+}> {
+  try {
+    console.log(`Triggering chat history refresh for user: ${userEmail}`);
+    
+    // Simply call the main function to refresh data
+    const result = await getRecentChatAvatarsAction(userEmail, 10);
+    
+    return { 
+      success: result.success, 
+      message: result.success ? 'Chat history refreshed successfully' : result.message
+    };
+  } catch (error) {
+    console.error('Error in triggerChatHistoryRefreshAction:', error);
+    return { 
+      success: false, 
+      message: 'An error occurred while refreshing chat history' 
+    };
+  }
 } 
