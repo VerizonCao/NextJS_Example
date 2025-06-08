@@ -17,7 +17,7 @@ export function useRecentChats() {
     
     setIsLoadingChats(true);
     try {
-      const { success, avatars } = await getRecentChatAvatarsAction(userEmail, 10);
+      const { success, avatars } = await getRecentChatAvatarsAction(userEmail, 1000);
       if (success && avatars) {
         setRecentChats(avatars);
       } else {

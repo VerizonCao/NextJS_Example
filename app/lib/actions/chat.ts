@@ -79,7 +79,7 @@ export async function triggerChatHistoryRefreshAction(
     console.log(`Triggering chat history refresh for user: ${userEmail}`);
     
     // Simply call the main function to refresh data
-    const result = await getRecentChatAvatarsAction(userEmail, 10);
+    const result = await getRecentChatAvatarsAction(userEmail, 1000);
     
     return { 
       success: result.success, 
