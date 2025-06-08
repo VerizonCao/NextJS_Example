@@ -387,7 +387,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
               ? (isVideoMode && !firstFrameReceived 
                   ? 'Loading chat...' 
                   : `Click below to meet ${avatar_name}.`)
-              : 'Start a conversation.'}
+              : 'Type a message to start.'}
           </div>
         ) : (
           <div className="space-y-3">
@@ -476,7 +476,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
                       handleSubmit(e);
                     }
                   }}
-                  placeholder="Enter to send (Text Chat)"
+                  placeholder="Press Enter to send"
                   disabled={isSending || previewMode}
                   className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-white placeholder-white/60 focus:outline-none focus:border-white/20 text-xs"
                 />
