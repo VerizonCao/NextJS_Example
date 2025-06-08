@@ -7,7 +7,7 @@ import {
   VideoPresets 
 } from 'livekit-client';
 import { LocalUserChoices } from '@livekit/components-react';
-import { startStreamingSession, incrementAvatarRequestCounter } from '@/app/lib/actions';
+import { startStreamingSession, incrementAvatarRequestCounter, storeUserRoomAction, deleteUserPreviousRoomAction } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { ConnectionDetails } from '@/lib/types';
 import { Avatar, VideoStreamState } from '../types/chat.types';
@@ -69,6 +69,9 @@ export function useVideoStream(avatar: Avatar | null, isVideoMode: boolean) {
     const newRoomName = generateRoomId();
     setRoomName(newRoomName);
 
+
+    storeUserRoomAction(session?.user?.email || '', newRoomName);
+
     try {
       // Start streaming session
       await startStreamingSession({
@@ -86,6 +89,9 @@ export function useVideoStream(avatar: Avatar | null, isVideoMode: boolean) {
         ttsVoiceIdCartesia: avatar.voice_id,
         userEmail: session?.user?.email || '',
       });
+
+
+      deleteUserPreviousRoomAction(session?.user?.email || '', newRoomName);
 
       await incrementAvatarRequestCounter(avatar.avatar_id);
 
