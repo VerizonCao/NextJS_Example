@@ -29,6 +29,13 @@ export function VideoStream({
     <>
       {/* Global styles for LiveKit components */}
       <style jsx global>{`
+        /* Override LiveKit CSS custom properties to remove borders and outlines */
+        [data-lk-theme="default"] {
+          --lk-accent-bg: transparent;
+          --lk-accent-fg: transparent;
+          --lk-border-radius: 0px;
+        }
+  
         .lk-video-conference {
           height: 100% !important;
           width: 100% !important;
@@ -73,6 +80,9 @@ export function VideoStream({
         .lk-participant-tile.lk-speaking {
           border: none !important;
           box-shadow: none !important;
+        }
+        .lk-focus-toggle-button {
+          display: none !important;
         }
       `}</style>
 
