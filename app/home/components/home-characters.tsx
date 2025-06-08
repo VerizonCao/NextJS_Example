@@ -167,7 +167,6 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   
   // Tag system state
   const [activeMainTab, setActiveMainTab] = useState("recommend");
-  const [activeCategoryTag, setActiveCategoryTag] = useState("Original Characters");
   
   // New state for pagination
   const [avatars, setAvatars] = useState<UserAvatar[]>(initialAvatars.avatars || []);
@@ -445,29 +444,17 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     );
   }
 
-  // Define category data
-  const categories = [
-    { name: "Original Characters", active: activeCategoryTag === "Original Characters" },
-    { name: "Fan Made", active: activeCategoryTag === "Fan Made" },
-    { name: "Fictional", active: activeCategoryTag === "Fictional" },
-    { name: "Realistic", active: activeCategoryTag === "Realistic" },
-    { name: "Anime", active: activeCategoryTag === "Anime" },
-    { name: "Film", active: activeCategoryTag === "Film" },
-    { name: "Game", active: activeCategoryTag === "Game" },
-    { name: "Historical", active: activeCategoryTag === "Historical" },
-  ];
-
   return (
     <Suspense fallback={<LoadingState />}>
-      <div className="bg-[#111C28] min-h-screen w-full">
+      <div className="bg-[#121214] min-h-screen w-full">
         {/* Main Content Wrapper with dynamic left padding */}
         <div className={`transition-all duration-300 ${navbarCollapsed ? 'pl-16' : 'pl-64'}`}>
           {/* Header Section with Tags */}
-          <header className="relative bg-[#111C28] py-6 px-6 flex flex-col gap-4">
+          <header className="relative bg-[#121214] py-6 px-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               {/* Main Tab Group */}
               <div className="flex items-center gap-2">
-                {["recommend", "trending", "latest"].map((tab) => (
+                {["recommend", "trending"].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveMainTab(tab)}
@@ -523,25 +510,6 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                   <BellIcon className="w-6 h-6" />
                 </Button>
               </div>
-            </div>
-
-            {/* Category Tags */}
-            <div className="flex items-center gap-2 px-2 py-2 overflow-x-auto">
-              {categories.map((category, index) => (
-                <button
-                  key={`${category.name}-${index}`}
-                  onClick={() => setActiveCategoryTag(category.name)}
-                  className={`px-6 py-2 rounded-[100px] cursor-pointer hover:bg-[#ffffff33] transition-colors flex-shrink-0 ${
-                    category.active
-                      ? "bg-[#ffffff1a] shadow-[0px_0px_10px_#ffffff40]"
-                      : "bg-[#00000033] border-transparent"
-                  }`}
-                >
-                  <span className="[font-family:'Montserrat',Helvetica] font-medium text-white text-base">
-                    {category.name}
-                  </span>
-                </button>
-              ))}
             </div>
           </header>
 
@@ -609,20 +577,9 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                                       <h3 className="w-full font-['Montserrat',Helvetica] font-semibold text-white text-[13.8px] leading-normal truncate mb-1">
                                         {avatar.avatar_name}
                                       </h3>
-                                      <p className="w-full font-['Montserrat',Helvetica] font-normal text-white/70 text-[9.2px] leading-normal truncate mb-1">
-                                        by Creator
-                                      </p>
-                                      <p className="w-full font-['Montserrat',Helvetica] font-normal text-white text-[9.2px] leading-normal overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                                      <p className="self-stretch font-['Montserrat',Helvetica] font-normal text-neutral-300 text-xs leading-snug overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                                         {avatar.agent_bio || avatar.prompt}
                                       </p>
-                                      
-                                      {/* Thumb count positioned on the right */}
-                                      <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full px-2 py-1">
-                                        <ThumbsUp size={12} className="text-gray-300" />
-                                        <span className="text-xs text-white font-medium">
-                                          {avatarThumbCounts[avatar.avatar_id] || '0'}
-                                        </span>
-                                      </div>
                                     </div>
                                   </div>
                                 </>
