@@ -154,6 +154,7 @@ export default function SearchWindow({
                         onClick={() => {
                           // Handle avatar selection
                           console.log('Selected avatar:', avatar);
+                          onClose(); // Close the search window after selection
                         }}
                       />
                     ))}
