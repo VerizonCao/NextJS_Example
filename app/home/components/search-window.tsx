@@ -104,7 +104,7 @@ export default function SearchWindow({
     <div ref={windowRef} className="fixed right-[42px] top-[calc(24px+48px+24px+8px)] w-[600px] z-50">
       {/* Results Window */}
       <div className="rounded-[10px] bg-secondary-bg relative" style={{ background: 'rgba(37, 44, 52, 0.75)', overflow: 'hidden' }}>
-        <div className="max-h-[min(668px,60vh)] min-h-[125px] overflow-y-auto bg-black/30 py-2 [scrollbar-gutter:stable]">
+        <div className="max-h-[min(668px,60vh)] min-h-[125px] overflow-y-auto bg-black/90 py-2 [scrollbar-gutter:stable]">
           <div className="m-2 pl-2">
             <div className="mb-4 text-left text-sm text-white">Popular Search</div>
             <div className="flex flex-wrap gap-2">

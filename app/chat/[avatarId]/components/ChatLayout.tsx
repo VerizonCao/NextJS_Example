@@ -124,7 +124,7 @@ export function ChatLayout({ children, className = '', backgroundImage }: ChatLa
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            filter: 'blur(20px) brightness(0.6)',
+            filter: 'blur(60px) brightness(0.6)',
             zIndex: -1
           }}
         />
@@ -146,7 +146,7 @@ export function ChatLayout({ children, className = '', backgroundImage }: ChatLa
           {/* Independent Third Panel - positioned 10px to the right of the right panel */}
           {isThirdPanelOpen && (
             <div 
-              className="fixed w-[200px] bg-black/40 backdrop-blur-sm rounded-[5px] border border-white/10 z-50"
+              className="fixed w-[200px] bg-black/40 backdrop-blur-3xl rounded-[5px] border border-white/10 z-50"
               style={{
                 left: `${thirdPanelPosition.left}px`,
                 top: `${thirdPanelPosition.top}px`,
@@ -504,7 +504,7 @@ export function UnifiedChatPanel({
   return (
     <>
       <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0 min-w-[500px]" data-unified-chat-panel>
-        <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-sm rounded-r-[5px] border-r border-t border-b border-white/10 overflow-hidden relative">
+        <div className="flex flex-col w-full h-full bg-black/40 backdrop-blur-3xl rounded-r-[5px] border-r border-t border-b border-white/10 overflow-hidden relative">
           
           {/* 1. Profile Header */}
           <ProfileHeader 
