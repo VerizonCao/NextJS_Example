@@ -60,6 +60,25 @@ const convertDisplayToText = (displayMessages: DisplayMessage[]): TextMessage[] 
   }));
 };
 
+// Format dialogue versus narrative
+const formatMessageContent = (content: string) => {
+  // Find double asterisks and replace with italic formatting
+  const parts = content.split('**');
+  
+  if (parts.length < 3) {
+    // No complete pair of ** found, return original content
+    return content;
+  }
+  
+  // Simple logic: every odd index (1, 3, 5...) should be italic
+  return parts.map((part, index) => {
+    if (index % 2 === 1) {
+      return <em key={index}>{part}</em>;
+    }
+    return part;
+  });
+};
+
 export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, isVideoMode, firstFrameReceived, onLeaveChat, customControls, onNewMessage, onUpdateMessage, onClearMessages }: TextChatProps) {
   // LiveKit chat for sending messages and receiving responses - only use when not in preview mode
   const { chatMessages: liveKitMessages, send: liveKitSend, isSending } = previewMode ? 
@@ -390,7 +409,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
                       <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                     )}
                     <div className="whitespace-pre-wrap">
-                      {msg.content}
+                      {formatMessageContent(msg.content)}
                       {msg.isStreaming && (
                         <span className="inline-block w-2 h-4 bg-white/60 ml-1 animate-pulse">|</span>
                       )}
