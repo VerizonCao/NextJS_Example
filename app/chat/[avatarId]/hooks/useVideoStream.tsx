@@ -34,24 +34,27 @@ export function useVideoStream(avatar: Avatar | null, isVideoMode: boolean) {
     };
   }, [session?.user?.name]);
 
-  // Simple polling to check for video element
+  // Check for video element and agent-avatar role
   useEffect(() => {
     if (!isVideoMode || !room) return;
 
-    const checkForVideoElement = () => {
+    const checkForVideoAndAgent = () => {
       const videoElement = document.querySelector('.lk-participant-media-video[data-lk-local-participant="false"]');
+      const hasAgentAvatar = Array.from(room.remoteParticipants.values()).some(participant =>
+        participant.attributes?.role === 'agent-avatar'
+      );
       
-      if (videoElement && !firstFrameReceived) {
-        console.log('Remote video element found!');
+      if (videoElement && hasAgentAvatar && !firstFrameReceived) {
+        console.log('Remote video element and agent avatar found!');
         setFirstFrameReceived(true);
       }
     };
 
     // Check immediately
-    checkForVideoElement();
+    checkForVideoAndAgent();
 
     // Then check every 0.5 seconds
-    const interval = setInterval(checkForVideoElement, 500);
+    const interval = setInterval(checkForVideoAndAgent, 500);
 
     // Cleanup interval when component unmounts or video is found
     return () => {
@@ -125,6 +128,18 @@ export function useVideoStream(avatar: Avatar | null, isVideoMode: boolean) {
       setIsInitiating(false);
     }
   }, [avatar, session, preJoinDefaults]);
+
+  // Cleanup effect when leaving video mode or unmounting
+  useEffect(() => {
+    if (!isVideoMode) {
+      if (room) {
+        room.disconnect();
+        setRoom(null);
+      }
+      setRoomName('');
+      setFirstFrameReceived(false);
+    }
+  }, [isVideoMode, room]);
 
   // Initialize video room when in video mode
   useEffect(() => {
