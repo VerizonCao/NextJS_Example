@@ -23,6 +23,16 @@ export const authConfig = {
         }
         return false; // ❌ Block sign-in if not verified or wrong domain
       }
+      
+      if (account?.provider === "discord") {
+        // Discord emails are always verified if present
+        const email = profile?.email ?? "";
+        if (email) {
+          return true;
+        }
+        return false; // ❌ Block sign-in if no email
+      }
+      
       return true; // ✅ Allow other providers
     },
 
@@ -38,7 +48,6 @@ export const authConfig = {
     },
     async jwt({ token, account, profile, user }) {
 
-      console.log("Inside JWT");
       // Save email in JWT token
       if (account && profile?.email) {
         const email = profile.email;
@@ -73,36 +82,65 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       const pathname = nextUrl.pathname;
     
-      const isOnDashboard = pathname.startsWith('/dashboard');
       const isRoom = pathname.startsWith('/rooms');
       const isAudioSample = pathname.startsWith('/audio_samples');
-      const isEditAvatar = pathname.startsWith('/dashboard/edit-avatar');
-      const isMyAvatars = pathname.startsWith('/dashboard/my-avatars');
-      const isAvatarStudio = pathname.startsWith('/dashboard/avatar-studio');
+      const isCharacterStudio = pathname.startsWith('/character-studio');
+      const isChat = pathname.startsWith('/chat');
+      const isPreviousChats = pathname.startsWith('/my-chats');
+      // add or edit
+      const isNewCharacter = pathname.startsWith('/new-character');
+      const isEditCharacter = pathname.startsWith('/edit-character');
+      // profile
+      const isProfile = pathname.startsWith('/profile');
+      // subscription
+      const isSubscription = pathname.startsWith('/subscription');
     
       // ✅ Allow audio file requests to go through without redirect
       if (isAudioSample) {
         return true;
       }
     
-      // Redirect from / to /dashboard
+      // ✅ Allow root path without redirect - show home page
       if (pathname === '/') {
-        return Response.redirect(new URL('/dashboard', nextUrl));
+        return true;
       }
-    
-      if (isOnDashboard) {
-        if ((isEditAvatar || isMyAvatars || isAvatarStudio) && !isLoggedIn) {
-          return false; // Block access to avatar-related routes if not logged in
-        }
-        return true; // Allow access to other dashboard routes without login
-      } else if (isRoom) {
+      
+      // ✅ Allow access to profile page
+      if (isProfile) {
+        if (isLoggedIn) return true;
+        return Response.redirect(new URL('/', nextUrl));
+      }
+
+      // ✅ Allow access to subscription page - requires login
+      if (isSubscription) {
+        if (isLoggedIn) return true;
+        return Response.redirect(new URL('/', nextUrl));
+      }
+      
+      // ✅ Allow access to create page - users can create without login but need login to save
+      if (isNewCharacter || isEditCharacter || isCharacterStudio) {
+        if (isLoggedIn) return true;
+        return false;
+      }
+
+      if (isChat) {
+        if (isLoggedIn) return true;
+        return false;
+      }
+
+      if (isPreviousChats) {
+        if (isLoggedIn) return true;
+        return Response.redirect(new URL('/', nextUrl));
+      }
+      
+      if (isRoom) {
         if (isLoggedIn) return true;
         return false;
       }
     
       // ✅ Redirect only if logged in AND not accessing special routes
       if (isLoggedIn) {
-        return Response.redirect(new URL('/dashboard', nextUrl));
+        return Response.redirect(new URL('/', nextUrl));
       }
     
       return true;

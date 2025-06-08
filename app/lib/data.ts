@@ -11,6 +11,7 @@ import {
 import { formatCurrency } from './utils';
 
 import { Redis } from '@upstash/redis'
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 const sql = postgres(process.env.POSTGRES_URL!, { 
   ssl: 'require',
@@ -381,6 +382,8 @@ export type Avatar = {
   image_uri: string | null;
   create_time: Date;
   update_time: Date;
+  thumb_count: number;
+  is_public: boolean;
 };
 
 /**
@@ -461,7 +464,8 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
         owner_id, 
         image_uri, 
         create_time, 
-        update_time
+        update_time,
+        thumb_count
       FROM avatars 
       WHERE is_public = true
       ORDER BY create_time DESC
@@ -471,6 +475,80 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
     return result;
   } catch (error) {
     console.error('Error loading public avatars:', error);
+    return [];
+  }
+}
+
+/**
+ * Load paginated public avatars
+ * @param offset Number of avatars to skip (for pagination)
+ * @param limit Maximum number of avatars to return (default: 20)
+ * @param searchTerm Optional search term to filter avatars (default: '')
+ * @returns Promise<Avatar[]> Array of public avatar objects with pagination
+ */
+export async function loadPaginatedPublicAvatars(
+  offset: number = 0,
+  limit: number = 20,
+  searchTerm: string = ''
+): Promise<Avatar[]> {
+  try {
+  
+    // If search term is provided, use the full-text search index
+    if (searchTerm && searchTerm.trim() !== '') {
+      const result = await sql<Avatar[]>`
+        SELECT 
+          avatar_id, 
+          avatar_name, 
+          prompt,
+          scene_prompt,
+          agent_bio,
+          voice_id,
+          owner_id, 
+          image_uri, 
+          create_time, 
+          update_time,
+          thumb_count,
+          is_public,
+          serve_time
+        FROM avatars 
+        WHERE is_public = true
+        AND (
+          search_vector @@ plainto_tsquery('english', ${searchTerm}) OR
+          avatar_name ILIKE ${'%' + searchTerm + '%'} OR
+          agent_bio ILIKE ${'%' + searchTerm + '%'}
+        )
+        ORDER BY ts_rank(search_vector, plainto_tsquery('english', ${searchTerm})) DESC, create_time DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      
+      return result;
+    }
+    
+    // If no search term, use the original query
+    const result = await sql<Avatar[]>`
+      SELECT 
+        avatar_id, 
+        avatar_name, 
+        prompt,
+        scene_prompt,
+        agent_bio,
+        voice_id,
+        owner_id, 
+        image_uri, 
+        create_time, 
+        update_time,
+        thumb_count,
+        is_public,
+        serve_time
+      FROM avatars 
+      WHERE is_public = true
+      ORDER BY create_time DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    
+    return result;
+  } catch (error) {
+    console.error('Error loading paginated public avatars:', error);
     return [];
   }
 }
@@ -557,6 +635,11 @@ export async function updateAvatarData(
     if (updateData.image_uri !== undefined) {
       updateFields.push(`image_uri = $${paramIndex}`);
       values.push(updateData.image_uri);
+      paramIndex++;
+    }
+    if (updateData.thumb_count !== undefined) {
+      updateFields.push(`thumb_count = $${paramIndex}`);
+      values.push(updateData.thumb_count);
       paramIndex++;
     }
 
@@ -762,5 +845,395 @@ export async function storeUserRoom(userId: string, roomId: string): Promise<boo
     return false;
   }
 }
+
+/**
+ * Add a thumb (like) to an avatar by a user
+ * @param userId The ID of the user giving the thumb
+ * @param avatarId The ID of the avatar receiving the thumb
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function addAvatarThumb(userId: string, avatarId: string): Promise<boolean> {
+  try {
+    // Use ON CONFLICT DO NOTHING to handle the case where the user has already thumbed this avatar
+    const result = await sql`
+      INSERT INTO avatar_thumbs (user_id, avatar_id)
+      VALUES (${userId}, ${avatarId})
+      ON CONFLICT (user_id, avatar_id) DO NOTHING
+      RETURNING user_id
+    `;
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error adding avatar thumb:', error);
+    return false;
+  }
+}
+
+/**
+ * Get the number of thumbs (likes) for an avatar
+ * @param avatarId The ID of the avatar to count thumbs for
+ * @returns Promise<number> The number of thumbs
+ */
+export async function getAvatarThumbCount(avatarId: string): Promise<number> {
+  try {
+    const result = await sql`
+      SELECT COUNT(*) as thumb_count
+      FROM avatar_thumbs
+      WHERE avatar_id = ${avatarId}
+    `;
+    return Number(result[0].thumb_count);
+  } catch (error) {
+    console.error('Error counting avatar thumbs:', error);
+    return 0;
+  }
+}
+
+/**
+ * Check if a user has thumbed (liked) a specific avatar
+ * @param userId The ID of the user to check
+ * @param avatarId The ID of the avatar to check
+ * @returns Promise<boolean> True if the user has thumbed the avatar, false otherwise
+ */
+export async function hasUserThumbedAvatar(userId: string, avatarId: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      SELECT EXISTS (
+        SELECT 1 
+        FROM avatar_thumbs 
+        WHERE user_id = ${userId} AND avatar_id = ${avatarId}
+      ) as has_thumbed
+    `;
+    return result[0].has_thumbed;
+  } catch (error) {
+    console.error('Error checking if user has thumbed avatar:', error);
+    return false;
+  }
+}
+
+/**
+ * Remove a thumb (unlike) from an avatar by a user
+ * @param userId The ID of the user removing the thumb
+ * @param avatarId The ID of the avatar to remove the thumb from
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function removeAvatarThumb(userId: string, avatarId: string): Promise<boolean> {
+  try {
+    const result = await sql`
+      DELETE FROM avatar_thumbs
+      WHERE user_id = ${userId} AND avatar_id = ${avatarId}
+      RETURNING user_id
+    `;
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error removing avatar thumb:', error);
+    return false;
+  }
+}
+
+/**
+ * Cache the thumb count for an avatar in Redis
+ * @param avatarId The ID of the avatar
+ * @param count The thumb count to cache
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function cacheAvatarThumbCount(avatarId: string, count: number): Promise<boolean> {
+  // console.log("caching avatar thumb count", avatarId, count);
+  try {
+    const key = `thumb_${avatarId}`;
+    await redis.set(key, count, { ex: 60 }); // Set TTL to 1 minute (60 seconds)
+    return true;
+  } catch (error) {
+    console.error('Error caching avatar thumb count:', error);
+    return false;
+  }
+}
+
+/**
+ * Get the cached thumb count for an avatar from Redis
+ * @param avatarId The ID of the avatar
+ * @returns Promise<number> The cached thumb count, or 0 if no cache exists
+ */
+export async function getCachedAvatarThumbCount(avatarId: string): Promise<number> {
+  try {
+    const key = `thumb_${avatarId}`;
+    const count = await redis.get(key);
+    return count ? Number(count) : 0;
+  } catch (error) {
+    console.error('Error getting cached avatar thumb count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Check if a cached thumb count exists for an avatar in Redis
+ * @param avatarId The ID of the avatar to check
+ * @returns Promise<boolean> True if a cached count exists, false otherwise
+ */
+export async function hasCachedAvatarThumbCount(avatarId: string): Promise<boolean> {
+  try {
+    const key = `thumb_${avatarId}`;
+    const exists = await redis.exists(key);
+    return exists === 1;
+  } catch (error) {
+    console.error('Error checking cached avatar thumb count:', error);
+    return false;
+  }
+}
+
+/**
+ * Push a list of avatar IDs to a Redis queue for thumbnail processing
+ * @param avatarIds Array of avatar IDs to be processed
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function queueAvatarThumbnailJobs(avatarIds: string[]): Promise<boolean> {
+  try {
+    const queueName = 'avatar_thumb_job_queue';
+    
+    // Use Redis pipeline to push all IDs in a single operation
+    const pipeline = redis.pipeline();
+    
+    for (const avatarId of avatarIds) {
+      pipeline.rpush(queueName, avatarId);
+    }
+    
+    // Check if queue exists and set TTL if it's a new queue
+    const exists = await redis.exists(queueName);
+    if (!exists) {
+      pipeline.expire(queueName, 600); // 10 mins TTL
+    }
+    
+    await pipeline.exec();
+    return true;
+  } catch (error) {
+    console.error('Error queuing avatar thumbnail jobs:', error);
+    return false;
+  }
+}
+
+/**
+ * Get the next avatar ID from the thumbnail processing queue
+ * @returns Promise<string | null> The next avatar ID to process, or null if queue is empty
+ */
+export async function getNextAvatarThumbnailJob(): Promise<string | null> {
+  try {
+    const queueName = 'avatar_thumb_job_queue';
+    
+    // Get the current queue size for debugging
+    const queueSize = await redis.llen(queueName);
+    console.log(`Current thumbnail queue size before pop: ${queueSize}`);
+    
+    // Use LPOP to get and remove the leftmost element from the list
+    // This maintains FIFO (First In, First Out) order
+    const avatarId = await redis.lpop(queueName);
+    
+    // Log the result
+    if (avatarId) {
+      const remainingSize = await redis.llen(queueName);
+      console.log(`Popped avatar ${avatarId} from queue. Remaining items: ${remainingSize}`);
+    } else {
+      console.log('Queue is empty, no avatar ID to process');
+    }
+    
+    // If the queue is empty, avatarId will be null
+    return avatarId as string | null;
+  } catch (error) {
+    console.error('Error getting next avatar thumbnail job:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if a cached thumb request exists for an avatar in Redis
+ * @param avatarId The ID of the avatar to check
+ * @returns Promise<boolean> True if a cached request exists, false otherwise
+ */
+export async function hasCachedRequestAvatarThumbCount(avatarId: string): Promise<boolean> {
+  try {
+    const key = `thumb_request_${avatarId}`;
+    const exists = await redis.exists(key);
+    return exists === 1;
+  } catch (error) {
+    console.error('Error checking cached avatar thumb request:', error);
+    return false;
+  }
+}
+
+/**
+ * Cache a thumb request for an avatar in Redis
+ * @param avatarId The ID of the avatar
+ * @param ttlSeconds Optional time-to-live in seconds (default: 60 seconds)
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function cacheAvatarThumbRequest(avatarId: string, ttlSeconds: number = 300): Promise<boolean> {
+  try {
+    const key = `thumb_request_${avatarId}`;
+    await redis.set(key, 1, { ex: ttlSeconds }); // Set TTL (default: 1 minute)
+    return true;
+  } catch (error) {
+    console.error('Error caching avatar thumb request:', error);
+    return false;
+  }
+}
+
+/**
+ * Increment the serve count for an avatar by a specified value
+ * @param avatarId The avatar ID to increment the serve count for
+ * @param value The value to increment by (or set if key doesn't exist)
+ * @returns Promise<number> The new serve count after incrementing
+ */
+export async function incrementAvatarServeCount(avatarId: string, value: number): Promise<number> {
+  try {
+    const key = `avatar_serve_${avatarId}`;
+    
+    // First check if the key exists
+    const exists = await redis.exists(key);
+    
+    if (!exists) {
+      // If key doesn't exist, set it with the initial value
+      await redis.set(key, value);
+      return value;
+    } else {
+      // If key exists, increment it by the specified value
+      return await redis.incrby(key, value);
+    }
+  } catch (error) {
+    console.error('Error incrementing avatar serve count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Get and remove the serve count for an avatar from Redis
+ * @param avatarId The avatar ID to get and remove the serve count for
+ * @returns Promise<number> The serve count value before removal, or 0 if key doesn't exist
+ */
+export async function getAndRemoveAvatarServeCount(avatarId: string): Promise<number> {
+  try {
+    const key = `avatar_serve_${avatarId}`;
+    
+    // Get the current value and delete the key atomically using GETDEL
+    const value = await redis.getdel(key);
+    
+    // Return the value as a number, or 0 if the key didn't exist
+    return value ? Number(value) : 0;
+  } catch (error) {
+    console.error('Error getting and removing avatar serve count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Add to the serve_time count for an avatar in the database
+ * @param avatarId The avatar ID to update the serve_time for
+ * @param additionalServeTime The value to add to the current serve_time
+ * @returns Promise<boolean> True if successful, false otherwise
+ */
+export async function addAvatarServeTime(avatarId: string, additionalServeTime: number): Promise<boolean> {
+  try {
+    const result = await sql`
+      UPDATE avatars
+      SET serve_time = serve_time + ${additionalServeTime}
+      WHERE avatar_id = ${avatarId}
+      RETURNING avatar_id
+    `;
+    return result.length > 0;
+  } catch (error) {
+    console.error('Error adding avatar serve time:', error);
+    return false;
+  }
+}
+
+/**
+ * Get all avatar serve count keys from Redis (up to 100)
+ * @returns Promise<string[]> Array of avatar serve count keys, limited to 100
+ */
+export async function getAllAvatarServeCountKeys(): Promise<string[]> {
+  try {
+    const pattern = 'avatar_serve_*';
+    const keys = await redis.keys(pattern);
+    
+    // Limit to 100 keys to prevent memory issues
+    return keys.slice(0, 100);
+  } catch (error) {
+    console.error('Error getting avatar serve count keys:', error);
+    return [];
+  }
+}
+
+/**
+ * Get the serve_time for an avatar from the database with Redis caching
+ * @param avatarId The avatar ID to get the serve_time for
+ * @returns Promise<number> The serve_time value, or 0 if avatar not found
+ */
+export async function getAvatarServeTime(avatarId: string): Promise<number> {
+  try {
+    const cacheKey = `avatar_total_serve_${avatarId}`;
+    
+    // Try to get from cache first
+    const cachedValue = await redis.get(cacheKey);
+    if (cachedValue !== null) {
+      return Number(cachedValue);
+    }
+    
+    // If not in cache, get from database
+    const result = await sql`
+      SELECT serve_time
+      FROM avatars
+      WHERE avatar_id = ${avatarId}
+    `;
+    
+    const serveTime = result.length > 0 ? Number(result[0].serve_time || 0) : 0;
+    
+    // Cache the result with 10 minute TTL
+    await redis.set(cacheKey, serveTime, { ex: 600 }); // 600 seconds = 10 minutes
+    
+    return serveTime;
+  } catch (error) {
+    console.error('Error getting avatar serve time:', error);
+    return 0;
+  }
+}
+
+/**
+ * Send a message to the image moderation SQS queue
+ * @param imgPath The path of the image to be moderated
+ * @param avatarId The ID of the avatar associated with the image
+ * @returns Promise<boolean> True if message was sent successfully, false otherwise
+ */
+export async function sendImageModerationTask(imgPath: string, avatarId: string): Promise<boolean> {
+  try {
+    const sqsClient = new SQSClient({
+      region: 'us-west-2',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+
+    const messageBody = {
+      img_path: imgPath,
+      avatar_id: avatarId,
+    };
+
+    const command = new SendMessageCommand({
+      QueueUrl: process.env.AWS_SQS_IMAGE_MODERATION_URL!,
+      MessageBody: JSON.stringify(messageBody),
+    });
+
+    await sqsClient.send(command);
+    return true;
+  } catch (error) {
+    console.error('Error sending message to SQS:', error);
+    return false;
+  }
+}
+
+// Chat session database functions - Re-exported from dedicated chat module
+export type { ChatMessage, ChatSession } from './data/chat';
+export {
+  getLatestChatSession,
+  getChatSessions,
+  getLatestChatMessages,
+  hasChatHistory
+} from './data/chat';
 
 

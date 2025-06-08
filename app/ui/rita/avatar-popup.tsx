@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useSession } from 'next-auth/react';
 import LoginPopup from './login-popup';
+import { getAvatarServeTimeAction } from '@/app/lib/actions/avatar';
 
 type AvatarPopupProps = {
   avatar: UserAvatar | null;
@@ -19,6 +20,9 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [serveTime, setServeTime] = useState<number | null>(null);
+  const [isLoadingServeTime, setIsLoadingServeTime] = useState(false);
   const { data: session, status } = useSession();
 
   useEffect(() => {
@@ -29,15 +33,47 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
 
   useEffect(() => {
     if (avatar) {
+      setIsImageLoaded(false);
+      setServeTime(null);
+      setIsLoadingServeTime(true);
+      
+      // Show UI immediately instead of waiting for image
       setIsVisible(true);
+      
+      // Preload the image in background
+      const img = new Image();
+      img.src = avatar.presignedUrl || '';
+      img.onload = () => {
+        setIsImageLoaded(true);
+      };
+
+      // Load serve time asynchronously
+      const loadServeTime = async () => {
+        try {
+          const result = await getAvatarServeTimeAction(avatar.avatar_id);
+          if (result.success) {
+            setServeTime(result.serveTime || null);
+          }
+        } catch (error) {
+          console.error('Failed to load serve time:', error);
+        } finally {
+          setIsLoadingServeTime(false);
+        }
+      };
+
+      loadServeTime();
     } else {
       setIsVisible(false);
     }
   }, [avatar]);
 
   const handleEdit = () => {
+    if (!session) {
+      setShowLoginPopup(true);
+      return;
+    }
     if (avatar) {
-      router.push(`/dashboard/edit-avatar/${avatar.avatar_id}`);
+      router.push(`/edit-character/${avatar.avatar_id}`);
     }
   };
 
@@ -51,7 +87,20 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
     }
   };
 
-  if (!isVisible || !avatar) return null;
+  // Add new chat handler
+  const handleChat = async () => {
+    if (!session) {
+      setShowLoginPopup(true);
+      return;
+    }
+    if (avatar) {
+      // Navigate to chat page with video mode parameter
+      router.push(`/chat/${avatar.avatar_id}`);
+    }
+  };
+
+  // Don't block rendering on image load - only check for avatar existence
+  if (!avatar) return null;
 
   return (
     <>
@@ -72,18 +121,48 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
           </button>
 
           <div className="flex flex-col lg:flex-row items-center justify-center gap-0">
-            {/* Character Image */}
+            {/* Character Image with loading state */}
             {avatar.presignedUrl && (
-              <div
-                className="relative w-full lg:w-[400px] h-[400px] lg:h-[714px] rounded-l-[5px] lg:rounded-r-none rounded-[5px] bg-cover bg-center"
-                style={{
-                  backgroundImage: `url(${avatar.presignedUrl})`,
-                }}
-              />
+              <div className="relative w-full lg:w-[400px] h-[400px] lg:h-[714px] rounded-l-[5px] lg:rounded-r-none rounded-[5px] bg-gray-800">
+                {/* Loading placeholder */}
+                {!isImageLoaded && (
+                  <div className="absolute inset-0 bg-gray-800 animate-pulse rounded-l-[5px] lg:rounded-r-none rounded-[5px] flex items-center justify-center">
+                    <div className="text-white text-sm">Loading image...</div>
+                  </div>
+                )}
+                
+                {/* Actual image with fade-in transition */}
+                <div
+                  className={`absolute inset-0 bg-cover bg-center rounded-l-[5px] lg:rounded-r-none rounded-[5px] transition-opacity duration-300 ${
+                    isImageLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{
+                    backgroundImage: `url(${avatar.presignedUrl})`,
+                  }}
+                />
+              </div>
             )}
             
             {/* Character Info Card */}
-            <Card className="flex flex-col w-full lg:w-[467px] h-auto lg:h-[714px] bg-[#1a1a1e] rounded-r-[5px] lg:rounded-l-none rounded-[5px] border-none">
+            <Card className="flex flex-col w-full lg:w-[467px] h-auto lg:h-[714px] bg-[#1a1a1e] rounded-r-[5px] lg:rounded-l-none rounded-[5px] border-none relative">
+              {/* Serve Time and Thumb Count Display - No background, fixed positioning */}
+              <div className="absolute top-4 right-16 z-10">
+                <div className="text-white text-sm space-y-1 w-32">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Time:</span>
+                    <span className="text-white w-16 text-right">
+                      {isLoadingServeTime ? "Loading..." : (serveTime !== null ? `${serveTime}s` : '0s')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-300">Thumb:</span>
+                    <span className="text-white w-8 text-right">
+                      {avatar.thumb_count || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <CardContent className="flex flex-col justify-between h-full p-4 lg:p-[15.12px]">
                 {/* Top Section */}
                 <div className="flex flex-col gap-4 lg:gap-[16.2px]">
@@ -151,6 +230,12 @@ export default function AvatarPopup({ avatar, onStream, onClose }: AvatarPopupPr
                     className="w-full sm:w-auto px-4 lg:px-[18px] py-2 lg:py-[7.2px] bg-[rgb(79,70,229)] hover:bg-[rgb(60,52,181)] rounded-[10.8px] text-sm lg:text-[12.6px] transition-colors duration-200"
                   >
                     Stream with {avatar.avatar_name}
+                  </Button>
+                  <Button 
+                    onClick={handleChat}
+                    className="w-full sm:w-auto px-4 lg:px-[18px] py-2 lg:py-[7.2px] bg-[rgb(34,197,94)] hover:bg-[rgb(22,163,74)] rounded-[10.8px] text-sm lg:text-[12.6px] transition-colors duration-200"
+                  >
+                    Chat with {avatar.avatar_name}
                   </Button>
                   <Button
                     onClick={handleEdit}

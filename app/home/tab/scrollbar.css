@@ -1,0 +1,46 @@
+/* Dark Scrollbar - No Rail, Only Bar - High Specificity */
+.dark-scrollbar::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.7) !important;
+  border-radius: 2px !important;
+  transition: background 0.2s ease !important;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 1) !important;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 1) !important;
+}
+
+/* Additional state for dragging */
+.dark-scrollbar::-webkit-scrollbar-thumb:vertical {
+  background: rgba(0, 0, 0, 0.9) !important;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:vertical:hover {
+  background: rgba(0, 0, 0, 1) !important;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:vertical:active {
+  background: rgba(0, 0, 0, 1) !important;
+}
+
+.dark-scrollbar::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* Firefox */
+.dark-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 0, 0, 0.7) transparent !important;
+} 

@@ -18,6 +18,7 @@ export default async function Page({
     scene?: string;
     bio?: string;
     avatar_name?: string;
+    avatar_id?: string;
   }>;
 }) {
   // Await both params and searchParams
@@ -42,6 +43,7 @@ export default async function Page({
       scene={resolvedSearchParams.scene}
       bio={resolvedSearchParams.bio}
       avatar_name={resolvedSearchParams.avatar_name}
+      avatar_id={resolvedSearchParams.avatar_id}
     />
   );
 }
