@@ -15,7 +15,7 @@ interface ErrorProps {
 export function Loading({ isVideoMode = false }: LoadingProps) {
   if (isVideoMode) {
     return (
-      <div className="bg-[#222433] min-h-screen w-full flex flex-row justify-center">
+      <div className="bg-[#121214] min-h-screen w-full flex flex-row justify-center">
         <div className="w-full relative">
           <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0 pl-64">
             <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-0 py-[15px]">
@@ -53,7 +53,7 @@ export function Loading({ isVideoMode = false }: LoadingProps) {
 
   // Regular loading - Updated to match simplified design
   return (
-    <div className="bg-[#222433] min-h-screen w-full flex flex-row justify-center">
+    <div className="bg-[#121214] min-h-screen w-full flex flex-row justify-center">
       <div className="w-full relative">
         <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0 pl-64">
           <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-0 py-[15px]">
@@ -99,7 +99,7 @@ export function Loading({ isVideoMode = false }: LoadingProps) {
 
 export function Error({ error, avatarName }: ErrorProps) {
   return (
-    <div className="bg-[#222433] min-h-screen w-full flex flex-row justify-center">
+    <div className="bg-[#121214] min-h-screen w-full flex flex-row justify-center">
       <div className="w-full relative">
         <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0 pl-64">
           <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-8 py-[15px]">
@@ -130,7 +130,7 @@ export function Error({ error, avatarName }: ErrorProps) {
 
 export function VideoPreparingState({ avatarName }: { avatarName: string }) {
   return (
-    <div className="bg-[#222433] min-h-screen w-full flex flex-row justify-center">
+    <div className="bg-[#121214] min-h-screen w-full flex flex-row justify-center">
       <div className="w-full relative">
         <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0 pl-64">
           <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-8 py-[15px]">
