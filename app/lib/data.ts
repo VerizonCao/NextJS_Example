@@ -404,7 +404,8 @@ export async function loadAvatar(avatarId: string): Promise<Avatar | null> {
         owner_id, 
         image_uri, 
         create_time, 
-        update_time
+        update_time,
+        is_public
       FROM avatars 
       WHERE avatar_id = ${avatarId}
     `;
@@ -640,6 +641,11 @@ export async function updateAvatarData(
     if (updateData.thumb_count !== undefined) {
       updateFields.push(`thumb_count = $${paramIndex}`);
       values.push(updateData.thumb_count);
+      paramIndex++;
+    }
+    if (updateData.is_public !== undefined) {
+      updateFields.push(`is_public = $${paramIndex}`);
+      values.push(updateData.is_public);
       paramIndex++;
     }
 
@@ -1235,5 +1241,38 @@ export {
   getLatestChatMessages,
   hasChatHistory
 } from './data/chat';
+
+/**
+ * Check if an avatar's moderation check has passed
+ * @param avatarId The ID of the avatar to check
+ * @returns Promise<{isModerated: boolean, message: string}> Object containing moderation status and message
+ */
+export async function checkAvatarModerationPass(avatarId: string): Promise<{isModerated: boolean, message: string}> {
+  try {
+    const result = await sql`
+      SELECT check_pass
+      FROM avatar_moderation
+      WHERE avatar_id = ${avatarId}
+    `;
+    
+    if (result.length === 0) {
+      return {
+        isModerated: false,
+        message: 'Avatar is still in moderation queue'
+      };
+    }
+    
+    return {
+      isModerated: result[0].check_pass,
+      message: result[0].check_pass ? 'Avatar has passed moderation' : 'Avatar has not passed moderation'
+    };
+  } catch (error) {
+    console.error('Error checking avatar moderation status:', error);
+    return {
+      isModerated: false,
+      message: 'Error checking moderation status'
+    };
+  }
+}
 
 

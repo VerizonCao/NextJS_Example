@@ -27,7 +27,8 @@ import {
   addAvatarServeTime,
   getAllAvatarServeCountKeys,
   getAvatarServeTime,
-  sendImageModerationTask
+  sendImageModerationTask,
+  checkAvatarModerationPass
 } from '../data';
 import { avatarRequestCounter, avatarServeTimeCounter } from '../metrics';
 import { getAvatarThumbCountAction } from '@/app/lib/actions/thumbnail';
@@ -244,16 +245,28 @@ export async function updateAvatarData(
   updateData: Partial<Omit<Avatar, 'avatar_id' | 'create_time' | 'update_time'>>
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const success = await updateAvatarDataFromDb(avatarId, updateData);
-    
-    if (success) {
-      return { success: true, message: 'Avatar updated successfully' };
-    } else {
-      return { success: false, message: 'No fields were updated' };
+    // check if the avatar is trying to make public, and if it pass the image moderation
+    if (updateData.is_public === true) {
+      const moderationStatus = await checkAvatarModerationPass(avatarId);
+      if (!moderationStatus.isModerated) {
+        return {
+          success: false,
+          message: moderationStatus.message
+        };
+      }
     }
+
+    const success = await updateAvatarDataFromDb(avatarId, updateData);
+    return {
+      success,
+      message: success ? 'Avatar updated successfully' : 'Failed to update avatar'
+    };
   } catch (error) {
-    console.error('Error in updateAvatarData action:', error);
-    return { success: false, message: 'An error occurred while updating the avatar' };
+    console.error('Error updating avatar:', error);
+    return {
+      success: false,
+      message: 'Failed to update avatar'
+    };
   }
 }
 
@@ -773,5 +786,28 @@ export async function sendImageForModeration(
   } catch (error) {
     console.error('Error sending image for moderation:', error);
     return { success: false, message: 'Failed to send image for moderation' };
+  }
+}
+
+/**
+ * Server action to check if an avatar has passed moderation
+ */
+export async function checkAvatarModeration(
+  avatarId: string
+): Promise<{ success: boolean; isModerated: boolean; message: string }> {
+  try {
+    const result = await checkAvatarModerationPass(avatarId);
+    return {
+      success: true,
+      isModerated: result.isModerated,
+      message: result.message
+    };
+  } catch (error) {
+    console.error('Error checking avatar moderation:', error);
+    return {
+      success: false,
+      isModerated: false,
+      message: 'Failed to check avatar moderation status'
+    };
   }
 }

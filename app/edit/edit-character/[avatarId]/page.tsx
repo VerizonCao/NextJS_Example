@@ -29,13 +29,36 @@ export default function EditAvatarPage({
     agent_bio: '',
     prompt: '',
     scene_prompt: '',
-    voice_id: ''
+    voice_id: '',
+    is_public: false
   });
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
   const { data: session } = useSession();
+
+  // Add effect to auto-hide success popup
+  useEffect(() => {
+    if (showSuccessPopup) {
+      const timer = setTimeout(() => {
+        setShowSuccessPopup(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessPopup]);
+
+  // Add effect to auto-hide error popup
+  useEffect(() => {
+    if (showErrorPopup) {
+      const timer = setTimeout(() => {
+        setShowErrorPopup(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showErrorPopup]);
 
   // Load avatar data and check ownership
   useEffect(() => {
@@ -50,7 +73,8 @@ export default function EditAvatarPage({
             agent_bio: response.avatar.agent_bio || '',
             prompt: response.avatar.prompt || '',
             scene_prompt: response.avatar.scene_prompt || '',
-            voice_id: response.avatar.voice_id || ''
+            voice_id: response.avatar.voice_id || '',
+            is_public: response.avatar.is_public || false
           });
           if (response.avatar.image_uri) {
             try {
@@ -107,14 +131,16 @@ export default function EditAvatarPage({
           setShowSuccessPopup(true);
         }
       } else {
-        console.error('Failed to update avatar:', response.message);
+        setErrorMessage(response.message);
+        setShowErrorPopup(true);
       }
     } catch (error) {
-      console.error('Error updating avatar:', error);
+      setErrorMessage('An unexpected error occurred');
+      setShowErrorPopup(true);
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     if (!isOwner) return;
     setFormData(prev => ({
       ...prev,
@@ -246,7 +272,7 @@ export default function EditAvatarPage({
                         Edit your avatar in the studio environment
                       </div>
                     </div>
-                    <div className="flex flex-row items-center relative self-stretch w-full">
+                    <div className="flex flex-row items-center justify-between relative self-stretch w-full">
                       <a 
                         href={`/character-studio/${avatarId}?avatar_uri=${encodeURIComponent(avatar.image_uri || '')}`}
                         className={`inline-flex items-center justify-center gap-[9px] px-[36px] py-[7.2px] rounded-[10.8px] bg-blue-500 hover:bg-blue-700 text-white transition-colors duration-200 ${!isOwner ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
@@ -255,6 +281,19 @@ export default function EditAvatarPage({
                           Open in Studio
                         </span>
                       </a>
+                      <button
+                        onClick={() => handleInputChange('is_public', !formData.is_public)}
+                        className={`inline-flex items-center justify-center gap-[9px] px-[36px] py-[7.2px] rounded-[10.8px] ${
+                          formData.is_public 
+                            ? 'bg-green-500 hover:bg-green-700' 
+                            : 'bg-blue-500 hover:bg-blue-700'
+                        } text-white transition-colors duration-200 ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={!isOwner}
+                      >
+                        <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
+                          {formData.is_public ? 'Public' : 'Private'}
+                        </span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -349,6 +388,25 @@ export default function EditAvatarPage({
               Success!
             </h2>
             <p className="text-white text-lg">Your character has been updated successfully.</p>
+          </div>
+        </div>
+      )}
+
+      {showErrorPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
+            <Button
+              variant="ghost"
+              className="absolute top-2 right-2 text-white"
+              onClick={() => setShowErrorPopup(false)}
+            >
+              <X size={24} />
+            </Button>
+            <h2 className="text-white text-2xl font-semibold mb-4 flex items-center">
+              <X className="text-red-500 mr-2" size={28} />
+              Error
+            </h2>
+            <p className="text-white text-lg">{errorMessage}</p>
           </div>
         </div>
       )}
