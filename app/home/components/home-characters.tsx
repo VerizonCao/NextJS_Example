@@ -34,6 +34,7 @@ type UserAvatar = {
   agent_bio?: string;
   thumb_count?: number;
   serve_time?: number;
+  v1_score?: number;
 };
 
 interface HomeCharactersProps {
@@ -165,8 +166,11 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   // Navbar collapse state
   const [navbarCollapsed, setNavbarCollapsed] = useState(false);
   
-  // Tag system state
-  const [activeMainTab, setActiveMainTab] = useState("recommend");
+  // Tag system state - Updated to For you / Latest
+  const [activeMainTab, setActiveMainTab] = useState("for-you");
+  
+  // New state for sorting
+  const [currentSortBy, setCurrentSortBy] = useState<'score' | 'time'>('score');
   
   // New state for pagination
   const [avatars, setAvatars] = useState<UserAvatar[]>(initialAvatars.avatars || []);
@@ -262,13 +266,13 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     };
   }, [HORIZONTAL_SPACING, navbarCollapsed]);
   
-  // Function to load more avatars
+  // Function to load more avatars - Updated to use current sort
   const loadMoreAvatars = async () => {
     if (isLoading || !hasMore) return;
     
     setIsLoading(true);
     try {
-      const result = await loadPaginatedPublicAvatarsAction(offset);
+      const result = await loadPaginatedPublicAvatarsAction(offset, 20, '', currentSortBy);
       
       if (result.success && result.avatars && result.avatars.length > 0) {
         // Process the new avatars to add presigned URLs
@@ -433,6 +437,62 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     }
   };
 
+  // Function to handle tab changes and reload data
+  const handleTabChange = async (tab: string) => {
+    setActiveMainTab(tab);
+    const newSortBy: 'score' | 'time' = tab === 'for-you' ? 'score' : 'time';
+    setCurrentSortBy(newSortBy);
+    
+    // Reset pagination state
+    setOffset(0);
+    setHasMore(true);
+    setIsLoading(true);
+    
+    try {
+      const result = await loadPaginatedPublicAvatarsAction(0, 20, '', newSortBy);
+      
+      if (result.success && result.avatars) {
+        // Process the new avatars to add presigned URLs
+        const processedAvatars = await Promise.all(
+          result.avatars.map(async (avatar) => {
+            if (!avatar.image_uri) return avatar;
+            try {
+              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+              return { 
+                ...avatar,
+                create_time: new Date(avatar.create_time),
+                presignedUrl 
+              };
+            } catch (e) {
+              console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
+              return avatar;
+            }
+          })
+        );
+        
+        // Replace avatars with new sorted list
+        setAvatars(processedAvatars);
+        
+        // Update thumb counts
+        const newThumbCounts: Record<string, number> = {};
+        processedAvatars.forEach(avatar => {
+          newThumbCounts[avatar.avatar_id] = avatar.thumb_count || 0;
+        });
+        setAvatarThumbCounts(newThumbCounts);
+        
+        // Update offset for next load
+        setOffset(processedAvatars.length);
+        
+        // Check if there are more avatars to load
+        setHasMore(result.hasMore);
+      }
+    } catch (error) {
+      console.error('Error loading avatars with new sort:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!initialAvatars.success || !initialAvatars.avatars) {
     return (
       <div className="flex flex-col items-center gap-6 p-6">
@@ -454,18 +514,18 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
             <div className="flex items-center justify-between">
               {/* Main Tab Group */}
               <div className="flex items-center gap-2">
-                {["recommend", "trending"].map((tab) => (
+                {["for-you", "latest"].map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setActiveMainTab(tab)}
+                    onClick={() => handleTabChange(tab)}
                     className={`px-6 py-3.5 rounded-[100px] font-medium text-white text-base transition-all duration-200 ${
                       activeMainTab === tab
                         ? "bg-[#00000033] shadow-[0px_0px_10px_#ffffff40]"
                         : "hover:bg-[#ffffff1a]"
                     }`}
                   >
-                    <span className="font-['Montserrat',Helvetica] capitalize">
-                      {tab}
+                    <span className="font-['Montserrat',Helvetica]">
+                      {tab === 'latest' ? 'Latest' : 'For You'}
                     </span>
                   </button>
                 ))}
