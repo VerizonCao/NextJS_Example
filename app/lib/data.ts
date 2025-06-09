@@ -495,6 +495,14 @@ export async function loadPaginatedPublicAvatarsByCreationTime(
   searchTerm: string = ''
 ): Promise<Avatar[]> {
   try {
+    // Check cache first (only for non-search queries to keep results fresh)
+    if (!searchTerm) {
+      const cached = await getCachedAvatarResults('time', offset, limit, searchTerm);
+      if (cached) {
+        console.log(`Cache hit for time-sorted avatars: offset=${offset}, limit=${limit}`);
+        return cached;
+      }
+    }
   
     // If search term is provided, use the full-text search index
     if (searchTerm && searchTerm.trim() !== '') {
@@ -551,6 +559,11 @@ export async function loadPaginatedPublicAvatarsByCreationTime(
       LIMIT ${limit} OFFSET ${offset}
     `;
     
+    // Cache the results (only for home page queries)
+    if (!searchTerm) {
+      await cacheAvatarResults('time', offset, limit, searchTerm, result);
+    }
+    
     return result;
   } catch (error) {
     console.error('Error loading paginated public avatars by creation time:', error);
@@ -571,6 +584,14 @@ export async function loadPaginatedPublicAvatarsByScore(
   searchTerm: string = ''
 ): Promise<Avatar[]> {
   try {
+    // Check cache first (only for non-search queries to keep results fresh)
+    if (!searchTerm) {
+      const cached = await getCachedAvatarResults('score', offset, limit, searchTerm);
+      if (cached) {
+        console.log(`Cache hit for score-sorted avatars: offset=${offset}, limit=${limit}`);
+        return cached;
+      }
+    }
   
     // If search term is provided, use the full-text search index
     if (searchTerm && searchTerm.trim() !== '') {
@@ -626,6 +647,11 @@ export async function loadPaginatedPublicAvatarsByScore(
       ORDER BY v1_score DESC NULLS LAST, create_time DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
+    
+    // Cache the results (only for home page queries)
+    if (!searchTerm) {
+      await cacheAvatarResults('score', offset, limit, searchTerm, result);
+    }
     
     return result;
   } catch (error) {
@@ -1362,6 +1388,71 @@ export async function checkAvatarModerationPass(avatarId: string): Promise<{isMo
       isModerated: false,
       message: 'Error checking moderation status'
     };
+  }
+}
+
+/**
+ * Cache avatar results for pagination queries
+ * @param sortBy The sort method ('score' or 'time')
+ * @param offset The pagination offset
+ * @param limit The page limit
+ * @param searchTerm The search term (empty string for home page)
+ * @param avatars The avatar results to cache
+ * @returns Promise<boolean> True if cached successfully
+ */
+export async function cacheAvatarResults(
+  sortBy: 'score' | 'time',
+  offset: number,
+  limit: number,
+  searchTerm: string,
+  avatars: Avatar[]
+): Promise<boolean> {
+  try {
+    const key = `avatars_${sortBy}_${offset}_${limit}_${searchTerm || 'home'}`;
+    // Cache for 5 minutes (300 seconds) to balance freshness with performance
+    await redis.set(key, JSON.stringify(avatars), { ex: 300 });
+    return true;
+  } catch (error) {
+    // Gracefully handle Redis errors
+    if (error instanceof Error && error.message.includes('max requests limit exceeded')) {
+      console.warn('Redis rate limit exceeded for avatar caching. Skipping cache.');
+    } else {
+      console.error('Error caching avatar results:', error);
+    }
+    return false;
+  }
+}
+
+/**
+ * Get cached avatar results for pagination queries
+ * @param sortBy The sort method ('score' or 'time')
+ * @param offset The pagination offset
+ * @param limit The page limit
+ * @param searchTerm The search term (empty string for home page)
+ * @returns Promise<Avatar[] | null> Cached avatars or null if not found/error
+ */
+export async function getCachedAvatarResults(
+  sortBy: 'score' | 'time',
+  offset: number,
+  limit: number,
+  searchTerm: string
+): Promise<Avatar[] | null> {
+  try {
+    const key = `avatars_${sortBy}_${offset}_${limit}_${searchTerm || 'home'}`;
+    const cached = await redis.get(key);
+    
+    if (cached) {
+      return JSON.parse(cached as string) as Avatar[];
+    }
+    return null;
+  } catch (error) {
+    // Gracefully handle Redis errors
+    if (error instanceof Error && error.message.includes('max requests limit exceeded')) {
+      console.warn('Redis rate limit exceeded for avatar cache lookup. Skipping cache.');
+    } else {
+      console.error('Error getting cached avatar results:', error);
+    }
+    return null;
   }
 }
 

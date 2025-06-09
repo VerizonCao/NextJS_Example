@@ -23,6 +23,8 @@ import {
   queueAvatarThumbnailJobs,
   loadPaginatedPublicAvatarsByCreationTime,
   loadPaginatedPublicAvatarsByScore,
+  cacheAvatarResults,
+  getCachedAvatarResults,
   incrementAvatarServeCount,
   getAndRemoveAvatarServeCount,
   addAvatarServeTime,
