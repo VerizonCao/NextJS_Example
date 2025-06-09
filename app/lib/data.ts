@@ -384,6 +384,8 @@ export type Avatar = {
   update_time: Date;
   thumb_count: number;
   is_public: boolean;
+  serve_time: number | null;
+  v1_score: number | null;
 };
 
 /**
@@ -481,13 +483,13 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
 }
 
 /**
- * Load paginated public avatars
+ * Load paginated public avatars sorted by creation time
  * @param offset Number of avatars to skip (for pagination)
  * @param limit Maximum number of avatars to return (default: 20)
  * @param searchTerm Optional search term to filter avatars (default: '')
- * @returns Promise<Avatar[]> Array of public avatar objects with pagination
+ * @returns Promise<Avatar[]> Array of public avatar objects with pagination, sorted by creation time
  */
-export async function loadPaginatedPublicAvatars(
+export async function loadPaginatedPublicAvatarsByCreationTime(
   offset: number = 0,
   limit: number = 20,
   searchTerm: string = ''
@@ -510,7 +512,8 @@ export async function loadPaginatedPublicAvatars(
           update_time,
           thumb_count,
           is_public,
-          serve_time
+          serve_time,
+          v1_score
         FROM avatars 
         WHERE is_public = true
         AND (
@@ -525,7 +528,7 @@ export async function loadPaginatedPublicAvatars(
       return result;
     }
     
-    // If no search term, use the original query
+    // If no search term, use the original query sorted by creation time
     const result = await sql<Avatar[]>`
       SELECT 
         avatar_id, 
@@ -540,7 +543,8 @@ export async function loadPaginatedPublicAvatars(
         update_time,
         thumb_count,
         is_public,
-        serve_time
+        serve_time,
+        v1_score
       FROM avatars 
       WHERE is_public = true
       ORDER BY create_time DESC
@@ -549,7 +553,83 @@ export async function loadPaginatedPublicAvatars(
     
     return result;
   } catch (error) {
-    console.error('Error loading paginated public avatars:', error);
+    console.error('Error loading paginated public avatars by creation time:', error);
+    return [];
+  }
+}
+
+/**
+ * Load paginated public avatars sorted by v1_score
+ * @param offset Number of avatars to skip (for pagination)
+ * @param limit Maximum number of avatars to return (default: 20)
+ * @param searchTerm Optional search term to filter avatars (default: '')
+ * @returns Promise<Avatar[]> Array of public avatar objects with pagination, sorted by v1_score
+ */
+export async function loadPaginatedPublicAvatarsByScore(
+  offset: number = 0,
+  limit: number = 20,
+  searchTerm: string = ''
+): Promise<Avatar[]> {
+  try {
+  
+    // If search term is provided, use the full-text search index
+    if (searchTerm && searchTerm.trim() !== '') {
+      const result = await sql<Avatar[]>`
+        SELECT 
+          avatar_id, 
+          avatar_name, 
+          prompt,
+          scene_prompt,
+          agent_bio,
+          voice_id,
+          owner_id, 
+          image_uri, 
+          create_time, 
+          update_time,
+          thumb_count,
+          is_public,
+          serve_time,
+          v1_score
+        FROM avatars 
+        WHERE is_public = true
+        AND (
+          search_vector @@ plainto_tsquery('english', ${searchTerm}) OR
+          avatar_name ILIKE ${'%' + searchTerm + '%'} OR
+          agent_bio ILIKE ${'%' + searchTerm + '%'}
+        )
+        ORDER BY ts_rank(search_vector, plainto_tsquery('english', ${searchTerm})) DESC, v1_score DESC NULLS LAST, create_time DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      
+      return result;
+    }
+    
+    // If no search term, sort by v1_score with fallback to creation time
+    const result = await sql<Avatar[]>`
+      SELECT 
+        avatar_id, 
+        avatar_name, 
+        prompt,
+        scene_prompt,
+        agent_bio,
+        voice_id,
+        owner_id, 
+        image_uri, 
+        create_time, 
+        update_time,
+        thumb_count,
+        is_public,
+        serve_time,
+        v1_score
+      FROM avatars 
+      WHERE is_public = true
+      ORDER BY v1_score DESC NULLS LAST, create_time DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    
+    return result;
+  } catch (error) {
+    console.error('Error loading paginated public avatars by score:', error);
     return [];
   }
 }

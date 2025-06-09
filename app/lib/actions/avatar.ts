@@ -21,7 +21,8 @@ import {
   cacheAvatarThumbRequest,
   hasCachedRequestAvatarThumbCount,
   queueAvatarThumbnailJobs,
-  loadPaginatedPublicAvatars,
+  loadPaginatedPublicAvatarsByCreationTime,
+  loadPaginatedPublicAvatarsByScore,
   incrementAvatarServeCount,
   getAndRemoveAvatarServeCount,
   addAvatarServeTime,
@@ -157,7 +158,8 @@ export async function loadPublicAvatars(): Promise<{
 export async function loadPaginatedPublicAvatarsAction(
   offset: number = 0,
   limit: number = 20,
-  searchTerm: string = ''
+  searchTerm: string = '',
+  sortBy: 'score' | 'time' = 'time'
 ): Promise<{ 
   success: boolean; 
   avatars: any[] | null; 
@@ -165,7 +167,11 @@ export async function loadPaginatedPublicAvatarsAction(
   hasMore: boolean;
 }> {
   try {
-    const avatars = await loadPaginatedPublicAvatars(offset, limit, searchTerm);
+    // Choose the appropriate function based on sort parameter
+    const avatars = sortBy === 'score' 
+      ? await loadPaginatedPublicAvatarsByScore(offset, limit, searchTerm)
+      : await loadPaginatedPublicAvatarsByCreationTime(offset, limit, searchTerm);
+    
     const hasMore = avatars.length === limit;
     
     // Fire-and-forget async process for thumb count updates
@@ -189,7 +195,7 @@ export async function loadPaginatedPublicAvatarsAction(
     return { 
       success: true, 
       avatars, 
-      message: 'Paginated public avatars loaded successfully',
+      message: `Paginated public avatars loaded successfully (sorted by ${sortBy})`,
       hasMore
     };
   } catch (error) {
