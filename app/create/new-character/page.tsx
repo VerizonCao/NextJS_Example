@@ -44,6 +44,25 @@ export default function ImageUploadPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [createdAvatarId, setCreatedAvatarId] = useState<string | null>(null);
+
+  // Add useEffect for auto-redirect
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (showSuccessPopup && createdAvatarId) {
+      timeoutId = setTimeout(() => {
+        setShowSuccessPopup(false);
+        router.push(`/edit-character/${createdAvatarId}`);
+      }, 2000);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [showSuccessPopup, createdAvatarId, router]);
 
   // Data for the tabs
   const tabs = [
@@ -257,13 +276,14 @@ export default function ImageUploadPage() {
               if (!moderationResult.success) {
                 console.error('Failed to send image for moderation:', moderationResult.message);
               }
+
+              // Store the avatar ID and show success popup
+              setCreatedAvatarId(result.avatar_id);
+              setShowSuccessPopup(true);
             } else {
               console.error('Failed to save avatar to database:', result.message);
             }
           }
-
-          // redirect to the dashboard
-          router.push('/');
         } 
         
       } catch (error) {
@@ -596,7 +616,9 @@ export default function ImageUploadPage() {
               className="absolute top-2 right-2 text-white"
               onClick={() => {
                 setShowSuccessPopup(false);
-                router.push('/');
+                if (createdAvatarId) {
+                  router.push(`/edit-character/${createdAvatarId}`);
+                }
               }}
             >
               <X size={24} />
