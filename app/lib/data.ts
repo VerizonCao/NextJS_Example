@@ -644,8 +644,13 @@ export async function getPresignedUrlRedis(uri: string): Promise<string | null> 
     const presignedUrl = await redis.get(key);
     return presignedUrl as string | null;
   } catch (error) {
-    console.error('Error getting presigned URL:', error);
-    return null;
+    // Gracefully handle Redis errors (rate limits, connection issues, etc.)
+    if (error instanceof Error && error.message.includes('max requests limit exceeded')) {
+      console.warn('Redis rate limit exceeded for presigned URL cache. Skipping cache.');
+    } else {
+      console.error('Error getting presigned URL from Redis:', error);
+    }
+    return null; // Return null to indicate cache miss, fallback to generating new URL
   }
 }
 
@@ -666,8 +671,13 @@ export async function setPresignedUrlRedis(
     await redis.set(key, presignedUrl, { ex: ttlSeconds });
     return true;
   } catch (error) {
-    console.error('Error setting presigned URL:', error);
-    return false;
+    // Gracefully handle Redis errors without breaking the flow
+    if (error instanceof Error && error.message.includes('max requests limit exceeded')) {
+      console.warn('Redis rate limit exceeded for presigned URL storage. Skipping cache.');
+    } else {
+      console.error('Error setting presigned URL in Redis:', error);
+    }
+    return false; // Return false but don't throw - the app can continue without caching
   }
 }
 
