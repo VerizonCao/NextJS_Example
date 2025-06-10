@@ -14,6 +14,7 @@ import { CustomInput } from '@/app/components/ui/custom-input';
 import { CustomTextarea } from '@/app/components/ui/custom-textarea';
 import { X, CheckCircle } from 'lucide-react';
 import VoiceCloneUpload from '@/app/components/VoiceCloneUpload';
+import LayoutWithNavBar from '@/app/home/tab/layout-with-navbar';
 
 interface VoiceSample {
   id: string;
@@ -299,8 +300,9 @@ export default function ImageUploadPage() {
   };
 
   return (
-    <div className="bg-[#121214] min-h-screen">
-      <div className="max-w-[1920px] mx-auto px-10 py-6">
+    <LayoutWithNavBar className="bg-[#121214] min-h-screen">
+      <div className="min-h-screen">
+        <div className="max-w-[1920px] mx-auto px-10 py-6">
         <div className="flex items-center justify-center gap-2 relative self-stretch w-full">
           {/* Left Side - Drag and Drop Area */}
           <DragDropImageUpload 
@@ -621,6 +623,7 @@ export default function ImageUploadPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </LayoutWithNavBar>
   );
 }

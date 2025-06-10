@@ -1,5 +1,6 @@
 import { loadPaginatedPublicAvatarsActionOptimized } from '@/app/lib/actions';
 import HomeCharacters from '@/app/home/components/home-characters';
+import LayoutWithNavBar from '@/app/home/tab/layout-with-navbar';
 import { auth } from '@/auth';
 import { Suspense } from 'react';
 
@@ -34,10 +35,12 @@ export default async function RitaStreamingPage() {
   };
 
   return (
-    <Suspense fallback={<LoadingState />}>
-      <HomeCharacters 
-        initialAvatars={publicResult}
-      />
-    </Suspense>
+    <LayoutWithNavBar className="bg-[#121214]">
+      <Suspense fallback={<LoadingState />}>
+        <HomeCharacters 
+          initialAvatars={publicResult}
+        />
+      </Suspense>
+    </LayoutWithNavBar>
   );
 }

@@ -7,6 +7,7 @@ import { Providers } from './providers';
 import { VersionCheck } from './components/version-check';
 import LandscapeSideNav from '@/app/home/tab/landscape-side-nav';
 import { ChatHistoryProvider } from '@/app/lib/contexts/ChatHistoryContext';
+import { NavbarProvider } from '@/app/lib/contexts/NavbarContext';
 
 import { Analytics } from "@vercel/analytics/next"
 
@@ -20,11 +21,13 @@ export default function RootLayout({
       <body className={`${montserrat.className} antialiased`}>
         <Providers>
           <ChatHistoryProvider>
-            <VersionCheck />
-            <LandscapeSideNav />
-            <main>
-              {children}
-            </main>
+            <NavbarProvider>
+              <VersionCheck />
+              <LandscapeSideNav />
+              <main>
+                {children}
+              </main>
+            </NavbarProvider>
           </ChatHistoryProvider>
         </Providers>
         <Analytics />

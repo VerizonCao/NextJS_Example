@@ -20,6 +20,7 @@ import { X, AlertCircle, ThumbsUp, Loader2, SearchIcon, BellIcon } from 'lucide-
 import { Button } from '@/components/ui/button';
 import SearchWindow from './search-window';
 import { useHomePageRefresh } from '@/app/lib/hooks/useHomePageRefresh';
+import { useNavbarState } from '@/app/home/tab/layout-with-navbar';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import CharacterSearchTile from './character-search-tile';
 
@@ -166,8 +167,8 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   // Trigger chat history refresh when home page is visited
   useHomePageRefresh();
   
-  // Navbar collapse state
-  const [navbarCollapsed, setNavbarCollapsed] = useState(false);
+  // Use the navbar state hook from responsive layout
+  const navbarCollapsed = useNavbarState();
   
   // Tag system state - Updated to Trending / Latest
   const [activeMainTab, setActiveMainTab] = useState("trending");
@@ -340,36 +341,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     router.push(`/chat/${avatar.avatar_id}`);
   };
 
-  // Listen for navbar collapse state changes
-  useEffect(() => {
-    const checkNavbarState = () => {
-      // Check if navbar is collapsed by measuring its width
-      const navbar = document.querySelector('nav');
-      if (navbar) {
-        const isCollapsed = navbar.offsetWidth <= 80; // 16 * 4 + padding = ~64-80px
-        setNavbarCollapsed(isCollapsed);
-      }
-    };
-    
-    // Initial check
-    checkNavbarState();
-    
-    // Set up observer to watch for navbar width changes
-    const observer = new MutationObserver(checkNavbarState);
-    const navbar = document.querySelector('nav');
-    if (navbar) {
-      observer.observe(navbar, { attributes: true, attributeFilter: ['class'] });
-    }
-    
-    // Also listen for transition end events
-    const handleTransition = () => setTimeout(checkNavbarState, 50);
-    navbar?.addEventListener('transitionend', handleTransition);
-    
-    return () => {
-      observer.disconnect();
-      navbar?.removeEventListener('transitionend', handleTransition);
-    };
-  }, []);
+
 
   // Focus input when search is opened
   useEffect(() => {
@@ -575,8 +547,6 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   return (
     <Suspense fallback={<LoadingState />}>
       <div className="bg-[#121214] min-h-screen w-full">
-        {/* Main Content Wrapper with dynamic left padding */}
-        <div className={`transition-all duration-300 ${navbarCollapsed ? 'pl-16' : 'pl-64'}`}>
           {/* Header Section with Tags */}
           <header className="relative bg-[#121214] py-6 px-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -783,7 +753,6 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
               )}
             </div>
           </div>
-        </div>
 
         <LoginPopup 
           isOpen={showLoginPopup} 
