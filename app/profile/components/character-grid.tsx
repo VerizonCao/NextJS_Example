@@ -26,17 +26,50 @@ interface CharacterGridProps {
   userEmail: string;
 }
 
-// Modified grid calculation for 6 cards per row
+// Dynamic grid calculation function (same as home page)
 function calculateOptimalGrid(containerWidth: number, spacing: number = 15) {
+  // Card aspect ratio (width/height) - based on original design
   const cardAspectRatio = 0.625;
-  const targetColumns = 6; // Fixed at 6 columns
   
-  const cardWithMargin = (containerWidth - (targetColumns + 1) * spacing) / targetColumns;
-  const actualCardWidth = Math.floor(cardWithMargin);
+  // Responsive base card width based on container size
+  let baseCardWidth: number;
+  if (containerWidth <= 1300) {
+    baseCardWidth = 120;
+  } else if (containerWidth <= 1700) {
+    baseCardWidth = 160;
+  } else if (containerWidth <= 2100) {
+    baseCardWidth = 200;
+  } else if (containerWidth <= 2700) {
+    baseCardWidth = 240;
+  } else {
+    baseCardWidth = 300;
+  }
+  
+  // Calculate rough number of cards that can fit using baseCardWidth + margin
+  const cardWithMargin = baseCardWidth + 15;
+  const roughCardCount = containerWidth / cardWithMargin;
+  const remainder = roughCardCount - Math.floor(roughCardCount);
+  
+  // Determine final card count based on remainder logic
+  let finalCardCount: number;
+  if (remainder < 0.9) {
+    // Round down - accommodate fewer cards with larger size
+    finalCardCount = Math.floor(roughCardCount);
+  } else {
+    // Round up - accommodate more cards with smaller size  
+    finalCardCount = Math.ceil(roughCardCount);
+  }
+  
+  // Ensure at least 1 card
+  finalCardCount = Math.max(1, finalCardCount);
+  
+  // Calculate actual card width to fit exactly
+  const availableWidth = containerWidth - (finalCardCount + 1) * spacing;
+  const actualCardWidth = Math.floor(availableWidth / finalCardCount);
   const actualCardHeight = Math.round(actualCardWidth / cardAspectRatio);
   
   return {
-    cardCount: targetColumns,
+    cardCount: finalCardCount,
     cardWidth: actualCardWidth,
     cardHeight: actualCardHeight
   };
@@ -63,7 +96,7 @@ export default function CharacterGrid({ userEmail }: CharacterGridProps) {
   const [publicOffset, setPublicOffset] = useState(0);
   
   // Dynamic grid state
-  const [gridConfig, setGridConfig] = useState({ cardCount: 6, cardWidth: 180, cardHeight: 320 });
+  const [gridConfig, setGridConfig] = useState({ cardCount: 1, cardWidth: 180, cardHeight: 320 });
   const containerRef = useRef<HTMLDivElement>(null);
   const observer = useRef<IntersectionObserver | null>(null);
   
@@ -297,7 +330,7 @@ export default function CharacterGrid({ userEmail }: CharacterGridProps) {
           </div>
         ) : isLoading ? (
           <div className="grid gap-[15px]" style={{ gridTemplateColumns: `repeat(${gridConfig.cardCount}, 1fr)` }}>
-            {[...Array(6)].map((_, i) => (
+            {[...Array(gridConfig.cardCount)].map((_, i) => (
               <div 
                 key={i} 
                 className="bg-gray-700 rounded-[13.79px] animate-pulse"

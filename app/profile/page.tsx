@@ -121,8 +121,8 @@ export default function ProfilePage() {
             @{userEmail}
           </p>
 
-          {/* Character Grid - 50% width of container */}
-          <div className="w-1/2">
+          {/* Character Grid - 2/3 width of container */}
+          <div className="w-2/3 max-w-[700px]">
             <CharacterGrid userEmail={userEmail} />
           </div>
         </div>
