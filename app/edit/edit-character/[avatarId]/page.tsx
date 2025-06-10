@@ -7,6 +7,7 @@ import { X, CheckCircle, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
+import LayoutWithNavBar from '@/app/home/tab/layout-with-navbar';
 
 type PageParams = {
   avatarId: string;
@@ -166,7 +167,8 @@ export default function EditAvatarPage({
   };
 
   return (
-    <div className="bg-[#121214] flex flex-row justify-center w-full">
+    <LayoutWithNavBar className="bg-[#121214] min-h-screen">
+      <div className="flex flex-row justify-center w-full">
       <div className="bg-[#121214] w-[1920px] h-[1080px] relative">
         <div className="flex flex-col w-[1920px] items-center justify-center gap-2">
           <div className="flex items-center justify-center gap-2 relative self-stretch w-full flex-[0_0_auto]">
@@ -410,6 +412,7 @@ export default function EditAvatarPage({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </LayoutWithNavBar>
   );
 }

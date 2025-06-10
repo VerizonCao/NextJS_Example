@@ -11,6 +11,7 @@ import { useVideoStream } from './hooks/useVideoStream';
 import { ChatLayout, UnifiedChatPanel } from './components/ChatLayout';
 import { VideoStream } from './components/VideoStream';
 import { Loading, Error } from './components/LoadingStates';
+import LayoutWithNavBar from '@/app/home/tab/layout-with-navbar';
 import { PageParams } from './types/chat.types';
 import { loadChatHistory } from '@/app/lib/actions/user';
 import type { ChatMessage } from '@/app/lib/data';
@@ -187,7 +188,8 @@ export default function ChatPage({
   // Video mode - New layout design
   if (isVideoMode) {
     return (
-      <ChatLayout backgroundImage={presignedUrl}>
+      <LayoutWithNavBar className="bg-[#121214] min-h-screen">
+        <ChatLayout backgroundImage={presignedUrl}>
         {/* Video Section - Left */}
         <div className="relative w-full lg:w-auto lg:h-full aspect-[9/16] flex-shrink-0">
           <VideoStream
@@ -221,12 +223,14 @@ export default function ChatPage({
           onClearMessages={handleClearMessages}
         />
       </ChatLayout>
+      </LayoutWithNavBar>
     );
   }
 
   // Regular chat mode (non-video) - Using Unified Component
   return (
-    <ChatLayout backgroundImage={presignedUrl}>
+    <LayoutWithNavBar className="bg-[#121214] min-h-screen">
+      <ChatLayout backgroundImage={presignedUrl}>
       {/* Character Image */}
       {presignedUrl && (
         <div
@@ -254,5 +258,6 @@ export default function ChatPage({
         onClearMessages={handleClearMessages}
       />
     </ChatLayout>
+    </LayoutWithNavBar>
   );
 }

@@ -10,6 +10,7 @@ import SignOutButton from '@/app/home/tab/buttons/signout-button';
 import { useSession } from 'next-auth/react';
 import { getUserPreferredNameAction } from '@/app/lib/actions';
 import { useChatHistory } from '@/app/lib/contexts/ChatHistoryContext';
+import { useNavbar } from '@/app/lib/contexts/NavbarContext';
 import './scrollbar.css';
 
 type NavItem = {
@@ -33,7 +34,7 @@ export default function LandscapeSideNav() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, setIsCollapsed } = useNavbar();
   const userButtonRef = useRef<HTMLButtonElement>(null);
   const moreIconRef = useRef<SVGSVGElement>(null);
   
@@ -147,9 +148,9 @@ export default function LandscapeSideNav() {
   };
 
   return (
-    <nav className={`flex flex-col h-screen items-start bg-black/25 fixed left-0 top-0 z-50 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>
+    <nav className={`flex flex-col h-screen items-start bg-black/25 fixed left-0 top-0 z-50 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-64'}`}>
       {/* Header with logo/menu button */}
-      <div className={`flex items-center justify-between w-full transition-all duration-300 ${isCollapsed ? 'px-2 py-4 2xl:py-10' : 'px-4 py-6 2xl:px-6 2xl:py-10'}`}>
+              <div className={`flex items-center justify-between w-full transition-all duration-300 ease-in-out ${isCollapsed ? 'px-2 py-4 2xl:py-10' : 'px-4 py-6 2xl:px-6 2xl:py-10'}`}>
         {isCollapsed ? (
           <button
             onClick={() => setIsCollapsed(false)}
@@ -165,16 +166,16 @@ export default function LandscapeSideNav() {
                 refreshRecentChats();
                 router.push('/');
               }}
-              className="flex items-center"
+              className="flex items-center overflow-hidden"
             >
-              <div className="w-40 h-10 overflow-hidden">
+              <div className="w-40 h-10 overflow-hidden flex-shrink-0">
                 <Image
                   src="/logo2.png"
                   alt="Logo"
                   width={160}
                   height={24}
                   priority
-                  className="object-cover object-center w-full h-full"
+                  className="object-cover object-center w-full h-full transition-all duration-300 ease-in-out"
                 />
               </div>
             </button>
@@ -192,7 +193,7 @@ export default function LandscapeSideNav() {
       <div className="w-full h-[1px] bg-[#8f909240]" />
 
       {/* Navigation menu */}
-      <div className={`flex flex-col items-start gap-2 w-full transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4 2xl:px-6'} py-2 2xl:py-6`}>
+      <div className={`flex flex-col items-start gap-2 w-full transition-all duration-300 ease-in-out ${isCollapsed ? 'px-2' : 'px-4 2xl:px-6'} py-2 2xl:py-6`}>
         {mainNavItems.map((item, index) => {
           const IconComponent = item.icon;
           const active = isActive(item.href);
@@ -234,7 +235,7 @@ export default function LandscapeSideNav() {
           {/* Separator */}
           <div className="w-full h-[1px] bg-[#8f909240]" />
           
-          <div className={`flex flex-col w-full flex-1 min-h-0 transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-4 2xl:px-6'} py-2`}>
+          <div className={`flex flex-col w-full flex-1 min-h-0 transition-all duration-300 ease-in-out ${isCollapsed ? 'px-2' : 'px-4 2xl:px-6'} py-2`}>
             {!isCollapsed && (
               <div className="flex items-center justify-between mb-2 flex-shrink-0">
                 <h3 className="text-[#8f9092] text-sm font-medium [font-family:'Montserrat',Helvetica]">
@@ -283,7 +284,7 @@ export default function LandscapeSideNav() {
       )}
 
       {/* User profile section at bottom */}
-      <div className={`flex flex-col items-center justify-end gap-2 w-full mt-auto transition-all duration-300 ${isCollapsed ? 'px-2' : 'px-6'} py-6`}>
+      <div className={`flex flex-col items-center justify-end gap-2 w-full mt-auto transition-all duration-300 ease-in-out ${isCollapsed ? 'px-2' : 'px-6'} py-6`}>
         {session ? (
           <div className="relative w-full">
             <button

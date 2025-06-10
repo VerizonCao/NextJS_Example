@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { updateUserPreferredNameAction, getUserPreferredNameAction } from '@/app/lib/actions';
 import CharacterGrid from './components/character-grid';
 import { Edit2 } from 'lucide-react';
+import LayoutWithNavBar from '@/app/home/tab/layout-with-navbar';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -88,9 +89,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#121214]">
-      {/* Content wrapper that responds to navbar state */}
-      <div className="ml-16 md:ml-64 transition-all duration-300">
+    <LayoutWithNavBar className="bg-[#121214] min-h-screen">
         <div className="flex flex-col items-center px-8 py-12">
           {/* Profile Picture */}
           <div className="w-24 h-24 border border-solid border-[#d9d9d9] rounded-full bg-[#2a2a2e] flex items-center justify-center mb-6">
@@ -127,70 +126,69 @@ export default function ProfilePage() {
             <CharacterGrid userEmail={userEmail} />
           </div>
         </div>
-      </div>
 
-      {/* Edit Popup */}
-      {showEditPopup && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
-            onClick={handleCancel}
-          />
-          
-          {/* Popup */}
-          <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-[#1a1a1e] rounded-xl p-6 w-96 max-w-[90vw]">
-              <h2 className="text-white text-xl font-semibold mb-6">Profile Settings</h2>
-              
-              <form onSubmit={handleNameSubmit}>
-                <div className="mb-6">
-                  <label className="block text-white text-sm font-medium mb-2">
-                    Display Name
-                  </label>
-                  <input
-                    type="text"
-                    value={preferredName}
-                    onChange={(e) => setPreferredName(e.target.value)}
-                    className="w-full px-4 py-2 text-sm font-medium bg-[#222327] rounded-xl border border-solid border-[#d2d5da40] text-white placeholder:text-[#535a65]"
-                    placeholder="Enter preferred name"
-                    autoFocus
-                  />
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-white text-sm font-medium mb-2">
-                    Email
-                  </label>
-                  <div className="px-4 py-2 bg-[#222327] rounded-xl text-gray-400 text-sm">
-                    {userEmail}
+        {/* Edit Popup */}
+        {showEditPopup && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+              onClick={handleCancel}
+            />
+            
+            {/* Popup */}
+            <div className="fixed inset-0 flex items-center justify-center z-50">
+              <div className="bg-[#1a1a1e] rounded-xl p-6 w-96 max-w-[90vw]">
+                <h2 className="text-white text-xl font-semibold mb-6">Profile Settings</h2>
+                
+                <form onSubmit={handleNameSubmit}>
+                  <div className="mb-6">
+                    <label className="block text-white text-sm font-medium mb-2">
+                      Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={preferredName}
+                      onChange={(e) => setPreferredName(e.target.value)}
+                      className="w-full px-4 py-2 text-sm font-medium bg-[#222327] rounded-xl border border-solid border-[#d2d5da40] text-white placeholder:text-[#535a65]"
+                      placeholder="Enter preferred name"
+                      autoFocus
+                    />
                   </div>
-                </div>
 
-                {error && (
-                  <p className="text-red-500 text-sm mb-4">{error}</p>
-                )}
+                  <div className="mb-6">
+                    <label className="block text-white text-sm font-medium mb-2">
+                      Email
+                    </label>
+                    <div className="px-4 py-2 bg-[#222327] rounded-xl text-gray-400 text-sm">
+                      {userEmail}
+                    </div>
+                  </div>
 
-                <div className="flex gap-4">
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2 bg-[#5856d6] hover:bg-[#3c34b5] text-white rounded-xl text-sm font-medium transition-colors"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="flex-1 px-4 py-2 bg-[#2a2a2e] hover:bg-[#3a3a3e] text-white rounded-xl text-sm font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+                  {error && (
+                    <p className="text-red-500 text-sm mb-4">{error}</p>
+                  )}
+
+                  <div className="flex gap-4">
+                    <button
+                      type="submit"
+                      className="flex-1 px-4 py-2 bg-[#5856d6] hover:bg-[#3c34b5] text-white rounded-xl text-sm font-medium transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="flex-1 px-4 py-2 bg-[#2a2a2e] hover:bg-[#3a3a3e] text-white rounded-xl text-sm font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
-        </>
-      )}
-    </div>
+          </>
+        )}
+    </LayoutWithNavBar>
   );
 } 
