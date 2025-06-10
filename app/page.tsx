@@ -17,7 +17,7 @@ function LoadingState() {
 export default async function RitaStreamingPage() {
   const session = await auth();
   
-  // Load first 20 public avatars using the new pagination function (sorted by score for 'For You')
+  // Load first 20 public avatars using the new pagination function (sorted by score for 'Trending')
   const publicAvatarsResult = await loadPaginatedPublicAvatarsAction(0, 20, '', 'score', 'all', 'all');
   const processedPublicAvatars = await Promise.all(
     (publicAvatarsResult.avatars ?? []).map(async (avatar: any) => {

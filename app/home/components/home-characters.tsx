@@ -170,8 +170,8 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   // Navbar collapse state
   const [navbarCollapsed, setNavbarCollapsed] = useState(false);
   
-  // Tag system state - Updated to For you / Latest
-  const [activeMainTab, setActiveMainTab] = useState("for-you");
+  // Tag system state - Updated to Trending / Latest
+  const [activeMainTab, setActiveMainTab] = useState("trending");
   
   // New state for sorting
   const [currentSortBy, setCurrentSortBy] = useState<'score' | 'time'>('score');
@@ -449,7 +449,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   // Function to handle tab changes and reload data
   const handleTabChange = async (tab: string) => {
     setActiveMainTab(tab);
-    const newSortBy: 'score' | 'time' = tab === 'for-you' ? 'score' : 'time';
+    const newSortBy: 'score' | 'time' = tab === 'trending' ? 'score' : 'time';
     setCurrentSortBy(newSortBy);
     
     // Reset pagination state
@@ -631,7 +631,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
             <div className="flex items-center justify-between">
               {/* Main Tab Group */}
               <div className="flex items-center gap-2">
-                {["for-you", "latest"].map((tab) => (
+                {["trending", "latest"].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => handleTabChange(tab)}
@@ -642,7 +642,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                     }`}
                   >
                     <span className="font-['Montserrat',Helvetica]">
-                      {tab === 'latest' ? 'Latest' : 'For You'}
+                      {tab === 'latest' ? 'Latest' : 'Trending'}
                     </span>
                   </button>
                 ))}
