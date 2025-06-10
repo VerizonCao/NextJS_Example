@@ -31,7 +31,8 @@ import {
   getAllAvatarServeCountKeys,
   getAvatarServeTime,
   sendImageModerationTask,
-  loadPaginatedUserAvatars
+  loadPaginatedUserAvatars,
+  checkAvatarModerationPass
 } from '../data';
 import { avatarRequestCounter, avatarServeTimeCounter } from '../metrics';
 import { getAvatarThumbCountAction } from '@/app/lib/actions/thumbnail';
