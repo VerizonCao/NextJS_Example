@@ -200,7 +200,7 @@ export async function loadPaginatedPublicAvatarsAction(
  */
 export async function loadPaginatedPublicAvatarsActionOptimized(
   offset: number = 0,
-  limit: number = 20,
+  limit: number = 30,
   searchTerm: string = '',
   sortBy: 'score' | 'time' = 'time',
   styleFilter: string = 'all',

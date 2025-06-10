@@ -17,8 +17,8 @@ function LoadingState() {
 export default async function RitaStreamingPage() {
   const session = await auth();
   
-  // Load first 20 public avatars using the optimized action (includes batch presigned URLs)
-  const publicAvatarsResult = await loadPaginatedPublicAvatarsActionOptimized(0, 20, '', 'score', 'all', 'all');
+  // Load first 30 public avatars using the optimized action (includes batch presigned URLs)
+  const publicAvatarsResult = await loadPaginatedPublicAvatarsActionOptimized(0, 30, '', 'score', 'all', 'all');
   
   // Process avatars to ensure proper date formatting
   const processedAvatars = publicAvatarsResult.avatars?.map((avatar: any) => ({
