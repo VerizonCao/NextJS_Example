@@ -65,7 +65,7 @@ export default function CharacterGrid({ userEmail }: CharacterGridProps) {
   // Dynamic grid state
   const [gridConfig, setGridConfig] = useState({ cardCount: 6, cardWidth: 180, cardHeight: 320 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const observer = useRef<IntersectionObserver>();
+  const observer = useRef<IntersectionObserver | null>(null);
   
   // Grid sizing
   const HORIZONTAL_SPACING = 15;
