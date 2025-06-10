@@ -36,6 +36,58 @@ export async function getPresignedUrl(key: string) {
   }
 }
 
+// NEW: Batch presigned URL generation for performance optimization
+export async function getBatchPresignedUrls(keys: string[]): Promise<{ [key: string]: string }> {
+  try {
+    const results: { [key: string]: string } = {};
+    const keysToGenerate: string[] = [];
+    
+    // First, check Redis cache for all keys in parallel
+    const cachePromises = keys.map(async (key) => {
+      try {
+        const cachedUrl = await getPresignedUrlRedis(key);
+        if (cachedUrl) {
+          results[key] = cachedUrl;
+          return { key, cached: true };
+        } else {
+          keysToGenerate.push(key);
+          return { key, cached: false };
+        }
+      } catch (error) {
+        keysToGenerate.push(key);
+        return { key, cached: false };
+      }
+    });
+    
+    await Promise.all(cachePromises);
+    
+    // Generate presigned URLs for keys not in cache, in parallel
+    if (keysToGenerate.length > 0) {
+      const generatePromises = keysToGenerate.map(async (key) => {
+        try {
+          const presignedUrl = await getPresignedGetUrl(key);
+          results[key] = presignedUrl;
+          
+          // Cache the result (don't await, fire-and-forget)
+          setPresignedUrlRedis(key, presignedUrl).catch(() => {});
+          
+          return { key, presignedUrl };
+        } catch (error) {
+          console.error(`Failed to generate presigned URL for ${key}:`, error);
+          return { key, presignedUrl: null };
+        }
+      });
+      
+      await Promise.all(generatePromises);
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('Error in batch presigned URL generation:', error);
+    throw new Error('Failed to generate batch presigned URLs');
+  }
+}
+
 export async function generatePresignedUrl(key: string) {
   try {
     const presignedUrl = await getPresignedPutUrl(key);
