@@ -286,7 +286,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     
     setIsLoading(true);
     try {
-      const result = await loadPaginatedPublicAvatarsActionOptimized(offset, 20, '', currentSortBy, styleFilter, genderFilter);
+      const result = await loadPaginatedPublicAvatarsActionOptimized(offset, 30, '', currentSortBy, styleFilter, genderFilter);
       
       if (result.success && result.avatars && result.avatars.length > 0) {
         // No need to process presigned URLs - they're already included in the optimized action
@@ -445,7 +445,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     setIsLoading(true);
     
     try {
-      const result = await loadPaginatedPublicAvatarsActionOptimized(0, 20, '', newSortBy, styleFilter, genderFilter);
+      const result = await loadPaginatedPublicAvatarsActionOptimized(0, 30, '', newSortBy, styleFilter, genderFilter);
       
       if (result.success && result.avatars) {
         // No need to process presigned URLs - they're already included in the optimized action
@@ -487,7 +487,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     setIsLoading(true);
     
     try {
-      const result = await loadPaginatedPublicAvatarsActionOptimized(0, 20, '', currentSortBy, newStyle, genderFilter);
+      const result = await loadPaginatedPublicAvatarsActionOptimized(0, 30, '', currentSortBy, newStyle, genderFilter);
       
       if (result.success && result.avatars) {
         // No need to process presigned URLs - they're already included in the optimized action
@@ -529,7 +529,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     setIsLoading(true);
     
     try {
-      const result = await loadPaginatedPublicAvatarsActionOptimized(0, 20, '', currentSortBy, styleFilter, newGender);
+      const result = await loadPaginatedPublicAvatarsActionOptimized(0, 30, '', currentSortBy, styleFilter, newGender);
       
       if (result.success && result.avatars) {
         // No need to process presigned URLs - they're already included in the optimized action
