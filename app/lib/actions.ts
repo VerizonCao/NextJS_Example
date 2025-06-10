@@ -9,3 +9,18 @@ export * from './actions/streaming';
 export * from './actions/thumbnail';
 export * from './actions/user';
 export * from './actions/voice';
+
+// Bulk exports for convenience
+export { 
+  saveAvatarData, 
+  loadUserAvatars, 
+  loadPublicAvatars, 
+  loadPaginatedPublicAvatarsAction,
+  loadPaginatedPublicAvatarsActionOptimized,
+  loadPaginatedUserAvatarsActionOptimized,
+  updateAvatarData,
+  deleteAvatar,
+  loadAvatar,
+  loadAuthorizedAvatar,
+  isUserAvatarOwnerAction
+} from './actions/avatar';

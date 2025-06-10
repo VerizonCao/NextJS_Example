@@ -30,7 +30,8 @@ import {
   addAvatarServeTime,
   getAllAvatarServeCountKeys,
   getAvatarServeTime,
-  sendImageModerationTask
+  sendImageModerationTask,
+  loadPaginatedUserAvatars
 } from '../data';
 import { avatarRequestCounter, avatarServeTimeCounter } from '../metrics';
 import { getAvatarThumbCountAction } from '@/app/lib/actions/thumbnail';
@@ -295,16 +296,28 @@ export async function updateAvatarData(
   updateData: Partial<Omit<Avatar, 'avatar_id' | 'create_time' | 'update_time'>>
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const success = await updateAvatarDataFromDb(avatarId, updateData);
-    
-    if (success) {
-      return { success: true, message: 'Avatar updated successfully' };
-    } else {
-      return { success: false, message: 'No fields were updated' };
+    // check if the avatar is trying to make public, and if it pass the image moderation
+    if (updateData.is_public === true) {
+      const moderationStatus = await checkAvatarModerationPass(avatarId);
+      if (!moderationStatus.isModerated) {
+        return {
+          success: false,
+          message: moderationStatus.message
+        };
+      }
     }
+
+    const success = await updateAvatarDataFromDb(avatarId, updateData);
+    return {
+      success,
+      message: success ? 'Avatar updated successfully' : 'Failed to update avatar'
+    };
   } catch (error) {
-    console.error('Error in updateAvatarData action:', error);
-    return { success: false, message: 'An error occurred while updating the avatar' };
+    console.error('Error updating avatar:', error);
+    return {
+      success: false,
+      message: 'Failed to update avatar'
+    };
   }
 }
 
@@ -824,5 +837,70 @@ export async function sendImageForModeration(
   } catch (error) {
     console.error('Error sending image for moderation:', error);
     return { success: false, message: 'Failed to send image for moderation' };
+  }
+}
+
+/**
+ * OPTIMIZED: Server action to load user avatars with pagination, filtering, and batch presigned URL generation
+ */
+export async function loadPaginatedUserAvatarsActionOptimized(
+  userEmail: string,
+  offset: number = 0,
+  limit: number = 30,
+  isPublic?: boolean
+): Promise<{ 
+  success: boolean; 
+  avatars: any[] | null; 
+  message: string;
+  hasMore: boolean;
+}> {
+  try {
+    const userId = await getUserByIdEmail(userEmail);
+    
+    if (!userId) {
+      return { 
+        success: false, 
+        avatars: null, 
+        message: 'User not found',
+        hasMore: false
+      };
+    }
+
+    const avatars = await loadPaginatedUserAvatars(userId, offset, limit, isPublic);
+    const hasMore = avatars.length === limit;
+    
+    // Batch process presigned URLs for performance
+    let processedAvatars = avatars;
+    if (avatars.length > 0) {
+      const imageUris = avatars
+        .filter(avatar => avatar.image_uri)
+        .map(avatar => avatar.image_uri as string);
+      
+      if (imageUris.length > 0) {
+        const presignedUrlMap = await getBatchPresignedUrls(imageUris);
+        
+        processedAvatars = avatars.map(avatar => ({
+          ...avatar,
+          presignedUrl: avatar.image_uri ? presignedUrlMap[avatar.image_uri] : undefined
+        }));
+      }
+    }
+    
+    const filterType = isPublic === true ? 'public' : isPublic === false ? 'private' : 'all';
+    
+    return { 
+      success: true, 
+      avatars: processedAvatars, 
+      message: `Optimized user avatars loaded successfully (${filterType} characters)`,
+      hasMore
+    };
+  } catch (error) {
+    console.error('Error in loadPaginatedUserAvatarsActionOptimized:', error);
+    return { 
+      success: false, 
+      avatars: null, 
+      message: 'An error occurred while loading user avatars',
+      hasMore: false
+    };
   }
 }
