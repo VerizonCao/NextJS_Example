@@ -35,6 +35,7 @@ import {
 import { avatarRequestCounter, avatarServeTimeCounter } from '../metrics';
 import { getAvatarThumbCountAction } from '@/app/lib/actions/thumbnail';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { getBatchPresignedUrls } from './s3';
 
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 11);
 
@@ -177,24 +178,6 @@ export async function loadPaginatedPublicAvatarsAction(
     
     const hasMore = avatars.length === limit;
     
-    // Fire-and-forget async process for thumb count updates
-    // Promise.resolve().then(async () => {
-    //   await Promise.all(
-    //     avatars.map(async (avatar) => {
-    //       const avatarId = avatar.avatar_id;
-    //       const exists = await hasCachedRequestAvatarThumbCount(avatarId);
-    //       if (!exists) {
-    //         try {
-    //           await cacheAvatarThumbRequest(avatarId);
-    //           await queueAvatarThumbnailJobs([avatarId]);
-    //         } catch (error) {
-    //           console.error(`Error updating thumb count for avatar ${avatarId}:`, error);
-    //         }
-    //       }
-    //     })
-    //   );
-    // });
-    
     return { 
       success: true, 
       avatars, 
@@ -203,6 +186,64 @@ export async function loadPaginatedPublicAvatarsAction(
     };
   } catch (error) {
     console.error('Error in loadPaginatedPublicAvatarsAction:', error);
+    return { 
+      success: false, 
+      avatars: null, 
+      message: 'An error occurred while loading paginated public avatars',
+      hasMore: false
+    };
+  }
+}
+
+/**
+ * OPTIMIZED: Server action to load public avatars with pagination and batch presigned URL generation
+ */
+export async function loadPaginatedPublicAvatarsActionOptimized(
+  offset: number = 0,
+  limit: number = 20,
+  searchTerm: string = '',
+  sortBy: 'score' | 'time' = 'time',
+  styleFilter: string = 'all',
+  genderFilter: string = 'all'
+): Promise<{ 
+  success: boolean; 
+  avatars: any[] | null; 
+  message: string;
+  hasMore: boolean;
+}> {
+  try {
+    // Choose the appropriate function based on sort parameter
+    const avatars = sortBy === 'score' 
+      ? await loadPaginatedPublicAvatarsByScore(offset, limit, searchTerm, styleFilter, genderFilter)
+      : await loadPaginatedPublicAvatarsByCreationTime(offset, limit, searchTerm, styleFilter, genderFilter);
+    
+    const hasMore = avatars.length === limit;
+    
+    // Batch process presigned URLs for performance
+    let processedAvatars = avatars;
+    if (avatars.length > 0) {
+      const imageUris = avatars
+        .filter(avatar => avatar.image_uri)
+        .map(avatar => avatar.image_uri as string);
+      
+      if (imageUris.length > 0) {
+        const presignedUrlMap = await getBatchPresignedUrls(imageUris);
+        
+        processedAvatars = avatars.map(avatar => ({
+          ...avatar,
+          presignedUrl: avatar.image_uri ? presignedUrlMap[avatar.image_uri] : undefined
+        }));
+      }
+    }
+    
+    return { 
+      success: true, 
+      avatars: processedAvatars, 
+      message: `Optimized paginated public avatars loaded successfully (sorted by ${sortBy}, style: ${styleFilter}, gender: ${genderFilter})`,
+      hasMore
+    };
+  } catch (error) {
+    console.error('Error in loadPaginatedPublicAvatarsActionOptimized:', error);
     return { 
       success: false, 
       avatars: null, 

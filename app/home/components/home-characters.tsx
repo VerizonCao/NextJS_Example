@@ -10,8 +10,7 @@ import {
   hasUserThumbedAvatarAction, 
   removeAvatarThumbAction, 
   addAvatarThumbAction,
-  loadPaginatedPublicAvatarsAction ,
-  getPresignedUrl
+  loadPaginatedPublicAvatarsActionOptimized
 } from '@/app/lib/actions';
 import { generateRoomId } from '@/lib/client-utils';
 import { useSession } from 'next-auth/react';
@@ -281,32 +280,20 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     };
   }, [HORIZONTAL_SPACING, navbarCollapsed]);
   
-  // Function to load more avatars - Updated to use current sort and filters
+  // Function to load more avatars - Updated to use current sort and filters with performance tracking
   const loadMoreAvatars = async () => {
     if (isLoading || !hasMore) return;
     
     setIsLoading(true);
     try {
-      const result = await loadPaginatedPublicAvatarsAction(offset, 20, '', currentSortBy, styleFilter, genderFilter);
+      const result = await loadPaginatedPublicAvatarsActionOptimized(offset, 20, '', currentSortBy, styleFilter, genderFilter);
       
       if (result.success && result.avatars && result.avatars.length > 0) {
-        // Process the new avatars to add presigned URLs
-        const processedAvatars = await Promise.all(
-          result.avatars.map(async (avatar) => {
-            if (!avatar.image_uri) return avatar;
-            try {
-              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
-              return { 
-                ...avatar,
-                create_time: new Date(avatar.create_time),
-                presignedUrl 
-              };
-            } catch (e) {
-              console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
-              return avatar;
-            }
-          })
-        );
+        // No need to process presigned URLs - they're already included in the optimized action
+        const processedAvatars = result.avatars.map(avatar => ({
+          ...avatar,
+          create_time: new Date(avatar.create_time)
+        }));
         
         // Update avatars state with new avatars
         setAvatars(prev => [...prev, ...processedAvatars]);
@@ -458,26 +445,14 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     setIsLoading(true);
     
     try {
-      const result = await loadPaginatedPublicAvatarsAction(0, 20, '', newSortBy, styleFilter, genderFilter);
+      const result = await loadPaginatedPublicAvatarsActionOptimized(0, 20, '', newSortBy, styleFilter, genderFilter);
       
       if (result.success && result.avatars) {
-        // Process the new avatars to add presigned URLs
-        const processedAvatars = await Promise.all(
-          result.avatars.map(async (avatar) => {
-            if (!avatar.image_uri) return avatar;
-            try {
-              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
-              return { 
-                ...avatar,
-                create_time: new Date(avatar.create_time),
-                presignedUrl 
-              };
-            } catch (e) {
-              console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
-              return avatar;
-            }
-          })
-        );
+        // No need to process presigned URLs - they're already included in the optimized action
+        const processedAvatars = result.avatars.map(avatar => ({
+          ...avatar,
+          create_time: new Date(avatar.create_time)
+        }));
         
         // Replace avatars with new sorted list
         setAvatars(processedAvatars);
@@ -512,26 +487,14 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     setIsLoading(true);
     
     try {
-      const result = await loadPaginatedPublicAvatarsAction(0, 20, '', currentSortBy, newStyle, genderFilter);
+      const result = await loadPaginatedPublicAvatarsActionOptimized(0, 20, '', currentSortBy, newStyle, genderFilter);
       
       if (result.success && result.avatars) {
-        // Process the new avatars to add presigned URLs
-        const processedAvatars = await Promise.all(
-          result.avatars.map(async (avatar) => {
-            if (!avatar.image_uri) return avatar;
-            try {
-              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
-              return { 
-                ...avatar,
-                create_time: new Date(avatar.create_time),
-                presignedUrl 
-              };
-            } catch (e) {
-              console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
-              return avatar;
-            }
-          })
-        );
+        // No need to process presigned URLs - they're already included in the optimized action
+        const processedAvatars = result.avatars.map((avatar: any) => ({
+          ...avatar,
+          create_time: new Date(avatar.create_time)
+        }));
         
         // Replace avatars with filtered list
         setAvatars(processedAvatars);
@@ -566,26 +529,14 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     setIsLoading(true);
     
     try {
-      const result = await loadPaginatedPublicAvatarsAction(0, 20, '', currentSortBy, styleFilter, newGender);
+      const result = await loadPaginatedPublicAvatarsActionOptimized(0, 20, '', currentSortBy, styleFilter, newGender);
       
       if (result.success && result.avatars) {
-        // Process the new avatars to add presigned URLs
-        const processedAvatars = await Promise.all(
-          result.avatars.map(async (avatar) => {
-            if (!avatar.image_uri) return avatar;
-            try {
-              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
-              return { 
-                ...avatar,
-                create_time: new Date(avatar.create_time),
-                presignedUrl 
-              };
-            } catch (e) {
-              console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
-              return avatar;
-            }
-          })
-        );
+        // No need to process presigned URLs - they're already included in the optimized action
+        const processedAvatars = result.avatars.map((avatar: any) => ({
+          ...avatar,
+          create_time: new Date(avatar.create_time)
+        }));
         
         // Replace avatars with filtered list
         setAvatars(processedAvatars);
