@@ -2,22 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { updateUserPreferredNameAction, getUserPreferredNameAction, loadUserAvatars, getPresignedUrl } from '@/app/lib/actions';
-import MyAvatars from '@/app/ui/rita/my-avatars';
-
-type UserAvatar = {
-  avatar_id: string;
-  avatar_name: string;
-  image_uri: string | null;
-  create_time: Date;
-  prompt: string;
-  agent_bio?: string;
-  scene_prompt?: string;
-  voice_id?: string;
-  presignedUrl?: string;
-  thumb_count?: number;
-  serve_time?: number;
-};
+import { updateUserPreferredNameAction, getUserPreferredNameAction } from '@/app/lib/actions';
+import CharacterGrid from './components/character-grid';
+import { Edit2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -26,14 +13,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  
-  // User avatars state
-  const [userAvatars, setUserAvatars] = useState<{
-    success: boolean;
-    avatars: UserAvatar[] | null;
-    message: string;
-  } | null>(null);
-  const [isLoadingAvatars, setIsLoadingAvatars] = useState(true);
+  const [showEditPopup, setShowEditPopup] = useState(false);
 
   const userName = session?.user?.name || session?.user?.email || '';
   const userEmail = session?.user?.email || '';
@@ -42,7 +22,6 @@ export default function ProfilePage() {
     const fetchData = async () => {
       if (!userEmail) {
         setIsLoading(false);
-        setIsLoadingAvatars(false);
         return;
       }
       
@@ -57,57 +36,13 @@ export default function ProfilePage() {
         setPreferredName(userName);
       }
       setIsLoading(false);
-
-      // Fetch user avatars
-      setIsLoadingAvatars(true);
-      try {
-        const userResult = await loadUserAvatars(userEmail);
-        if (userResult.success && userResult.avatars) {
-          const processedAvatars = await Promise.all(
-            userResult.avatars.map(async (avatar: any) => {
-              if (avatar.image_uri) {
-                try {
-                  const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
-                  return {
-                    ...avatar,
-                    create_time: new Date(avatar.create_time),
-                    presignedUrl
-                  };
-                } catch (error) {
-                  console.error(`Failed to get presigned URL for avatar ${avatar.avatar_id}:`, error);
-                  return {
-                    ...avatar,
-                    create_time: new Date(avatar.create_time)
-                  };
-                }
-              }
-              return {
-                ...avatar,
-                create_time: new Date(avatar.create_time)
-              };
-            })
-          );
-          setUserAvatars({ ...userResult, avatars: processedAvatars });
-        } else {
-          setUserAvatars(userResult);
-        }
-      } catch (error) {
-        console.error('Error loading user avatars:', error);
-        setUserAvatars({
-          success: false,
-          avatars: null,
-          message: 'Failed to load avatars'
-        });
-      } finally {
-        setIsLoadingAvatars(false);
-      }
     };
 
     fetchData();
   }, [userEmail, userName]);
 
-  const handleNameClick = () => {
-    setIsEditingName(true);
+  const handleEditClick = () => {
+    setShowEditPopup(true);
     setError(null);
   };
 
@@ -127,7 +62,7 @@ export default function ProfilePage() {
     
     if (success) {
       setDisplayName(preferredName.trim());
-      setIsEditingName(false);
+      setShowEditPopup(false);
       setError(null);
     } else {
       setError(message);
@@ -135,9 +70,13 @@ export default function ProfilePage() {
   };
 
   const handleCancel = () => {
-    setIsEditingName(false);
+    setShowEditPopup(false);
     setPreferredName(displayName);
     setError(null);
+  };
+
+  const getUserInitial = (name: string) => {
+    return name.charAt(0).toUpperCase();
   };
 
   if (!session) {
@@ -149,99 +88,109 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#121214] p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-white text-3xl font-bold mb-8">Profile</h1>
-        
-        {/* Profile Settings Section */}
-        <div className="bg-[#1a1a1e] rounded-lg p-6 mb-8">
-          <h2 className="text-white text-xl font-semibold mb-6">Account Settings</h2>
-          
-          <div className="mb-6">
-            <label className="block text-white text-sm font-medium mb-2">
-              Display Name
-            </label>
-            
-            {isEditingName ? (
-              <form onSubmit={handleNameSubmit} className="flex items-center gap-4">
-                <input
-                  type="text"
-                  value={preferredName}
-                  onChange={(e) => setPreferredName(e.target.value)}
-                  className="flex-1 px-4 py-2 text-sm font-medium bg-[#222327] rounded-xl border border-solid border-[#d2d5da40] text-white placeholder:text-[#535a65]"
-                  placeholder="Enter preferred name"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[#5856d6] hover:bg-[#3c34b5] text-white rounded-xl text-sm font-medium transition-colors"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-4 py-2 bg-[#2a2a2e] hover:bg-[#3a3a3e] text-white rounded-xl text-sm font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-              </form>
+    <div className="min-h-screen bg-[#121214]">
+      {/* Content wrapper that responds to navbar state */}
+      <div className="ml-16 md:ml-64 transition-all duration-300">
+        <div className="flex flex-col items-center px-8 py-12">
+          {/* Profile Picture */}
+          <div className="w-24 h-24 border border-solid border-[#d9d9d9] rounded-full bg-[#2a2a2e] flex items-center justify-center mb-6">
+            <span className="text-white text-2xl font-medium">
+              {getUserInitial(displayName)}
+            </span>
+          </div>
+
+          {/* Display Name with Edit Icon */}
+          <div className="flex items-center gap-3 mb-2">
+            {isLoading ? (
+              <div className="h-8 w-40 bg-gray-600 rounded-xl animate-pulse"></div>
             ) : (
-              <div className="flex items-center gap-4">
-                {isLoading ? (
-                  <div className="h-10 w-40 bg-gray-600 rounded animate-pulse"></div>
-                ) : (
-                  <div className="flex-1 px-4 py-2 bg-[#222327] rounded-xl text-white text-sm">
-                    {displayName}
-                  </div>
-                )}
-                <button
-                  onClick={handleNameClick}
-                  className="px-4 py-2 bg-[#5856d6] hover:bg-[#3c34b5] text-white rounded-xl text-sm font-medium transition-colors"
-                  disabled={isLoading}
-                >
-                  Edit
-                </button>
-              </div>
+              <h1 className="text-white text-xl font-semibold">
+                {displayName}
+              </h1>
             )}
-            
-            {error && (
-              <p className="text-red-500 text-sm mt-2">{error}</p>
-            )}
+            <button
+              onClick={handleEditClick}
+              className="text-[#8f9092] hover:text-white transition-colors rounded-xl p-1 hover:bg-[#ffffff1a]"
+              disabled={isLoading}
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
           </div>
 
-          <div className="mb-6">
-            <label className="block text-white text-sm font-medium mb-2">
-              Email
-            </label>
-            <div className="px-4 py-2 bg-[#222327] rounded-xl text-gray-400 text-sm">
-              {userEmail}
-            </div>
-          </div>
-        </div>
+          {/* Handle (User ID) */}
+          <p className="text-[#8f9092] text-sm mb-12">
+            @{userEmail}
+          </p>
 
-        {/* My Characters Section */}
-        <div className="bg-[#1a1a1e] rounded-lg p-6">
-          <h2 className="text-white text-xl font-semibold mb-6">My Characters</h2>
-          
-          {isLoadingAvatars ? (
-            <div className="flex flex-wrap justify-start gap-x-[1.5%] gap-y-[2vh] w-full">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-[18.75%] min-w-[150px] aspect-[0.56] bg-gray-700 rounded-lg animate-pulse"></div>
-              ))}
-            </div>
-          ) : userAvatars && userAvatars.success && userAvatars.avatars && userAvatars.avatars.length > 0 ? (
-            <MyAvatars initialAvatars={userAvatars} />
-          ) : (
-            <div className="flex flex-col items-center gap-6 p-6">
-              <div className="text-gray-400 text-center">
-                <p className="text-lg mb-2">No characters found</p>
-                <p className="text-sm">Create your first character to get started!</p>
-              </div>
-            </div>
-          )}
+          {/* Character Grid - 50% width of container */}
+          <div className="w-1/2">
+            <CharacterGrid userEmail={userEmail} />
+          </div>
         </div>
       </div>
+
+      {/* Edit Popup */}
+      {showEditPopup && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+            onClick={handleCancel}
+          />
+          
+          {/* Popup */}
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-[#1a1a1e] rounded-xl p-6 w-96 max-w-[90vw]">
+              <h2 className="text-white text-xl font-semibold mb-6">Profile Settings</h2>
+              
+              <form onSubmit={handleNameSubmit}>
+                <div className="mb-6">
+                  <label className="block text-white text-sm font-medium mb-2">
+                    Display Name
+                  </label>
+                  <input
+                    type="text"
+                    value={preferredName}
+                    onChange={(e) => setPreferredName(e.target.value)}
+                    className="w-full px-4 py-2 text-sm font-medium bg-[#222327] rounded-xl border border-solid border-[#d2d5da40] text-white placeholder:text-[#535a65]"
+                    placeholder="Enter preferred name"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-white text-sm font-medium mb-2">
+                    Email
+                  </label>
+                  <div className="px-4 py-2 bg-[#222327] rounded-xl text-gray-400 text-sm">
+                    {userEmail}
+                  </div>
+                </div>
+
+                {error && (
+                  <p className="text-red-500 text-sm mb-4">{error}</p>
+                )}
+
+                <div className="flex gap-4">
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-[#5856d6] hover:bg-[#3c34b5] text-white rounded-xl text-sm font-medium transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="flex-1 px-4 py-2 bg-[#2a2a2e] hover:bg-[#3a3a3e] text-white rounded-xl text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 } 

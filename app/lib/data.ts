@@ -1562,4 +1562,66 @@ export async function getCachedAvatarResults(
   }
 }
 
+/**
+ * Load paginated user avatars with optional public/private filtering
+ * @param ownerId The owner_id to retrieve avatars for
+ * @param offset Number of avatars to skip (for pagination)
+ * @param limit Maximum number of avatars to return (default: 30)
+ * @param isPublic Optional filter for public/private avatars (undefined = all, true = public only, false = private only)
+ * @returns Promise<Avatar[]> Array of avatar objects with pagination
+ */
+export async function loadPaginatedUserAvatars(
+  ownerId: string,
+  offset: number = 0,
+  limit: number = 30,
+  isPublic?: boolean
+): Promise<Avatar[]> {
+  try {
+    // Build WHERE conditions
+    const whereConditions = [`owner_id = $1`];
+    const queryParams: any[] = [ownerId];
+    let paramIndex = 2;
+    
+    // Add public/private filter if specified
+    if (isPublic !== undefined) {
+      whereConditions.push(`is_public = $${paramIndex}`);
+      queryParams.push(isPublic);
+      paramIndex++;
+    }
+    
+    // Add LIMIT and OFFSET parameters
+    queryParams.push(limit, offset);
+    
+    const query = `
+      SELECT 
+        avatar_id, 
+        avatar_name, 
+        prompt,
+        scene_prompt,
+        agent_bio,
+        voice_id,
+        owner_id, 
+        image_uri, 
+        create_time, 
+        update_time,
+        thumb_count,
+        is_public,
+        serve_time,
+        v1_score,
+        gender,
+        style
+      FROM avatars 
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY create_time DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    
+    const result = await sql.unsafe(query, queryParams);
+    return result as unknown as Avatar[];
+  } catch (error) {
+    console.error('Error loading paginated user avatars:', error);
+    return [];
+  }
+}
+
 

@@ -31,7 +31,7 @@ import {
   getAllAvatarServeCountKeys,
   getAvatarServeTime,
   sendImageModerationTask,
-  checkAvatarModerationPass
+  loadPaginatedUserAvatars
 } from '../data';
 import { avatarRequestCounter, avatarServeTimeCounter } from '../metrics';
 import { getAvatarThumbCountAction } from '@/app/lib/actions/thumbnail';
@@ -841,24 +841,66 @@ export async function sendImageForModeration(
 }
 
 /**
- * Server action to check if an avatar has passed moderation
+ * OPTIMIZED: Server action to load user avatars with pagination, filtering, and batch presigned URL generation
  */
-export async function checkAvatarModeration(
-  avatarId: string
-): Promise<{ success: boolean; isModerated: boolean; message: string }> {
+export async function loadPaginatedUserAvatarsActionOptimized(
+  userEmail: string,
+  offset: number = 0,
+  limit: number = 30,
+  isPublic?: boolean
+): Promise<{ 
+  success: boolean; 
+  avatars: any[] | null; 
+  message: string;
+  hasMore: boolean;
+}> {
   try {
-    const result = await checkAvatarModerationPass(avatarId);
-    return {
-      success: true,
-      isModerated: result.isModerated,
-      message: result.message
+    const userId = await getUserByIdEmail(userEmail);
+    
+    if (!userId) {
+      return { 
+        success: false, 
+        avatars: null, 
+        message: 'User not found',
+        hasMore: false
+      };
+    }
+
+    const avatars = await loadPaginatedUserAvatars(userId, offset, limit, isPublic);
+    const hasMore = avatars.length === limit;
+    
+    // Batch process presigned URLs for performance
+    let processedAvatars = avatars;
+    if (avatars.length > 0) {
+      const imageUris = avatars
+        .filter(avatar => avatar.image_uri)
+        .map(avatar => avatar.image_uri as string);
+      
+      if (imageUris.length > 0) {
+        const presignedUrlMap = await getBatchPresignedUrls(imageUris);
+        
+        processedAvatars = avatars.map(avatar => ({
+          ...avatar,
+          presignedUrl: avatar.image_uri ? presignedUrlMap[avatar.image_uri] : undefined
+        }));
+      }
+    }
+    
+    const filterType = isPublic === true ? 'public' : isPublic === false ? 'private' : 'all';
+    
+    return { 
+      success: true, 
+      avatars: processedAvatars, 
+      message: `Optimized user avatars loaded successfully (${filterType} characters)`,
+      hasMore
     };
   } catch (error) {
-    console.error('Error checking avatar moderation:', error);
-    return {
-      success: false,
-      isModerated: false,
-      message: 'Failed to check avatar moderation status'
+    console.error('Error in loadPaginatedUserAvatarsActionOptimized:', error);
+    return { 
+      success: false, 
+      avatars: null, 
+      message: 'An error occurred while loading user avatars',
+      hasMore: false
     };
   }
 }
