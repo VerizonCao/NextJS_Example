@@ -161,7 +161,9 @@ export async function loadPaginatedPublicAvatarsAction(
   offset: number = 0,
   limit: number = 20,
   searchTerm: string = '',
-  sortBy: 'score' | 'time' = 'time'
+  sortBy: 'score' | 'time' = 'time',
+  styleFilter: string = 'all',
+  genderFilter: string = 'all'
 ): Promise<{ 
   success: boolean; 
   avatars: any[] | null; 
@@ -171,8 +173,8 @@ export async function loadPaginatedPublicAvatarsAction(
   try {
     // Choose the appropriate function based on sort parameter
     const avatars = sortBy === 'score' 
-      ? await loadPaginatedPublicAvatarsByScore(offset, limit, searchTerm)
-      : await loadPaginatedPublicAvatarsByCreationTime(offset, limit, searchTerm);
+      ? await loadPaginatedPublicAvatarsByScore(offset, limit, searchTerm, styleFilter, genderFilter)
+      : await loadPaginatedPublicAvatarsByCreationTime(offset, limit, searchTerm, styleFilter, genderFilter);
     
     const hasMore = avatars.length === limit;
     
@@ -197,7 +199,7 @@ export async function loadPaginatedPublicAvatarsAction(
     return { 
       success: true, 
       avatars, 
-      message: `Paginated public avatars loaded successfully (sorted by ${sortBy})`,
+      message: `Paginated public avatars loaded successfully (sorted by ${sortBy}, style: ${styleFilter}, gender: ${genderFilter})`,
       hasMore
     };
   } catch (error) {

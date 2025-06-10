@@ -21,6 +21,8 @@ import { X, AlertCircle, ThumbsUp, Loader2, SearchIcon, BellIcon } from 'lucide-
 import { Button } from '@/components/ui/button';
 import SearchWindow from './search-window';
 import { useHomePageRefresh } from '@/app/lib/hooks/useHomePageRefresh';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import CharacterSearchTile from './character-search-tile';
 
 type UserAvatar = {
   avatar_id: string;
@@ -35,6 +37,8 @@ type UserAvatar = {
   thumb_count?: number;
   serve_time?: number;
   v1_score?: number;
+  gender?: string;
+  style?: string;
 };
 
 interface HomeCharactersProps {
@@ -172,6 +176,17 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
   // New state for sorting
   const [currentSortBy, setCurrentSortBy] = useState<'score' | 'time'>('score');
   
+  // Filter states
+  const [styleFilter, setStyleFilter] = useState<'all' | 'stylized' | 'realistic'>('all');
+  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female' | 'non-binary'>('all');
+  
+  // Search states
+  const [showSearchWindow, setShowSearchWindow] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
+  const [lastClickedTag, setLastClickedTag] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  
   // New state for pagination
   const [avatars, setAvatars] = useState<UserAvatar[]>(initialAvatars.avatars || []);
   const [isLoading, setIsLoading] = useState(false);
@@ -266,13 +281,13 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     };
   }, [HORIZONTAL_SPACING, navbarCollapsed]);
   
-  // Function to load more avatars - Updated to use current sort
+  // Function to load more avatars - Updated to use current sort and filters
   const loadMoreAvatars = async () => {
     if (isLoading || !hasMore) return;
     
     setIsLoading(true);
     try {
-      const result = await loadPaginatedPublicAvatarsAction(offset, 20, '', currentSortBy);
+      const result = await loadPaginatedPublicAvatarsAction(offset, 20, '', currentSortBy, styleFilter, genderFilter);
       
       if (result.success && result.avatars && result.avatars.length > 0) {
         // Process the new avatars to add presigned URLs
@@ -369,12 +384,6 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     };
   }, []);
 
-  const [showSearchWindow, setShowSearchWindow] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
-  const [lastClickedTag, setLastClickedTag] = useState('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
   // Focus input when search is opened
   useEffect(() => {
     if (showSearchWindow && searchInputRef.current) {
@@ -449,7 +458,7 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
     setIsLoading(true);
     
     try {
-      const result = await loadPaginatedPublicAvatarsAction(0, 20, '', newSortBy);
+      const result = await loadPaginatedPublicAvatarsAction(0, 20, '', newSortBy, styleFilter, genderFilter);
       
       if (result.success && result.avatars) {
         // Process the new avatars to add presigned URLs
@@ -488,6 +497,114 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
       }
     } catch (error) {
       console.error('Error loading avatars with new sort:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle style filter change - reload data with new filter
+  const handleStyleFilterChange = async (newStyle: typeof styleFilter) => {
+    setStyleFilter(newStyle);
+    
+    // Reset pagination and reload data
+    setOffset(0);
+    setHasMore(true);
+    setIsLoading(true);
+    
+    try {
+      const result = await loadPaginatedPublicAvatarsAction(0, 20, '', currentSortBy, newStyle, genderFilter);
+      
+      if (result.success && result.avatars) {
+        // Process the new avatars to add presigned URLs
+        const processedAvatars = await Promise.all(
+          result.avatars.map(async (avatar) => {
+            if (!avatar.image_uri) return avatar;
+            try {
+              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+              return { 
+                ...avatar,
+                create_time: new Date(avatar.create_time),
+                presignedUrl 
+              };
+            } catch (e) {
+              console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
+              return avatar;
+            }
+          })
+        );
+        
+        // Replace avatars with filtered list
+        setAvatars(processedAvatars);
+        
+        // Update thumb counts
+        const newThumbCounts: Record<string, number> = {};
+        processedAvatars.forEach(avatar => {
+          newThumbCounts[avatar.avatar_id] = avatar.thumb_count || 0;
+        });
+        setAvatarThumbCounts(newThumbCounts);
+        
+        // Update offset for next load
+        setOffset(processedAvatars.length);
+        
+        // Check if there are more avatars to load
+        setHasMore(result.hasMore);
+      }
+    } catch (error) {
+      console.error('Error loading avatars with new style filter:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Handle gender filter change - reload data with new filter
+  const handleGenderFilterChange = async (newGender: typeof genderFilter) => {
+    setGenderFilter(newGender);
+    
+    // Reset pagination and reload data
+    setOffset(0);
+    setHasMore(true);
+    setIsLoading(true);
+    
+    try {
+      const result = await loadPaginatedPublicAvatarsAction(0, 20, '', currentSortBy, styleFilter, newGender);
+      
+      if (result.success && result.avatars) {
+        // Process the new avatars to add presigned URLs
+        const processedAvatars = await Promise.all(
+          result.avatars.map(async (avatar) => {
+            if (!avatar.image_uri) return avatar;
+            try {
+              const { presignedUrl } = await getPresignedUrl(avatar.image_uri);
+              return { 
+                ...avatar,
+                create_time: new Date(avatar.create_time),
+                presignedUrl 
+              };
+            } catch (e) {
+              console.error(`Failed to get presigned URL for ${avatar.avatar_id}`, e);
+              return avatar;
+            }
+          })
+        );
+        
+        // Replace avatars with filtered list
+        setAvatars(processedAvatars);
+        
+        // Update thumb counts
+        const newThumbCounts: Record<string, number> = {};
+        processedAvatars.forEach(avatar => {
+          newThumbCounts[avatar.avatar_id] = avatar.thumb_count || 0;
+        });
+        setAvatarThumbCounts(newThumbCounts);
+        
+        // Update offset for next load
+        setOffset(processedAvatars.length);
+        
+        // Check if there are more avatars to load
+        setHasMore(result.hasMore);
+      }
+    } catch (error) {
+      console.error('Error loading avatars with new gender filter:', error);
     } finally {
       setIsLoading(false);
     }
@@ -569,6 +686,50 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                 >
                   <BellIcon className="w-6 h-6" />
                 </Button>
+              </div>
+            </div>
+            
+            {/* Filter Section */}
+            <div className="flex items-center gap-3 mt-2">
+              {/* Style Filter */}
+              <div className="flex items-center gap-2">
+                {["all", "stylized", "realistic"].map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => handleStyleFilterChange(style as typeof styleFilter)}
+                    className={`px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 ${
+                      styleFilter === style
+                        ? "bg-[#ffffff1a] text-white shadow-[0px_0px_5px_#ffffff20]"
+                        : "text-gray-400 hover:text-white hover:bg-[#ffffff0a]"
+                    }`}
+                  >
+                    <span className="font-['Montserrat',Helvetica] capitalize">
+                      {style}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Gender Filter Dropdown */}
+              <div className="relative">
+                <select
+                  value={genderFilter}
+                  onChange={(e) => handleGenderFilterChange(e.target.value as typeof genderFilter)}
+                  className="px-4 py-2 rounded-full bg-[#ffffff1a] text-white text-sm font-medium border-0 outline-none cursor-pointer font-['Montserrat',Helvetica] hover:bg-[#ffffff2a] focus:bg-[#ffffff2a] transition-all duration-200"
+                  style={{
+                    appearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                    backgroundSize: '16px',
+                    paddingRight: '32px'
+                  }}
+                >
+                  <option value="all" className="bg-[#1a1a1e] text-white">All</option>
+                  <option value="male" className="bg-[#1a1a1e] text-white">Male</option>
+                  <option value="female" className="bg-[#1a1a1e] text-white">Female</option>
+                  <option value="non-binary" className="bg-[#1a1a1e] text-white">Non-binary</option>
+                </select>
               </div>
             </div>
           </header>

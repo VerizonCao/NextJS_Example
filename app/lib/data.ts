@@ -386,6 +386,8 @@ export type Avatar = {
   is_public: boolean;
   serve_time: number | null;
   v1_score: number | null;
+  gender: string | null;
+  style: string | null;
 };
 
 /**
@@ -487,26 +489,60 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
  * @param offset Number of avatars to skip (for pagination)
  * @param limit Maximum number of avatars to return (default: 20)
  * @param searchTerm Optional search term to filter avatars (default: '')
+ * @param styleFilter Optional style filter ('all', 'stylized', 'realistic')
+ * @param genderFilter Optional gender filter ('all', 'male', 'female', 'non-binary')
  * @returns Promise<Avatar[]> Array of public avatar objects with pagination, sorted by creation time
  */
 export async function loadPaginatedPublicAvatarsByCreationTime(
   offset: number = 0,
   limit: number = 20,
-  searchTerm: string = ''
+  searchTerm: string = '',
+  styleFilter: string = 'all',
+  genderFilter: string = 'all'
 ): Promise<Avatar[]> {
   try {
     // Check cache first (only for non-search queries to keep results fresh)
     if (!searchTerm) {
-      const cached = await getCachedAvatarResults('time', offset, limit, searchTerm);
+      const cached = await getCachedAvatarResults('time', offset, limit, searchTerm, styleFilter, genderFilter);
       if (cached) {
-        console.log(`Cache hit for time-sorted avatars: offset=${offset}, limit=${limit}`);
+        console.log(`Cache hit for time-sorted avatars: offset=${offset}, limit=${limit}, style=${styleFilter}, gender=${genderFilter}`);
         return cached;
       }
+    }
+    
+    // Build WHERE conditions for filters
+    const whereConditions = ['is_public = true'];
+    const queryParams: any[] = [];
+    let paramIndex = 1;
+    
+    // Add style filter
+    if (styleFilter !== 'all') {
+      whereConditions.push(`style = $${paramIndex}`);
+      queryParams.push(styleFilter);
+      paramIndex++;
+    }
+    
+    // Add gender filter
+    if (genderFilter !== 'all') {
+      whereConditions.push(`gender = $${paramIndex}`);
+      queryParams.push(genderFilter);
+      paramIndex++;
     }
   
     // If search term is provided, use the full-text search index
     if (searchTerm && searchTerm.trim() !== '') {
-      const result = await sql<Avatar[]>`
+      whereConditions.push(`(
+        search_vector @@ plainto_tsquery('english', $${paramIndex}) OR
+        avatar_name ILIKE $${paramIndex + 1} OR
+        agent_bio ILIKE $${paramIndex + 1}
+      )`);
+      queryParams.push(searchTerm, `%${searchTerm}%`);
+      paramIndex += 2;
+      
+      // Add LIMIT and OFFSET parameters
+      queryParams.push(limit, offset);
+      
+      const query = `
         SELECT 
           avatar_id, 
           avatar_name, 
@@ -521,23 +557,25 @@ export async function loadPaginatedPublicAvatarsByCreationTime(
           thumb_count,
           is_public,
           serve_time,
-          v1_score
+          v1_score,
+          gender,
+          style
         FROM avatars 
-        WHERE is_public = true
-        AND (
-          search_vector @@ plainto_tsquery('english', ${searchTerm}) OR
-          avatar_name ILIKE ${'%' + searchTerm + '%'} OR
-          agent_bio ILIKE ${'%' + searchTerm + '%'}
-        )
-        ORDER BY ts_rank(search_vector, plainto_tsquery('english', ${searchTerm})) DESC, create_time DESC
-        LIMIT ${limit} OFFSET ${offset}
+        WHERE ${whereConditions.join(' AND ')}
+        ORDER BY ts_rank(search_vector, plainto_tsquery('english', $1)) DESC, create_time DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+        /* Force new plan - updated schema */
       `;
       
-      return result;
+      const result = await sql.unsafe(query, queryParams);
+      return result as unknown as Avatar[];
     }
     
+    // Add LIMIT and OFFSET parameters
+    queryParams.push(limit, offset);
+    
     // If no search term, use the original query sorted by creation time
-    const result = await sql<Avatar[]>`
+    const query = `
       SELECT 
         avatar_id, 
         avatar_name, 
@@ -552,19 +590,24 @@ export async function loadPaginatedPublicAvatarsByCreationTime(
         thumb_count,
         is_public,
         serve_time,
-        v1_score
+        v1_score,
+        gender,
+        style
       FROM avatars 
-      WHERE is_public = true
+      WHERE ${whereConditions.join(' AND ')}
       ORDER BY create_time DESC
-      LIMIT ${limit} OFFSET ${offset}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      /* Force new plan - updated schema */
     `;
+    
+    const result = await sql.unsafe(query, queryParams);
     
     // Cache the results (only for home page queries)
     if (!searchTerm) {
-      await cacheAvatarResults('time', offset, limit, searchTerm, result);
+      await cacheAvatarResults('time', offset, limit, searchTerm, styleFilter, genderFilter, result as unknown as Avatar[]);
     }
     
-    return result;
+    return result as unknown as Avatar[];
   } catch (error) {
     console.error('Error loading paginated public avatars by creation time:', error);
     return [];
@@ -576,26 +619,60 @@ export async function loadPaginatedPublicAvatarsByCreationTime(
  * @param offset Number of avatars to skip (for pagination)
  * @param limit Maximum number of avatars to return (default: 20)
  * @param searchTerm Optional search term to filter avatars (default: '')
+ * @param styleFilter Optional style filter ('all', 'stylized', 'realistic')
+ * @param genderFilter Optional gender filter ('all', 'male', 'female', 'non-binary')
  * @returns Promise<Avatar[]> Array of public avatar objects with pagination, sorted by v1_score
  */
 export async function loadPaginatedPublicAvatarsByScore(
   offset: number = 0,
   limit: number = 20,
-  searchTerm: string = ''
+  searchTerm: string = '',
+  styleFilter: string = 'all',
+  genderFilter: string = 'all'
 ): Promise<Avatar[]> {
   try {
     // Check cache first (only for non-search queries to keep results fresh)
     if (!searchTerm) {
-      const cached = await getCachedAvatarResults('score', offset, limit, searchTerm);
+      const cached = await getCachedAvatarResults('score', offset, limit, searchTerm, styleFilter, genderFilter);
       if (cached) {
-        console.log(`Cache hit for score-sorted avatars: offset=${offset}, limit=${limit}`);
+        console.log(`Cache hit for score-sorted avatars: offset=${offset}, limit=${limit}, style=${styleFilter}, gender=${genderFilter}`);
         return cached;
       }
+    }
+    
+    // Build WHERE conditions for filters
+    const whereConditions = ['is_public = true'];
+    const queryParams: any[] = [];
+    let paramIndex = 1;
+    
+    // Add style filter
+    if (styleFilter !== 'all') {
+      whereConditions.push(`style = $${paramIndex}`);
+      queryParams.push(styleFilter);
+      paramIndex++;
+    }
+    
+    // Add gender filter
+    if (genderFilter !== 'all') {
+      whereConditions.push(`gender = $${paramIndex}`);
+      queryParams.push(genderFilter);
+      paramIndex++;
     }
   
     // If search term is provided, use the full-text search index
     if (searchTerm && searchTerm.trim() !== '') {
-      const result = await sql<Avatar[]>`
+      whereConditions.push(`(
+        search_vector @@ plainto_tsquery('english', $${paramIndex}) OR
+        avatar_name ILIKE $${paramIndex + 1} OR
+        agent_bio ILIKE $${paramIndex + 1}
+      )`);
+      queryParams.push(searchTerm, `%${searchTerm}%`);
+      paramIndex += 2;
+      
+      // Add LIMIT and OFFSET parameters
+      queryParams.push(limit, offset);
+      
+      const query = `
         SELECT 
           avatar_id, 
           avatar_name, 
@@ -610,23 +687,25 @@ export async function loadPaginatedPublicAvatarsByScore(
           thumb_count,
           is_public,
           serve_time,
-          v1_score
+          v1_score,
+          gender,
+          style
         FROM avatars 
-        WHERE is_public = true
-        AND (
-          search_vector @@ plainto_tsquery('english', ${searchTerm}) OR
-          avatar_name ILIKE ${'%' + searchTerm + '%'} OR
-          agent_bio ILIKE ${'%' + searchTerm + '%'}
-        )
-        ORDER BY ts_rank(search_vector, plainto_tsquery('english', ${searchTerm})) DESC, v1_score DESC NULLS LAST, create_time DESC
-        LIMIT ${limit} OFFSET ${offset}
+        WHERE ${whereConditions.join(' AND ')}
+        ORDER BY ts_rank(search_vector, plainto_tsquery('english', $1)) DESC, v1_score DESC NULLS LAST, create_time DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+        /* Force new plan - updated schema */
       `;
       
-      return result;
+      const result = await sql.unsafe(query, queryParams);
+      return result as unknown as Avatar[];
     }
     
+    // Add LIMIT and OFFSET parameters
+    queryParams.push(limit, offset);
+    
     // If no search term, sort by v1_score with fallback to creation time
-    const result = await sql<Avatar[]>`
+    const query = `
       SELECT 
         avatar_id, 
         avatar_name, 
@@ -641,19 +720,24 @@ export async function loadPaginatedPublicAvatarsByScore(
         thumb_count,
         is_public,
         serve_time,
-        v1_score
+        v1_score,
+        gender,
+        style
       FROM avatars 
-      WHERE is_public = true
+      WHERE ${whereConditions.join(' AND ')}
       ORDER BY v1_score DESC NULLS LAST, create_time DESC
-      LIMIT ${limit} OFFSET ${offset}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      /* Force new plan - updated schema */
     `;
+    
+    const result = await sql.unsafe(query, queryParams);
     
     // Cache the results (only for home page queries)
     if (!searchTerm) {
-      await cacheAvatarResults('score', offset, limit, searchTerm, result);
+      await cacheAvatarResults('score', offset, limit, searchTerm, styleFilter, genderFilter, result as unknown as Avatar[]);
     }
     
-    return result;
+    return result as unknown as Avatar[];
   } catch (error) {
     console.error('Error loading paginated public avatars by score:', error);
     return [];
@@ -1397,6 +1481,8 @@ export async function checkAvatarModerationPass(avatarId: string): Promise<{isMo
  * @param offset The pagination offset
  * @param limit The page limit
  * @param searchTerm The search term (empty string for home page)
+ * @param styleFilter Optional style filter ('all', 'stylized', 'realistic')
+ * @param genderFilter Optional gender filter ('all', 'male', 'female', 'non-binary')
  * @param avatars The avatar results to cache
  * @returns Promise<boolean> True if cached successfully
  */
@@ -1405,10 +1491,12 @@ export async function cacheAvatarResults(
   offset: number,
   limit: number,
   searchTerm: string,
+  styleFilter: string,
+  genderFilter: string,
   avatars: Avatar[]
 ): Promise<boolean> {
   try {
-    const key = `avatars_${sortBy}_${offset}_${limit}_${searchTerm || 'home'}`;
+    const key = `avatars_${sortBy}_${offset}_${limit}_${searchTerm || 'home'}_${styleFilter}_${genderFilter}`;
     // Cache for 5 minutes (300 seconds) to balance freshness with performance
     await redis.set(key, JSON.stringify(avatars), { ex: 300 });
     return true;
@@ -1429,20 +1517,38 @@ export async function cacheAvatarResults(
  * @param offset The pagination offset
  * @param limit The page limit
  * @param searchTerm The search term (empty string for home page)
+ * @param styleFilter Optional style filter ('all', 'stylized', 'realistic')
+ * @param genderFilter Optional gender filter ('all', 'male', 'female', 'non-binary')
  * @returns Promise<Avatar[] | null> Cached avatars or null if not found/error
  */
 export async function getCachedAvatarResults(
   sortBy: 'score' | 'time',
   offset: number,
   limit: number,
-  searchTerm: string
+  searchTerm: string,
+  styleFilter: string,
+  genderFilter: string
 ): Promise<Avatar[] | null> {
   try {
-    const key = `avatars_${sortBy}_${offset}_${limit}_${searchTerm || 'home'}`;
+    const key = `avatars_${sortBy}_${offset}_${limit}_${searchTerm || 'home'}_${styleFilter}_${genderFilter}`;
     const cached = await redis.get(key);
     
     if (cached) {
-      return JSON.parse(cached as string) as Avatar[];
+      // Handle both string and object responses from Redis
+      if (typeof cached === 'string') {
+        try {
+          return JSON.parse(cached) as Avatar[];
+        } catch (parseError) {
+          console.error('Error parsing cached avatar JSON:', parseError);
+          return null;
+        }
+      } else if (typeof cached === 'object' && cached !== null) {
+        // Redis sometimes returns objects directly
+        return cached as Avatar[];
+      } else {
+        console.warn('Unexpected cached avatar format:', typeof cached);
+        return null;
+      }
     }
     return null;
   } catch (error) {
