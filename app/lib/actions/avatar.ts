@@ -122,22 +122,22 @@ export async function loadPublicAvatars(): Promise<{
     const avatars = await loadPublicAvatarsFromDb();
 
     // Fire-and-forget async process
-    Promise.resolve().then(async () => {
-      await Promise.all(
-        avatars.map(async (avatar) => {
-          const avatarId = avatar.avatar_id;
-          const exists = await hasCachedRequestAvatarThumbCount(avatarId);
-          if (!exists) {
-            try {
-              await cacheAvatarThumbRequest(avatarId);
-              await queueAvatarThumbnailJobs([avatarId]);
-            } catch (error) {
-              console.error(`Error updating thumb count for avatar ${avatarId}:`, error);
-            }
-          }
-        })
-      );
-    });
+    // Promise.resolve().then(async () => {
+    //   await Promise.all(
+    //     avatars.map(async (avatar) => {
+    //       const avatarId = avatar.avatar_id;
+    //       const exists = await hasCachedRequestAvatarThumbCount(avatarId);
+    //       if (!exists) {
+    //         try {
+    //           await cacheAvatarThumbRequest(avatarId);
+    //           await queueAvatarThumbnailJobs([avatarId]);
+    //         } catch (error) {
+    //           console.error(`Error updating thumb count for avatar ${avatarId}:`, error);
+    //         }
+    //       }
+    //     })
+    //   );
+    // });
     
     return { 
       success: true, 
@@ -179,22 +179,22 @@ export async function loadPaginatedPublicAvatarsAction(
     const hasMore = avatars.length === limit;
     
     // Fire-and-forget async process for thumb count updates
-    Promise.resolve().then(async () => {
-      await Promise.all(
-        avatars.map(async (avatar) => {
-          const avatarId = avatar.avatar_id;
-          const exists = await hasCachedRequestAvatarThumbCount(avatarId);
-          if (!exists) {
-            try {
-              await cacheAvatarThumbRequest(avatarId);
-              await queueAvatarThumbnailJobs([avatarId]);
-            } catch (error) {
-              console.error(`Error updating thumb count for avatar ${avatarId}:`, error);
-            }
-          }
-        })
-      );
-    });
+    // Promise.resolve().then(async () => {
+    //   await Promise.all(
+    //     avatars.map(async (avatar) => {
+    //       const avatarId = avatar.avatar_id;
+    //       const exists = await hasCachedRequestAvatarThumbCount(avatarId);
+    //       if (!exists) {
+    //         try {
+    //           await cacheAvatarThumbRequest(avatarId);
+    //           await queueAvatarThumbnailJobs([avatarId]);
+    //         } catch (error) {
+    //           console.error(`Error updating thumb count for avatar ${avatarId}:`, error);
+    //         }
+    //       }
+    //     })
+    //   );
+    // });
     
     return { 
       success: true, 
