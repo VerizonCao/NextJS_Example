@@ -497,7 +497,7 @@ function ProfilePopup({ isOpen, onClose, avatar, avatarId }: ProfilePopupProps) 
       return;
     }
     // Navigate to edit page
-    router.push(`/edit/edit-character/${avatarId}`);
+    router.push(`/edit-character/${avatarId}`);
   };
 
   if (!isOpen || !avatar) return null;
