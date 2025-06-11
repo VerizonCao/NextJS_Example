@@ -60,23 +60,41 @@ const convertDisplayToText = (displayMessages: DisplayMessage[]): TextMessage[] 
   }));
 };
 
-// Format dialogue versus narrative
-const formatMessageContent = (content: string) => {
-  // Find double asterisks and replace with italic formatting
-  const parts = content.split('**');
-  
-  if (parts.length < 3) {
-    // No complete pair of ** found, return original content
-    return content;
-  }
-  
-  // Simple logic: every odd index (1, 3, 5...) should be italic
-  return parts.map((part, index) => {
-    if (index % 2 === 1) {
-      return <em key={index}>{part}</em>;
+// Format dialogue versus narrative with streaming support
+const formatMessageContent = (content: string, isStreaming?: boolean) => {
+  // For streaming messages, we need to handle incomplete asterisk pairs
+  if (isStreaming) {
+    // Count asterisks to determine if we're currently inside italic formatting
+    const asteriskCount = (content.match(/\*\*/g) || []).length;
+    const parts = content.split('**');
+    
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        // Odd indices are between asterisk pairs - make italic
+        return <em key={index}>{part}</em>;
+      } else if (index === parts.length - 1 && asteriskCount % 2 === 1) {
+        // Last part and we have odd number of asterisks - this part is currently being formatted
+        return <em key={index}>{part}</em>;
+      }
+      return part;
+    });
+  } else {
+    // For completed messages, use simpler logic
+    const parts = content.split('**');
+    
+    if (parts.length < 3) {
+      // No complete pair of ** found, return original content
+      return content;
     }
-    return part;
-  });
+    
+    // Simple logic: every odd index (1, 3, 5...) should be italic
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        return <em key={index}>{part}</em>;
+      }
+      return part;
+    });
+  }
 };
 
 export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, isVideoMode, firstFrameReceived, onLeaveChat, customControls, onNewMessage, onUpdateMessage, onClearMessages }: TextChatProps) {
@@ -199,7 +217,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
           await liveKitSend(data.resp.text);
         }
         
-        // Handle text streaming from the model
+        // Handle text streaming from the model (OLD - TTS channel)
         if (data.topic === 'llm_data') {
           if (data.text === '[START]') {
             // Start a new streaming message
@@ -226,6 +244,43 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
               streamingMessageId.current = null;
             }
           } else {
+            // Append to streaming message
+            setCurrentStreamingMessage(prev => prev + data.text);
+            
+            // Update the streaming message in real-time
+            if (streamingMessageId.current) {
+              updateMessage(streamingMessageId.current, currentStreamingMessage + data.text, true);
+            }
+          }
+        }
+        
+        // Handle frontend streaming text (NEW - Direct from LLM for display)
+        if (data.topic === 'frontend_stream') {
+          if (data.type === 'START') {
+            // Start a new streaming message
+            const messageId = `assistant-frontend-${Date.now()}`;
+            streamingMessageId.current = messageId;
+            setCurrentStreamingMessage('');
+            
+            // Add placeholder message
+            const assistantMessage: TextMessage = {
+              id: messageId,
+              content: '',
+              role: 'assistant',
+              timestamp: new Date(),
+              isLocal: false,
+              isStreaming: true
+            };
+            
+            addMessage(assistantMessage);
+          } else if (data.type === 'DONE' || data.type === 'INTERRUPTED') {
+            // Finalize the streaming message
+            if (streamingMessageId.current) {
+              updateMessage(streamingMessageId.current, currentStreamingMessage, false);
+              setCurrentStreamingMessage('');
+              streamingMessageId.current = null;
+            }
+          } else if (data.type === 'CONTENT') {
             // Append to streaming message
             setCurrentStreamingMessage(prev => prev + data.text);
             
@@ -409,7 +464,7 @@ export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, 
                       <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                     )}
                     <div className="whitespace-pre-wrap">
-                      {formatMessageContent(msg.content)}
+                      {formatMessageContent(msg.content, msg.isStreaming)}
                       {msg.isStreaming && (
                         <span className="inline-block w-2 h-4 bg-white/60 ml-1 animate-pulse">|</span>
                       )}
