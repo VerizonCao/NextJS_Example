@@ -25,92 +25,17 @@ const convertChatMessagesToDisplay = (messages: ChatMessage[]) => {
 };
 
 export function ChatLayout({ children, className = '', backgroundImage }: ChatLayoutProps) {
-  const [navbarCollapsed, setNavbarCollapsed] = useState(false);
-  const [isThirdPanelOpen, setIsThirdPanelOpen] = useState(false);
+  const [isProfilePopupOpen, setIsProfilePopupOpen] = useState(false);
   const [currentAvatar, setCurrentAvatar] = useState<Avatar | null>(null);
   const [currentAvatarId, setCurrentAvatarId] = useState<string>('');
-  const [thirdPanelPosition, setThirdPanelPosition] = useState({ left: 0, top: 15, height: 0 });
 
-  // Calculate third panel position based on right panel's bounding box
-  useEffect(() => {
-    if (isThirdPanelOpen) {
-      const calculatePosition = () => {
-        // Find the right panel element (UnifiedChatPanel container)
-        const rightPanel = document.querySelector('[data-unified-chat-panel]') || 
-                          document.querySelector('.aspect-\\[9\\/16\\]') ||
-                          document.querySelector('.min-w-\\[500px\\]');
-        
-        if (rightPanel) {
-          const rect = rightPanel.getBoundingClientRect();
-          const newLeft = rect.right + 10; // Right edge of panel + 10px gap
-          const newTop = rect.top;
-          
-          // Calculate height to align bottom with container bottom
-          const containerBottom = window.innerHeight - 30; // Bottom of main container (100vh - 15px)
-          const newHeight = containerBottom - newTop;       // Height from panel top to container bottom
-          
-          setThirdPanelPosition({
-            left: newLeft,
-            top: newTop,
-            height: newHeight
-          });
-        }
-      };
-
-      // Calculate initially and on resize
-      calculatePosition();
-      
-      const handleResize = () => calculatePosition();
-      window.addEventListener('resize', handleResize);
-      
-      // Also recalculate after a short delay to ensure DOM is ready
-      const timer = setTimeout(calculatePosition, 100);
-      
-      return () => {
-        window.removeEventListener('resize', handleResize);
-        clearTimeout(timer);
-      };
-    }
-  }, [isThirdPanelOpen]);
-
-  // Listen for navbar collapse state changes
-  useEffect(() => {
-    const checkNavbarState = () => {
-      // Check if navbar is collapsed by measuring its width
-      const navbar = document.querySelector('nav');
-      if (navbar) {
-        const isCollapsed = navbar.offsetWidth <= 80; // 16 * 4 + padding = ~64-80px
-        setNavbarCollapsed(isCollapsed);
-      }
-    };
-    
-    // Initial check
-    checkNavbarState();
-    
-    // Set up observer to watch for navbar width changes
-    const observer = new MutationObserver(checkNavbarState);
-    const navbar = document.querySelector('nav');
-    if (navbar) {
-      observer.observe(navbar, { attributes: true, attributeFilter: ['class'] });
-    }
-    
-    // Also listen for transition end events
-    const handleTransition = () => setTimeout(checkNavbarState, 50);
-    navbar?.addEventListener('transitionend', handleTransition);
-    
-    return () => {
-      observer.disconnect();
-      navbar?.removeEventListener('transitionend', handleTransition);
-    };
-  }, []);
-
-  // Toggle function for third panel
-  const toggleThirdPanel = (avatar?: Avatar, avatarId?: string) => {
+  // Toggle function for profile popup
+  const toggleProfilePopup = (avatar?: Avatar, avatarId?: string) => {
     if (avatar && avatarId) {
       setCurrentAvatar(avatar);
       setCurrentAvatarId(avatarId);
     }
-    setIsThirdPanelOpen(!isThirdPanelOpen);
+    setIsProfilePopupOpen(!isProfilePopupOpen);
   };
 
   return (
@@ -130,39 +55,46 @@ export function ChatLayout({ children, className = '', backgroundImage }: ChatLa
         />
       )}
       
-      {/* Content overlay with dynamic navbar spacing and centering adjustment */}
+      {/* Content overlay */}
       <div className="w-full relative z-10">
-        <main className={`flex flex-col w-full h-full items-center justify-center px-4 lg:px-0 transition-all duration-300 ${navbarCollapsed ? 'pl-8' : 'pl-32'}`}>
+        <main className="flex flex-col w-full h-full items-center justify-center px-4 lg:px-0">
           <div className="flex flex-row items-center justify-center w-full max-w-[95vw] h-[calc(100vh-30px)] gap-0 py-[15px] relative" style={{ backgroundColor: 'transparent' }}>
             {/* Pass toggle function only to UnifiedChatPanel components */}
             {React.Children.map(children, child => {
               if (React.isValidElement(child) && child.type === UnifiedChatPanel) {
-                return React.cloneElement(child, { onToggleThirdPanel: toggleThirdPanel } as any);
+                return React.cloneElement(child, { onToggleProfilePopup: toggleProfilePopup } as any);
               }
               return child;
             })}
           </div>
-
-          {/* Independent Third Panel - positioned 10px to the right of the right panel */}
-          {isThirdPanelOpen && (
-            <div 
-              className="fixed w-[200px] bg-black/40 backdrop-blur-3xl rounded-[5px] border border-white/10 z-50"
-              style={{
-                left: `${thirdPanelPosition.left}px`,
-                top: `${thirdPanelPosition.top}px`,
-                height: `${thirdPanelPosition.height}px`
-              }}
-            >
-              <ThirdPanel 
-                isOpen={isThirdPanelOpen}
-                onClose={() => setIsThirdPanelOpen(false)}
-                avatar={currentAvatar}
-                avatarId={currentAvatarId}
-              />
-            </div>
-          )}
         </main>
       </div>
+
+      {/* Profile Panel - slide out from right */}
+      {isProfilePopupOpen && (
+        <>
+          {/* Backdrop for mobile/click outside */}
+          <div 
+            className="fixed inset-0 bg-black/20 z-40" 
+            onClick={() => setIsProfilePopupOpen(false)}
+          />
+          
+          {/* Slide-out Panel */}
+          <div 
+            className={`fixed top-0 right-0 h-full bg-black/90 backdrop-blur-xl border-l border-white/10 z-50 transform transition-transform duration-300 ease-in-out ${
+              isProfilePopupOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
+            style={{ width: 'min(25vw, 600px)' }}
+          >
+            <ProfilePopup 
+              isOpen={isProfilePopupOpen}
+              onClose={() => setIsProfilePopupOpen(false)}
+              avatar={currentAvatar}
+              avatarId={currentAvatarId}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -191,7 +123,7 @@ interface UnifiedChatPanelProps {
   // Callbacks
   onLeaveChat?: () => void;
   onStartChat?: () => void;
-  onToggleThirdPanel?: () => void;
+  onToggleProfilePopup?: (avatar: Avatar, avatarId: string) => void;
   
   // Message management callbacks
   onNewMessage?: (message: {
@@ -210,11 +142,11 @@ interface ProfileHeaderProps {
   avatar: Avatar;
   presignedUrl: string;
   onToggleInfoPanel: () => void;
-  onToggleThirdPanel?: (avatar: Avatar, avatarId: string) => void;
+  onToggleProfilePopup?: (avatar: Avatar, avatarId: string) => void;
   avatarId: string;
 }
 
-function ProfileHeader({ avatar, presignedUrl, onToggleInfoPanel, onToggleThirdPanel, avatarId }: ProfileHeaderProps) {
+function ProfileHeader({ avatar, presignedUrl, onToggleInfoPanel, onToggleProfilePopup, avatarId }: ProfileHeaderProps) {
   return (
     <div className="flex items-center gap-3 p-4 border-b border-white/20 flex-shrink-0">
       {presignedUrl && (
@@ -232,9 +164,9 @@ function ProfileHeader({ avatar, presignedUrl, onToggleInfoPanel, onToggleThirdP
           {avatar.agent_bio || 'No bio available'}
         </p>
       </div>
-      {/* Profile Info Button - now toggles third panel instead */}
+      {/* Profile Info Button - now toggles profile popup */}
       <button
-        onClick={() => onToggleThirdPanel ? onToggleThirdPanel(avatar, avatarId) : onToggleInfoPanel()}
+        onClick={() => onToggleProfilePopup ? onToggleProfilePopup(avatar, avatarId) : onToggleInfoPanel()}
         data-profile-info-button
         className="flex items-center justify-center w-8 h-8 bg-transparent hover:bg-black/20 rounded-full transition-colors flex-shrink-0"
       >
@@ -472,7 +404,7 @@ export function UnifiedChatPanel({
   connectionDetails,
   onLeaveChat,
   onStartChat,
-  onToggleThirdPanel,
+  onToggleProfilePopup,
   onNewMessage,
   onUpdateMessage,
   onClearMessages
@@ -511,7 +443,7 @@ export function UnifiedChatPanel({
             avatar={avatar}
             presignedUrl={presignedUrl}
             onToggleInfoPanel={handleToggleInfoPanel}
-            onToggleThirdPanel={onToggleThirdPanel}
+            onToggleProfilePopup={onToggleProfilePopup}
             avatarId={avatarId}
           />
 
@@ -546,27 +478,17 @@ export function UnifiedChatPanel({
   );
 }
 
-// Third Panel Component
-interface ThirdPanelProps {
+// Profile Popup Component
+interface ProfilePopupProps {
   isOpen: boolean;
   onClose: () => void;
   avatar: Avatar | null;
   avatarId: string;
 }
 
-function ThirdPanel({ isOpen, onClose, avatar, avatarId }: ThirdPanelProps) {
+function ProfilePopup({ isOpen, onClose, avatar, avatarId }: ProfilePopupProps) {
   const router = useRouter();
   const { data: session } = useSession();
-
-  const handleStream = () => {
-    if (!session) {
-      // Could show login popup or redirect to login
-      router.push('/auth/signin');
-      return;
-    }
-    // Navigate to stream mode
-    router.push(`/chat/${avatarId}?mode=video`);
-  };
 
   const handleEdit = () => {
     if (!session) {
@@ -575,35 +497,39 @@ function ThirdPanel({ isOpen, onClose, avatar, avatarId }: ThirdPanelProps) {
       return;
     }
     // Navigate to edit page
-    router.push(`/edit-character/${avatarId}`);
+    router.push(`/edit/edit-character/${avatarId}`);
   };
 
   if (!isOpen || !avatar) return null;
 
   return (
-    <div className="flex flex-col h-full p-4 gap-4 pt-6">
-      {/* Panel Header */}
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-white text-lg font-semibold">Profile</h3>
-        <button
-          onClick={onClose}
-          className="flex items-center justify-center w-6 h-6 bg-transparent hover:bg-black/20 rounded-full transition-colors"
-        >
-          <span className="text-white text-lg">×</span>
-        </button>
-      </div>
+    <div className="relative h-full p-6">
+      {/* Close button - anchored to top right */}
+      <button 
+        onClick={onClose}
+        className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 bg-transparent hover:bg-white/10 rounded-full transition-colors z-10"
+      >
+        <span className="text-white text-xl">×</span>
+      </button>
       
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-4">
-        <button
-          onClick={handleStream}
-          className="w-full px-4 py-3 bg-[rgb(79,70,229)] hover:bg-[rgb(60,52,181)] rounded-[8px] text-sm text-white transition-colors duration-200 text-center leading-tight"
-        >
-          Stream with {avatar.avatar_name}
-        </button>
+      {/* Content - aligned to left with spacing */}
+      <div className="flex flex-col gap-2 pt-2">
+        {/* Avatar Name */}
+        <h4 className="text-white text-xl font-semibold">
+          {avatar.avatar_name || 'Unknown Avatar'}
+        </h4>
+        
+        {/* Avatar Bio */}
+        {avatar.agent_bio && (
+          <p className="text-white/70 text-sm leading-relaxed">
+            {avatar.agent_bio}
+          </p>
+        )}
+        
+        {/* Edit Button */}
         <button
           onClick={handleEdit}
-          className="w-full px-4 py-3 bg-[rgb(29,29,30)] hover:bg-[rgb(40,40,42)] rounded-[8px] text-sm text-white transition-colors duration-200 text-center leading-tight"
+          className="w-full px-4 py-3 bg-[rgb(29,29,30)] hover:bg-[rgb(40,40,42)] rounded-[8px] text-sm text-white transition-colors duration-200 text-center leading-tight mt-4"
         >
           Edit Avatar
         </button>
