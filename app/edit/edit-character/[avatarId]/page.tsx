@@ -3,16 +3,22 @@
 import { getPresignedUrl, loadAvatar, updateAvatarData, deleteAvatar, isUserAvatarOwnerAction } from '@/app/lib/actions';
 import { useState, useEffect } from 'react';
 import { use } from 'react';
-import { X, CheckCircle, Trash2 } from 'lucide-react';
+import { X, CheckCircle, Trash2, Play, Square } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import LayoutWithNavBar from '@/app/home/tab/layout-with-navbar';
-import { validateGreetingFormat, GREETING_PLACEHOLDER } from '@/app/utils/greetingValidation';
+import { validateGreetingFormat, GREETING_PLACEHOLDER, DEFAULT_GREETING_CONTENT } from '@/app/utils/greetingValidation';
+import VoiceCloneUpload from '@/app/components/VoiceCloneUpload';
 
 type PageParams = {
   avatarId: string;
 };
+
+interface VoiceSample {
+  id: string;
+  audioUrl: string;
+}
 
 export default function EditAvatarPage({
     params,
@@ -20,8 +26,6 @@ export default function EditAvatarPage({
     params: Promise<PageParams>;
   }) {
   const { avatarId } = use(params);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isEditingVoice, setIsEditingVoice] = useState(false);
   const [avatar, setAvatar] = useState<any>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,10 +44,71 @@ export default function EditAvatarPage({
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [voices, setVoices] = useState<VoiceSample[]>([]);
+  const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const router = useRouter();
   const { data: session } = useSession();
 
-  // Add effect to auto-hide success popup
+  // Load voices
+  useEffect(() => {
+    const audioSamples: VoiceSample[] = [
+      {
+        id: '6f84f4b8-58a2-430c-8c79-688dad597532',
+        audioUrl: '/audio_samples/6f84f4b8-58a2-430c-8c79-688dad597532.wav'
+      },
+      {
+        id: '794f9389-aac1-45b6-b726-9d9369183238',
+        audioUrl: '/audio_samples/794f9389-aac1-45b6-b726-9d9369183238.wav'
+      },
+      {
+        id: 'c99d36f3-5ffd-4253-803a-535c1bc9c306',
+        audioUrl: '/audio_samples/c99d36f3-5ffd-4253-803a-535c1bc9c306.wav'
+      },
+      {
+        id: 'd3b22900-ec95-4344-a548-2d34e9b842b7',
+        audioUrl: '/audio_samples/d3b22900-ec95-4344-a548-2d34e9b842b7.wav'
+      }
+    ];
+    setVoices(audioSamples);
+  }, []);
+
+  const handlePlayAudio = (voiceId: string) => {
+    // Stop any currently playing audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+
+    setIsPlaying(voiceId);
+    const voice = voices.find(v => v.id === voiceId);
+    if (!voice) return;
+    
+    const audio = new Audio(voice.audioUrl);
+    setCurrentAudio(audio);
+    
+    audio.onended = () => {
+      setIsPlaying(null);
+      setCurrentAudio(null);
+    };
+    
+    audio.play().catch(error => {
+      console.error('Error playing audio:', error);
+      setIsPlaying(null);
+      setCurrentAudio(null);
+    });
+  };
+
+  const handleStopAudio = () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+    }
+    setIsPlaying(null);
+  };
+
+  // Auto-hide popups
   useEffect(() => {
     if (showSuccessPopup) {
       const timer = setTimeout(() => {
@@ -53,7 +118,6 @@ export default function EditAvatarPage({
     }
   }, [showSuccessPopup]);
 
-  // Add effect to auto-hide error popup
   useEffect(() => {
     if (showErrorPopup) {
       const timer = setTimeout(() => {
@@ -75,7 +139,7 @@ export default function EditAvatarPage({
             avatar_name: response.avatar.avatar_name,
             agent_bio: response.avatar.agent_bio || '',
             prompt: response.avatar.prompt || '',
-            opening_prompt: response.avatar.opening_prompt || response.avatar.scene_prompt || '',
+            opening_prompt: response.avatar.opening_prompt || response.avatar.scene_prompt || DEFAULT_GREETING_CONTENT,
             voice_id: response.avatar.voice_id || '',
             is_public: response.avatar.is_public || false
           });
@@ -102,25 +166,6 @@ export default function EditAvatarPage({
     };
     loadData();
   }, [avatarId, session?.user?.email, router]);
-
-  if (isLoading) {
-    return (
-      <div className="p-4">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!avatar) {
-    return (
-      <div className="p-4">
-        <h1 className="text-2xl font-bold text-red-600 font-['Montserrat',Helvetica]">Wrong Avatar ID</h1>
-        <p className="font-['Montserrat',Helvetica] text-white">The avatar with ID {avatarId} does not exist.</p>
-      </div>
-    );
-  }
 
   const handleSave = async () => {
     if (!isOwner) return;
@@ -189,257 +234,287 @@ export default function EditAvatarPage({
     }
   };
 
+  if (isLoading) {
+    return (
+      <LayoutWithNavBar className="bg-[#121214] min-h-screen">
+        <div className="bg-[#121214] min-h-screen w-full flex items-center justify-center">
+          <div className="text-white text-lg">Preparing character...</div>
+        </div>
+      </LayoutWithNavBar>
+    );
+  }
+
+  if (!avatar) {
+    return (
+      <LayoutWithNavBar className="bg-[#121214] min-h-screen">
+        <div className="bg-[#121214] min-h-screen w-full flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-400 mb-2">Wrong Avatar ID</h1>
+            <p className="text-[#8f9092]">The avatar with ID {avatarId} does not exist.</p>
+          </div>
+        </div>
+      </LayoutWithNavBar>
+    );
+  }
+
   return (
     <LayoutWithNavBar className="bg-[#121214] min-h-screen">
-      <div className="flex flex-row justify-center w-full">
-      <div className="bg-[#121214] w-[1920px] h-[1080px] relative">
-        <div className="flex flex-col w-[1920px] items-center justify-center gap-2">
-          <div className="flex items-center justify-center gap-2 relative self-stretch w-full flex-[0_0_auto]">
-            {imageUrl && (
-              <div className="relative w-[525.42px] h-[937.44px] rounded-xl overflow-hidden">
-                <img 
-                  src={imageUrl} 
-                  alt={avatar.avatar_name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+      <div className="bg-[#121214] min-h-screen py-16">
+        <div className="max-w-[700px] mx-auto px-6">
+          
+          {/* Form Content - Narrower container */}
+          <div className="w-full space-y-8">
             
-            <div className={`flex flex-col w-[613.7px] h-[937.44px] items-center justify-between p-8 relative bg-[#1a1a1e] rounded-[4.72px] ${!isOwner ? 'opacity-75' : ''}`}>
-              <div className="flex flex-col items-center gap-2 relative self-stretch w-full flex-[0_0_auto]">
-                <div className="flex flex-col items-start gap-2 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
-                  <div className="flex justify-between items-center w-full">
-                    <h2 className="font-semibold text-[16px] leading-[24px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Edit Profile</h2>
-                  </div>
+            {/* Character Name */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-white">Character Name</label>
+              <input
+                type="text"
+                value={formData.avatar_name}
+                onChange={(e) => handleInputChange('avatar_name', e.target.value)}
+                className={`w-full px-4 py-3 bg-[#222327] rounded-xl border border-[#d2d5da40] text-white text-sm placeholder:text-[#535a65] focus:border-[#5856d6] focus:outline-none transition-colors ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                placeholder="Enter character name"
+                disabled={!isOwner}
+              />
+              <p className="text-xs text-[#8f9092]">
+                Image is not editable. Use Character Studio for image modifications.
+              </p>
+            </div>
+
+            {/* Tagline */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-white">Tagline</label>
+              <input
+                type="text"
+                value={formData.agent_bio}
+                onChange={(e) => handleInputChange('agent_bio', e.target.value)}
+                className={`w-full px-4 py-3 bg-[#222327] rounded-xl border border-[#d2d5da40] text-white text-sm placeholder:text-[#535a65] focus:border-[#5856d6] focus:outline-none transition-colors ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                placeholder="Give your character a quick catchphrase"
+                disabled={!isOwner}
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-white">Description</label>
+              <textarea
+                value={formData.prompt}
+                onChange={(e) => handleInputChange('prompt', e.target.value)}
+                className={`w-full h-[120px] px-4 py-3 bg-[#222327] rounded-xl border border-[#d2d5da40] text-white text-sm placeholder:text-[#535a65] focus:border-[#5856d6] focus:outline-none transition-colors resize-none ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                placeholder="In a third person perspective, how would your character describe themselves?"
+                disabled={!isOwner}
+              />
+            </div>
+
+            {/* Greeting */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-white">Greeting</label>
+              <textarea
+                value={formData.opening_prompt}
+                onChange={(e) => handleInputChange('opening_prompt', e.target.value)}
+                className={`w-full h-[140px] px-4 py-3 bg-[#222327] rounded-xl border border-[#d2d5da40] text-white text-sm placeholder:text-[#535a65] focus:border-[#5856d6] focus:outline-none transition-colors resize-none ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                placeholder={GREETING_PLACEHOLDER}
+                disabled={!isOwner}
+              />
+              {greetingError && (
+                <div className="text-red-400 text-xs">
+                  {greetingError}
+                </div>
+              )}
+            </div>
+
+            {/* Voice Selection - With Container - Fixed nested button issue */}
+            <div className="bg-[#1a1a1e] rounded-xl p-8">
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-white">Voice</label>
+                <div className="space-y-3">
+                  {voices.map((voice) => (
+                    <div
+                      key={voice.id}
+                      onClick={() => !isOwner ? null : handleInputChange('voice_id', voice.id)}
+                      className={`flex items-center justify-between w-full p-4 rounded-xl transition-colors cursor-pointer ${
+                        formData.voice_id === voice.id
+                          ? "bg-[#ffffff1a] border-2 border-white"
+                          : "bg-[#222327] hover:bg-[#2a2a2e] border-2 border-transparent"
+                      } ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isPlaying === voice.id) {
+                              handleStopAudio();
+                            } else {
+                              handlePlayAudio(voice.id);
+                            }
+                          }}
+                          className="w-10 h-10 flex items-center justify-center rounded-full bg-[#ffffff1a] hover:bg-[#ffffff20] text-white transition-colors"
+                        >
+                          {isPlaying === voice.id ? (
+                            <Square className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4 ml-0.5" />
+                          )}
+                        </button>
+                        <span className="text-white text-sm font-medium">
+                          {voice.id.startsWith('cloned-') ? 'Cloned Voice' : `Voice ${voice.id}`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                   
-                  <div className="space-y-4 w-full">
-                    <div>
-                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Name</div>
-                      <div className="flex h-10 items-center gap-2 relative self-stretch w-full">
-                        <input
-                          type="text"
-                          value={formData.avatar_name}
-                          onChange={(e) => handleInputChange('avatar_name', e.target.value)}
-                          className={`h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs w-full ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          placeholder="Type a message..."
-                          disabled={!isOwner}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Bio</div>
-                      <div className="flex items-start gap-2.5 relative self-stretch w-full" style={{ height: '141px' }}>
-                        <textarea
-                          value={formData.agent_bio}
-                          onChange={(e) => handleInputChange('agent_bio', e.target.value)}
-                          className={`w-full h-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          placeholder="Type a message..."
-                          style={{ height: '100%' }}
-                          disabled={!isOwner}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Prompt</div>
-                      <div className="flex items-start gap-2.5 relative self-stretch w-full" style={{ height: '141px' }}>
-                        <textarea
-                          value={formData.prompt}
-                          onChange={(e) => handleInputChange('prompt', e.target.value)}
-                          className={`w-full h-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          placeholder="Type a message..."
-                          style={{ height: '100%' }}
-                          disabled={!isOwner}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Greeting</div>
-                      <div className="flex flex-col items-start gap-2.5 relative self-stretch w-full">
-                        <textarea
-                          value={formData.opening_prompt}
-                          onChange={(e) => handleInputChange('opening_prompt', e.target.value)}
-                          className={`w-full h-[141px] px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          placeholder={GREETING_PLACEHOLDER}
-                          disabled={!isOwner}
-                        />
-                        {greetingError && (
-                          <div className="text-red-400 text-xs font-['Montserrat',Helvetica]">
-                            {greetingError}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-start gap-4 relative self-stretch w-full mt-2">
-                    <div>
-                      <div className="self-stretch font-semibold text-[16px] leading-[24px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">
-                        Edit Voice
-                      </div>
-                    </div>
-                    <div className="flex flex-row items-center relative self-stretch w-full">
-                      <input
-                        type="text"
-                        value={formData.voice_id}
-                        onChange={(e) => handleInputChange('voice_id', e.target.value)}
-                        className={`h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs w-full ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        placeholder="Enter voice name"
-                        disabled={!isOwner}
+                  {isOwner && (
+                    <div className="mt-4">
+                      <VoiceCloneUpload 
+                        onVoiceCloned={(voiceId, originalAudioUrl) => {
+                          const clonedVoiceId = `cloned-${voiceId}`;
+                          setVoices(prev => [...prev, {
+                            id: clonedVoiceId,
+                            audioUrl: originalAudioUrl
+                          }]);
+                          handleInputChange('voice_id', clonedVoiceId);
+                        }} 
                       />
                     </div>
-                  </div>
-
-                  <div className="flex flex-col items-start gap-4 relative self-stretch w-full mt-2">
-                    <div>
-                      <div className="self-stretch font-semibold text-[16px] leading-[24px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">
-                        Character Studio
-                      </div>
-                      <div className="text-[12px] leading-[18px] text-gray-400 mt-1">
-                        Edit your avatar in the studio environment
-                      </div>
-                    </div>
-                    <div className="flex flex-row items-center justify-between relative self-stretch w-full">
-                      <a 
-                        href={`/character-studio/${avatarId}?avatar_uri=${encodeURIComponent(avatar.image_uri || '')}`}
-                        className={`inline-flex items-center justify-center gap-[9px] px-[36px] py-[7.2px] rounded-[10.8px] bg-blue-500 hover:bg-blue-700 text-white transition-colors duration-200 ${!isOwner ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
-                      >
-                        <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
-                          Open in Studio
-                        </span>
-                      </a>
-                      <button
-                        onClick={() => handleInputChange('is_public', !formData.is_public)}
-                        className={`inline-flex items-center justify-center gap-[9px] px-[36px] py-[7.2px] rounded-[10.8px] ${
-                          formData.is_public 
-                            ? 'bg-green-500 hover:bg-green-700' 
-                            : 'bg-blue-500 hover:bg-blue-700'
-                        } text-white transition-colors duration-200 ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={!isOwner}
-                      >
-                        <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
-                          {formData.is_public ? 'Public' : 'Private'}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center justify-between w-full">
-                <Button
-                  variant="destructive"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className={`inline-flex items-center justify-center gap-2 px-[18px] py-[7.2px] bg-red-800 hover:bg-red-900 rounded-[10.8px] text-white ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={!isOwner}
-                >
-                  <Trash2 size={18} />
-                  <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
-                    Delete Character
-                  </span>
-                </Button>
+            </div>
 
-                <button 
-                  onClick={handleSave}
-                  className={`inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] bg-[#5856d6] rounded-[10.8px] ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+            {/* Visibility */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-white">Visibility</label>
+              <div className="flex items-center justify-between p-4 bg-[#222327] rounded-xl">
+                <div>
+                  <div className="text-sm font-medium text-white">Public Character</div>
+                  <div className="text-xs text-[#8f9092]">Allow others to discover and use your character</div>
+                </div>
+                <button
+                  onClick={() => handleInputChange('is_public', !formData.is_public)}
                   disabled={!isOwner}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    formData.is_public ? 'bg-white' : 'bg-[#8f9092]'
+                  } ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
-                    Save
-                  </span>
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-[#1a1a1e] transition-transform ${
+                      formData.is_public ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Actions - Separator and buttons */}
+          <div className="w-full mt-8">
+            <div className="w-full h-[1px] bg-[#2a2a2e] mb-6" />
+            <div className="flex justify-between">
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={!isOwner}
+                className={`text-red-400 text-sm font-medium hover:text-red-300 transition-colors border-b border-transparent hover:border-red-400 ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Delete Character
+              </button>
+
+              <button 
+                onClick={handleSave}
+                disabled={!isOwner}
+                className={`px-6 py-3 text-sm font-medium bg-[#ffffff1a] hover:bg-[#ffffff20] text-white rounded-xl transition-colors ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+          <div className="bg-[#1a1a1e] rounded-xl p-8 max-w-md mx-4">
+            <div className="text-center space-y-4">
+              <h2 className="text-white text-xl font-semibold">Confirm Deletion</h2>
+              <p className="text-[#8f9092] text-sm">Are you sure you want to delete this character? This action cannot be undone.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-4 py-3 text-sm font-medium text-white hover:bg-[#ffffff1a] rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    handleDelete();
+                  }}
+                  className="flex-1 px-4 py-3 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors"
+                >
+                  Delete
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
-            <Button
-              variant="ghost"
-              className="absolute top-2 right-2 text-white"
-              onClick={() => setShowDeleteConfirm(false)}
-            >
-              <X size={24} />
-            </Button>
-            <h2 className="text-white text-2xl font-semibold mb-4">Confirm Deletion</h2>
-            <p className="text-white text-lg mb-6">Are you sure you want to delete this avatar? This action cannot be undone.</p>
-            <div className="flex gap-4 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="text-white"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  handleDelete();
-                }}
-                className="text-white border-red-600 hover:bg-red-600 hover:text-white"
-              >
-                Delete
-              </Button>
+      {/* Delete Success */}
+      {showDeleteSuccess && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+          <div className="bg-[#1a1a1e] rounded-xl p-8 max-w-md mx-4">
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center">
+                <CheckCircle className="text-green-500 w-12 h-12" />
+              </div>
+              <h2 className="text-white text-xl font-semibold">Character Deleted</h2>
+              <p className="text-[#8f9092] text-sm">Redirecting to dashboard...</p>
             </div>
           </div>
         </div>
       )}
 
-      {showDeleteSuccess && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
-            <h2 className="text-white text-2xl font-semibold mb-4 flex items-center">
-              <CheckCircle className="text-green-500 mr-2" size={28} />
-              Avatar Deleted
-            </h2>
-            <p className="text-white text-lg">Redirecting to dashboard...</p>
-          </div>
-        </div>
-      )}
-
+      {/* Success Popup */}
       {showSuccessPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
-            <Button
-              variant="ghost"
-              className="absolute top-2 right-2 text-white"
-              onClick={() => setShowSuccessPopup(false)}
-            >
-              <X size={24} />
-            </Button>
-            <h2 className="text-white text-2xl font-semibold mb-4 flex items-center">
-              <CheckCircle className="text-green-500 mr-2" size={28} />
-              Success!
-            </h2>
-            <p className="text-white text-lg">Your character has been updated successfully.</p>
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+          <div className="bg-[#1a1a1e] rounded-xl p-8 max-w-md mx-4">
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center">
+                <CheckCircle className="text-green-500 w-12 h-12" />
+              </div>
+              <h2 className="text-white text-xl font-semibold">Success!</h2>
+              <p className="text-[#8f9092] text-sm">Your character has been updated successfully.</p>
+              <button
+                onClick={() => setShowSuccessPopup(false)}
+                className="w-full px-4 py-3 text-sm font-medium bg-[#ffffff1a] hover:bg-[#ffffff20] text-white rounded-xl transition-colors"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Error Popup */}
       {showErrorPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#1a1a1e] p-8 rounded-xl relative">
-            <Button
-              variant="ghost"
-              className="absolute top-2 right-2 text-white"
-              onClick={() => setShowErrorPopup(false)}
-            >
-              <X size={24} />
-            </Button>
-            <h2 className="text-white text-2xl font-semibold mb-4 flex items-center">
-              <X className="text-red-500 mr-2" size={28} />
-              Error
-            </h2>
-            <p className="text-white text-lg">{errorMessage}</p>
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+          <div className="bg-[#1a1a1e] rounded-xl p-8 max-w-md mx-4">
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center">
+                <X className="text-red-500 w-12 h-12" />
+              </div>
+              <h2 className="text-white text-xl font-semibold">Error</h2>
+              <p className="text-[#8f9092] text-sm">{errorMessage}</p>
+              <button
+                onClick={() => setShowErrorPopup(false)}
+                className="w-full px-4 py-3 text-sm font-medium bg-[#ffffff1a] hover:bg-[#ffffff20] text-white rounded-xl transition-colors"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       )}
-      </div>
     </LayoutWithNavBar>
   );
 }

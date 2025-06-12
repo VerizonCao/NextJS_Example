@@ -75,6 +75,13 @@ export function validateGreetingFormat(greeting: string): { isValid: boolean; er
 }
 
 /**
+ * Default greeting content that users can edit directly
+ */
+export const DEFAULT_GREETING_CONTENT = `"Hello! I'm excited to meet you."
+
+**She smiled warmly, her eyes sparkling with genuine enthusiasm.**`;
+
+/**
  * Example of correct format for display in placeholders
  */
 export const GREETING_FORMAT_EXAMPLE = `"Hello! I'm so excited to meet you."
