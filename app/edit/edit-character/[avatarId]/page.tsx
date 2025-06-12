@@ -386,8 +386,12 @@ export default function EditAvatarPage({
               <label className="block text-sm font-medium text-white">Visibility</label>
               <div className="flex items-center justify-between p-4 bg-[#222327] rounded-xl">
                 <div>
-                  <div className="text-sm font-medium text-white">Public Character</div>
-                  <div className="text-xs text-[#8f9092]">Allow others to discover and use your character</div>
+                  <div className="text-sm font-medium text-white">{formData.is_public ? 'Public' : 'Private'}</div>
+                  <div className="text-xs text-[#8f9092]">
+                    {formData.is_public 
+                      ? 'Allow others to discover your character' 
+                      : 'Only you can see this character'}
+                  </div>
                 </div>
                 <button
                   onClick={() => handleInputChange('is_public', !formData.is_public)}
