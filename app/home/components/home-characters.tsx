@@ -39,6 +39,7 @@ type UserAvatar = {
   v1_score?: number;
   gender?: string;
   style?: string;
+  opening_prompt?: string;
 };
 
 interface HomeCharactersProps {
