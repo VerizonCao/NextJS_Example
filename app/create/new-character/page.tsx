@@ -15,7 +15,7 @@ import { CustomTextarea } from '@/app/components/ui/custom-textarea';
 import { X, CheckCircle } from 'lucide-react';
 import VoiceCloneUpload from '@/app/components/VoiceCloneUpload';
 import LayoutWithNavBar from '@/app/home/tab/layout-with-navbar';
-import { validateGreetingFormat, GREETING_PLACEHOLDER } from '@/app/utils/greetingValidation';
+import { validateGreetingFormat, GREETING_PLACEHOLDER, DEFAULT_GREETING_CONTENT } from '@/app/utils/greetingValidation';
 
 interface VoiceSample {
   id: string;
@@ -30,7 +30,7 @@ export default function ImageUploadPage() {
   const [zoom, setZoom] = useState(1);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
-  const [greeting, setGreeting] = useState('');
+  const [greeting, setGreeting] = useState(DEFAULT_GREETING_CONTENT);
   const [greetingError, setGreetingError] = useState<string | null>(null);
   const [bio, setBio] = useState('');
   const [name, setName] = useState('');
