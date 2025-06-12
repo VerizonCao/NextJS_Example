@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   useChat,
   useRoomContext,
@@ -60,41 +60,95 @@ const convertDisplayToText = (displayMessages: DisplayMessage[]): TextMessage[] 
   }));
 };
 
-// Format dialogue versus narrative with streaming support
+// Enhanced segment-based parsing function for robust message formatting
+const parseMessageSegments = (content: string): React.ReactNode => {
+  // Split content by ** to identify narrative segments
+  const rawSegments = content.split('**');
+  
+  // Process segments - odd indices (1, 3, 5...) are narratives
+  const processedSegments: Array<{
+    content: string;
+    isNarrative: boolean;
+    originalIndex: number;
+  }> = [];
+  
+  for (let i = 0; i < rawSegments.length; i++) {
+    const isNarrative = i % 2 === 1; // Odd indices are narratives (wrapped in **)
+    const rawContent = rawSegments[i];
+    
+    // Strip each segment - remove extra spaces and newlines
+    const strippedContent = rawContent.trim().replace(/\n+/g, ' ').replace(/\s+/g, ' ');
+    
+    if (strippedContent) { // Only add non-empty segments
+      processedSegments.push({
+        content: strippedContent,
+        isNarrative,
+        originalIndex: i
+      });
+    }
+  }
+  
+  // Build final formatted content with proper spacing
+  const formattedElements: React.ReactNode[] = [];
+  
+  for (let i = 0; i < processedSegments.length; i++) {
+    const segment = processedSegments[i];
+    const nextSegment = processedSegments[i + 1];
+    
+    // Apply formatting - narratives become italic
+    const segmentElement = segment.isNarrative ? (
+      <em key={`segment-${segment.originalIndex}`}>{segment.content}</em>
+    ) : (
+      <span key={`segment-${segment.originalIndex}`}>{segment.content}</span>
+    );
+    
+    formattedElements.push(segmentElement);
+    
+    // Enforce proper spacing between segments
+    if (nextSegment) {
+      if (segment.isNarrative || nextSegment.isNarrative) {
+        // Double newlines when narrative is involved
+        formattedElements.push(
+          <React.Fragment key={`spacing-${segment.originalIndex}`}>
+            <br />
+            <br />
+          </React.Fragment>
+        );
+      } else {
+        // Single newline between non-narrative segments
+        formattedElements.push(
+          <br key={`spacing-${segment.originalIndex}`} />
+        );
+      }
+    }
+  }
+  
+  return (
+    <React.Fragment>
+      {formattedElements}
+    </React.Fragment>
+  );
+};
+
+// Format dialogue versus narrative with robust segment-based parsing
 const formatMessageContent = (content: string, isStreaming?: boolean) => {
-  // For streaming messages, we need to handle incomplete asterisk pairs
+  // For streaming messages, use simplified approach
   if (isStreaming) {
-    // Count asterisks to determine if we're currently inside italic formatting
     const asteriskCount = (content.match(/\*\*/g) || []).length;
     const parts = content.split('**');
     
     return parts.map((part, index) => {
       if (index % 2 === 1) {
-        // Odd indices are between asterisk pairs - make italic
         return <em key={index}>{part}</em>;
       } else if (index === parts.length - 1 && asteriskCount % 2 === 1) {
-        // Last part and we have odd number of asterisks - this part is currently being formatted
-        return <em key={index}>{part}</em>;
-      }
-      return part;
-    });
-  } else {
-    // For completed messages, use simpler logic
-    const parts = content.split('**');
-    
-    if (parts.length < 3) {
-      // No complete pair of ** found, return original content
-      return content;
-    }
-    
-    // Simple logic: every odd index (1, 3, 5...) should be italic
-    return parts.map((part, index) => {
-      if (index % 2 === 1) {
         return <em key={index}>{part}</em>;
       }
       return part;
     });
   }
+  
+  // For completed messages, use enhanced segment-based parsing
+  return parseMessageSegments(content);
 };
 
 export function TextChat({ avatar_name, avatarId, initialMessages, previewMode, isVideoMode, firstFrameReceived, onLeaveChat, customControls, onNewMessage, onUpdateMessage, onClearMessages }: TextChatProps) {
