@@ -388,6 +388,7 @@ export type Avatar = {
   v1_score: number | null;
   gender: string | null;
   style: string | null;
+  opening_prompt: string | null;
 };
 
 /**
@@ -409,7 +410,8 @@ export async function loadAvatar(avatarId: string): Promise<Avatar | null> {
         image_uri, 
         create_time, 
         update_time,
-        is_public
+        is_public,
+        opening_prompt
       FROM avatars 
       WHERE avatar_id = ${avatarId}
     `;
@@ -439,7 +441,8 @@ export async function loadAvatarsByOwner(ownerId: string): Promise<Avatar[]> {
         owner_id, 
         image_uri, 
         create_time, 
-        update_time
+        update_time,
+        opening_prompt
       FROM avatars 
       WHERE owner_id = ${ownerId}
       ORDER BY create_time DESC
@@ -470,7 +473,8 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
         image_uri, 
         create_time, 
         update_time,
-        thumb_count
+        thumb_count,
+        opening_prompt
       FROM avatars 
       WHERE is_public = true
       ORDER BY create_time DESC

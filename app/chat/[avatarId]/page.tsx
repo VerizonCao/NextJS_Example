@@ -89,7 +89,26 @@ export default function ChatPage({
     }
 
     loadHistory();
-  }, [avatarId]);
+  }, [avatarId, avatar]);
+
+  // Add opening prompt when avatar loads and there's no chat history
+  React.useEffect(() => {    
+    if (avatar && !historyLoading && allChatMessages.length === 0 && !hasHistory) {
+      // Use opening_prompt if available, otherwise create a fallback
+      const promptContent = avatar.opening_prompt || 
+        `"Hello! I'm ${avatar.avatar_name}. It's wonderful to meet you!"\n\n**${avatar.avatar_name} smiled warmly, ready to begin your conversation.**`;
+      
+      const openingMessage: ChatMessage = {
+        id: `opening-${avatar.avatar_id}`,
+        content: promptContent,
+        role: 'assistant',
+        sender_id: 'assistant',
+        sender_name: avatar.avatar_name || 'Assistant',
+        created_at: new Date().toISOString()
+      };
+      setAllChatMessages([openingMessage]);
+    }
+  }, [avatar, historyLoading, allChatMessages.length, hasHistory]);
 
   // Callback to add new messages from live chat
   const handleNewMessage = React.useCallback((message: {
