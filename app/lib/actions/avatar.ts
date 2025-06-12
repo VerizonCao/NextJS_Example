@@ -48,6 +48,7 @@ export async function saveAvatarData(avatarData: {
   avatar_name: string;
   prompt?: string;
   scene_prompt?: string;
+  opening_prompt?: string;
   agent_bio?: string;
   owner_email: string;
   image_uri?: string;

@@ -15,6 +15,7 @@ import { CustomTextarea } from '@/app/components/ui/custom-textarea';
 import { X, CheckCircle } from 'lucide-react';
 import VoiceCloneUpload from '@/app/components/VoiceCloneUpload';
 import LayoutWithNavBar from '@/app/home/tab/layout-with-navbar';
+import { validateGreetingFormat, GREETING_PLACEHOLDER } from '@/app/utils/greetingValidation';
 
 interface VoiceSample {
   id: string;
@@ -29,7 +30,8 @@ export default function ImageUploadPage() {
   const [zoom, setZoom] = useState(1);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
-  const [scenePrompt, setScenePrompt] = useState('');
+  const [greeting, setGreeting] = useState('');
+  const [greetingError, setGreetingError] = useState<string | null>(null);
   const [bio, setBio] = useState('');
   const [name, setName] = useState('');
   const [voices, setVoices] = useState<VoiceSample[]>([]);
@@ -64,7 +66,7 @@ export default function ImageUploadPage() {
       height: "h-[177px]",
       wordLimit: 500,
     },
-    { id: "scene", label: "Scene", type: "textarea", height: "h-[190px]", wordLimit: 500 },
+    { id: "greeting", label: "Greeting", type: "textarea", height: "h-[190px]", wordLimit: 500 },
   ] as const;
 
   useEffect(() => {
@@ -242,7 +244,7 @@ export default function ImageUploadPage() {
             const result = await saveAvatarData({
               avatar_name: name,
               prompt: prompt,
-              scene_prompt: scenePrompt || undefined,
+              opening_prompt: greeting || undefined,
               agent_bio: bio,
               owner_email: owner_email,
               image_uri: key,
@@ -274,7 +276,9 @@ export default function ImageUploadPage() {
     }
   };
 
-  const isTextFieldsValid = prompt.trim() !== '' && scenePrompt.trim() !== '' && bio.trim() !== '' && name.trim() !== '';
+  // Validate greeting format
+  const greetingValidation = greeting.trim() ? validateGreetingFormat(greeting) : { isValid: false, error: "Greeting is required" };
+  const isTextFieldsValid = prompt.trim() !== '' && greetingValidation.isValid && bio.trim() !== '' && name.trim() !== '';
   const isFormValid = selectedImage && isTextFieldsValid && selectedVoice !== '';
 
   const isStep1Valid = selectedImage !== null;
@@ -303,223 +307,238 @@ export default function ImageUploadPage() {
     <LayoutWithNavBar className="bg-[#121214] min-h-screen">
       <div className="min-h-screen">
         <div className="max-w-[1920px] mx-auto px-10 py-6">
-        <div className="flex items-center justify-center gap-2 relative self-stretch w-full">
-          {/* Left Side - Drag and Drop Area */}
-          <DragDropImageUpload 
-            onImageUpload={handleImageUpload} 
-            croppedImageUrl={croppedImage}
-          />
+          <div className="flex items-center justify-center gap-2 relative self-stretch w-full">
+            {/* Left Side - Drag and Drop Area */}
+            <DragDropImageUpload 
+              onImageUpload={handleImageUpload} 
+              croppedImageUrl={croppedImage}
+            />
 
-          {/* Right Side - Form Section */}
-          <div className="flex flex-col w-[613.7px] h-[937.44px] items-center justify-between p-8 relative bg-[#1a1a1e] rounded-[4.72px]">
-            <div className="flex flex-col items-center gap-6 relative self-stretch w-full flex-[0_0_auto]">
-              {/* Custom Tabs */}
-              <div className="flex h-10 items-center gap-4 relative self-stretch w-full">
-                {tabs.map((tab) => (
-                  <div
-                    key={tab.id}
-                    className={`inline-flex items-center justify-center gap-2.5 relative self-stretch flex-[0_0_auto] ${
-                      tab.id === `step-${currentStep}`
-                        ? "border-b-2 border-[#5856d6]"
-                        : "border-b-2 border-transparent"
-                    }`}
-                  >
+            {/* Right Side - Form Section */}
+            <div className="flex flex-col w-[613.7px] h-[937.44px] items-center justify-between p-8 relative bg-[#1a1a1e] rounded-[4.72px]">
+              <div className="flex flex-col items-center gap-6 relative self-stretch w-full flex-[0_0_auto]">
+                {/* Custom Tabs */}
+                <div className="flex h-10 items-center gap-4 relative self-stretch w-full">
+                  {tabs.map((tab) => (
                     <div
-                      className={`relative w-fit font-['Montserrat',Helvetica] font-medium text-sm tracking-[0] leading-6 whitespace-nowrap ${
-                        tab.id === `step-${currentStep}` ? "text-[#5856d6]" : "text-white"
+                      key={tab.id}
+                      className={`inline-flex items-center justify-center gap-2.5 relative self-stretch flex-[0_0_auto] ${
+                        tab.id === `step-${currentStep}`
+                          ? "border-b-2 border-[#5856d6]"
+                          : "border-b-2 border-transparent"
                       }`}
                     >
-                      {tab.label}
+                      <div
+                        className={`relative w-fit font-['Montserrat',Helvetica] font-medium text-sm tracking-[0] leading-6 whitespace-nowrap ${
+                          tab.id === `step-${currentStep}` ? "text-[#5856d6]" : "text-white"
+                        }`}
+                      >
+                        {tab.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Form Fields */}
+                {currentStep === 1 && (
+                  <div className="text-xs text-gray-400 mt-3 font-['Montserrat',Helvetica] space-y-1">
+                    <p>Important notes for your image:</p>
+                    <ul className="list-disc list-inside pl-1 space-y-1.5">
+                      <li>Image must contain clear facial details. Certain anime styles are not yet supported.</li>
+                      <li>Supports JPG, PNG, JFIF.</li>
+                      <li>
+                        The image will be cropped to a 9:16 aspect ratio. 
+                        You can use <a href="https://huggingface.co/spaces/fffiloni/diffusers-image-outpaint" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">outpainting tools </a> to adjust your image before uploading.
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
+                {currentStep === 2 && (
+                  <div className="flex flex-col items-start gap-2 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
+                    {formFields.map((field) => (
+                      <React.Fragment key={field.id}>
+                        <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">
+                          {field.label}
+                        </div>
+
+                        {field.type === "input" ? (
+                          <CustomInput
+                            className="h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65]"
+                            placeholder={
+                              field.id === "character-name"
+                                ? "Enter the name for your character"
+                                : field.id === "tagline"
+                                ? "Give your character a quick catchphrase"
+                                : "Type a message..."
+                            }
+                            wordLimit={field.wordLimit}
+                            value={field.id === "character-name" ? name : field.id === "tagline" ? bio : ""}
+                            onChange={(e) => {
+                              if (field.id === "character-name") setName(e.target.value);
+                              else if (field.id === "tagline") setBio(e.target.value);
+                            }}
+                          />
+                        ) : (
+                          <CustomTextarea
+                            height={field.height}
+                            className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65]"
+                            placeholder={
+                              field.id === "description"
+                                ? "In a third person perspective, how would your character describe themselves?"
+                                : field.id === "greeting"
+                                ? GREETING_PLACEHOLDER
+                                : "Type a message..."
+                            }
+                            wordLimit={field.wordLimit}
+                            value={field.id === "description" ? prompt : field.id === "greeting" ? greeting : ""}
+                            onChange={(e) => {
+                              if (field.id === "description") setPrompt(e.target.value);
+                              else if (field.id === "greeting") {
+                                setGreeting(e.target.value);
+                                // Validate greeting format on change
+                                if (e.target.value.trim()) {
+                                  const validation = validateGreetingFormat(e.target.value);
+                                  setGreetingError(validation.error);
+                                } else {
+                                  setGreetingError("Greeting is required");
+                                }
+                              }
+                            }}
+                          />
+                        )}
+                        {field.id === "greeting" && greetingError && (
+                          <div className="text-red-400 text-xs mt-1 font-['Montserrat',Helvetica]">
+                            {greetingError}
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
+                    <div className="mt-4 flex items-center gap-2 self-stretch">
+                      <input
+                        type="checkbox"
+                        id="isPublicCheckbox"
+                        checked={isPublic}
+                        onChange={(e) => setIsPublic(e.target.checked)}
+                        className="h-4 w-4 text-[#5856d6] bg-gray-700 border-gray-600 rounded focus:ring-[#5856d6] focus:ring-2"
+                      />
+                      <label htmlFor="isPublicCheckbox" className="font-['Montserrat',Helvetica] text-sm text-white">
+                        Make this character public
+                      </label>
                     </div>
                   </div>
-                ))}
-              </div>
-              {/* Form Fields */}
-              {currentStep === 1 && (
-                <div className="text-xs text-gray-400 mt-3 font-['Montserrat',Helvetica] space-y-1">
-                  <p>Important notes for your image:</p>
-                  <ul className="list-disc list-inside pl-1 space-y-1.5">
-                    <li>Image must contain clear facial details. Certain anime styles are not yet supported.</li>
-                    <li>Supports JPG, PNG, JFIF.</li>
-                    <li>
-                      The image will be cropped to a 9:16 aspect ratio. 
-                      You can use <a href="https://huggingface.co/spaces/fffiloni/diffusers-image-outpaint" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">outpainting tools </a> to adjust your image before uploading.
-                    </li>
-                  </ul>
-                </div>
-              )}
+                )}
 
-              {currentStep === 2 && (
-                <div className="flex flex-col items-start gap-2 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
-                  {formFields.map((field) => (
-                    <React.Fragment key={field.id}>
-                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">
-                        {field.label}
-                      </div>
-
-                      {field.type === "input" ? (
-                        <CustomInput
-                          className="h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65]"
-                          placeholder={
-                            field.id === "character-name"
-                              ? "Enter the name for your character"
-                              : field.id === "tagline"
-                              ? "Give your character a quick catchphrase"
-                              : "Type a message..."
-                          }
-                          wordLimit={field.wordLimit}
-                          value={field.id === "character-name" ? name : field.id === "tagline" ? bio : ""}
-                          onChange={(e) => {
-                            if (field.id === "character-name") setName(e.target.value);
-                            else if (field.id === "tagline") setBio(e.target.value);
-                          }}
-                        />
-                      ) : (
-                        <CustomTextarea
-                          height={field.height}
-                          className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65]"
-                          placeholder={
-                            field.id === "description"
-                              ? "In a third person perspective, how would your character describe themselves?"
-                              : field.id === "scene"
-                              ? "*Optional* Describe the starting scene of the story between your character and you."
-                              : "Type a message..."
-                          }
-                          wordLimit={field.wordLimit}
-                          value={field.id === "description" ? prompt : field.id === "scene" ? scenePrompt : ""}
-                          onChange={(e) => {
-                            if (field.id === "description") setPrompt(e.target.value);
-                            else if (field.id === "scene") setScenePrompt(e.target.value);
-                          }}
-                        />
-                      )}
-                    </React.Fragment>
-                  ))}
-                  <div className="mt-4 flex items-center gap-2 self-stretch">
-                    <input
-                      type="checkbox"
-                      id="isPublicCheckbox"
-                      checked={isPublic}
-                      onChange={(e) => setIsPublic(e.target.checked)}
-                      className="h-4 w-4 text-[#5856d6] bg-gray-700 border-gray-600 rounded focus:ring-[#5856d6] focus:ring-2"
-                    />
-                    <label htmlFor="isPublicCheckbox" className="font-['Montserrat',Helvetica] text-sm text-white">
-                      Make this character public
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* Voice Selection */}
-              {currentStep === 3 && (
-                <div className="flex flex-col items-start gap-4 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
-                  {voices.map((voice) => (
-                    <Button
-                      key={voice.id}
-                      variant="ghost"
-                      className={`flex items-center justify-between w-full rounded-xl py-5 px-4 h-12 transition-colors ${
-                        selectedVoice === voice.id
-                          ? "bg-[#2a2b30] border-2 border-[#5856d6]"
-                          : "bg-[#222327] hover:bg-[#2a2b30]"
-                      }`}
-                      onClick={() => setSelectedVoice(voice.id)}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isPlaying === voice.id) {
-                              handleStopAudio();
-                            } else {
-                              handlePlayAudio(voice.id);
-                            }
-                          }}
-                          className="text-[#5856d6] mr-4 hover:text-[#3c34b5] transition-colors cursor-pointer"
-                        >
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="24" 
-                            height="24" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
+                {/* Voice Selection */}
+                {currentStep === 3 && (
+                  <div className="flex flex-col items-start gap-4 relative self-stretch w-full flex-[0_0_auto] bg-[#1a1a1e]">
+                    {voices.map((voice) => (
+                      <Button
+                        key={voice.id}
+                        variant="ghost"
+                        className={`flex items-center justify-between w-full rounded-xl py-5 px-4 h-12 transition-colors ${
+                          selectedVoice === voice.id
+                            ? "bg-[#2a2b30] border-2 border-[#5856d6]"
+                            : "bg-[#222327] hover:bg-[#2a2b30]"
+                        }`}
+                        onClick={() => setSelectedVoice(voice.id)}
+                      >
+                        <div className="flex items-center">
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isPlaying === voice.id) {
+                                handleStopAudio();
+                              } else {
+                                handlePlayAudio(voice.id);
+                              }
+                            }}
+                            className="text-[#5856d6] mr-4 hover:text-[#3c34b5] transition-colors cursor-pointer"
                           >
-                            {isPlaying === voice.id ? (
-                              <rect x="6" y="4" width="12" height="16" />
-                            ) : (
-                              <polygon points="5 3 19 12 5 21 5 3" />
-                            )}
-                          </svg>
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              width="24" 
+                              height="24" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              {isPlaying === voice.id ? (
+                                <rect x="6" y="4" width="12" height="16" />
+                              ) : (
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                              )}
+                            </svg>
+                          </div>
+                          <div className="text-left">
+                            <p className="text-white font-medium text-xs">
+                              {voice.id.startsWith('cloned-') ? 'Cloned Voice' : `Voice ${voice.id}`}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-left">
-                          <p className="text-white font-medium text-xs">
-                            {voice.id.startsWith('cloned-') ? 'Cloned Voice' : `Voice ${voice.id}`}
-                          </p>
-                        </div>
-                      </div>
-                    </Button>
-                  ))}
-                  <div className="w-full mt-4">
-                    <VoiceCloneUpload 
-                      onVoiceCloned={(voiceId, originalAudioUrl) => {
-                        // Add the cloned voice to the voices list with a special prefix
-                        const clonedVoiceId = `cloned-${voiceId}`;
-                        setVoices(prev => [...prev, {
-                          id: clonedVoiceId,
-                          audioUrl: originalAudioUrl // Use the original audio file URL
-                        }]);
-                        // Automatically select the newly cloned voice
-                        setSelectedVoice(clonedVoiceId);
-                      }} 
-                    />
+                      </Button>
+                    ))}
+                    <div className="w-full mt-4">
+                      <VoiceCloneUpload 
+                        onVoiceCloned={(voiceId, originalAudioUrl) => {
+                          // Add the cloned voice to the voices list with a special prefix
+                          const clonedVoiceId = `cloned-${voiceId}`;
+                          setVoices(prev => [...prev, {
+                            id: clonedVoiceId,
+                            audioUrl: originalAudioUrl // Use the original audio file URL
+                          }]);
+                          // Automatically select the newly cloned voice
+                          setSelectedVoice(clonedVoiceId);
+                        }} 
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Previous and Next Buttons */}
-            <div className="flex items-center justify-between w-full">
-              <Button
-                variant="ghost"
-                className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] text-white hover:bg-[#2a2a2e]"
-                onClick={currentStep === 1 ? () => setShowCropper(true) : handlePrevious}
-                disabled={currentStep === 1 && !selectedImage}
-              >
-                <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
-                  {currentStep === 1 ? 'Edit' : 'Previous'}
-                </span>
-              </Button>
-              {currentStep === 3 ? (
-                <Button 
-                  className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] bg-[#5856d6] hover:bg-[#3c34b5] rounded-[10.8px] transition-colors duration-200"
-                  onClick={async () => {
-                    await handleGenerateAvatar();
-                    setShowSuccessPopup(true);
-                  }}
-                  disabled={!isStep3Valid}
+              {/* Previous and Next Buttons */}
+              <div className="flex items-center justify-between w-full">
+                <Button
+                  variant="ghost"
+                  className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] text-white hover:bg-[#2a2a2e]"
+                  onClick={currentStep === 1 ? () => setShowCropper(true) : handlePrevious}
+                  disabled={currentStep === 1 && !selectedImage}
                 >
-                  <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
-                    Create Character
+                  <span className="font-medium text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
+                    {currentStep === 1 ? 'Edit' : 'Previous'}
                   </span>
                 </Button>
-              ) : (
-                <Button 
-                  className={`inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] transition-colors duration-200 ${
-                    (currentStep === 1 && isStep1Valid) || (currentStep === 2 && isStep2Valid)
-                      ? "bg-[#5856d6] hover:bg-[#3c34b5]"
-                      : "bg-[#5856d6]/50 cursor-not-allowed"
-                  }`}
-                  onClick={handleNext}
-                  disabled={(currentStep === 1 && !isStep1Valid) || (currentStep === 2 && !isStep2Valid)}
-                >
-                  <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
-                    Next
-                  </span>
-                </Button>
-              )}
+                {currentStep === 3 ? (
+                  <Button 
+                    className="inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] bg-[#5856d6] hover:bg-[#3c34b5] rounded-[10.8px] transition-colors duration-200"
+                    onClick={async () => {
+                      await handleGenerateAvatar();
+                      setShowSuccessPopup(true);
+                    }}
+                    disabled={!isStep3Valid}
+                  >
+                    <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
+                      Create Character
+                    </span>
+                  </Button>
+                ) : (
+                  <Button 
+                    className={`inline-flex items-center justify-center gap-[9px] px-[18px] py-[7.2px] rounded-[10.8px] transition-colors duration-200 ${
+                      (currentStep === 1 && isStep1Valid) || (currentStep === 2 && isStep2Valid)
+                        ? "bg-[#5856d6] hover:bg-[#3c34b5]"
+                        : "bg-[#5856d6]/50 cursor-not-allowed"
+                    }`}
+                    onClick={handleNext}
+                    disabled={(currentStep === 1 && !isStep1Valid) || (currentStep === 2 && !isStep2Valid)}
+                  >
+                    <span className="font-medium text-white text-[12.6px] leading-[21.6px] whitespace-nowrap font-['Montserrat',Helvetica]">
+                      Next
+                    </span>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -623,7 +642,6 @@ export default function ImageUploadPage() {
           </div>
         </div>
       )}
-      </div>
     </LayoutWithNavBar>
   );
 }

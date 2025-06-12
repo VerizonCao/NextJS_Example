@@ -333,6 +333,7 @@ export async function saveAvatar(avatarData: {
   avatar_name: string;
   prompt?: string;
   scene_prompt?: string;
+  opening_prompt?: string;
   agent_bio?: string;
   voice_id?: string;
   owner_id: string;
@@ -346,6 +347,7 @@ export async function saveAvatar(avatarData: {
         avatar_name, 
         prompt, 
         scene_prompt,
+        opening_prompt,
         agent_bio,
         voice_id,
         owner_id, 
@@ -357,6 +359,7 @@ export async function saveAvatar(avatarData: {
         ${avatarData.avatar_name}, 
         ${avatarData.prompt || null}, 
         ${avatarData.scene_prompt || null},
+        ${avatarData.opening_prompt || null},
         ${avatarData.agent_bio || null},
         ${avatarData.voice_id || null},
         ${avatarData.owner_id}, 
@@ -825,6 +828,11 @@ export async function updateAvatarData(
     if (updateData.scene_prompt !== undefined) {
       updateFields.push(`scene_prompt = $${paramIndex}`);
       values.push(updateData.scene_prompt);
+      paramIndex++;
+    }
+    if (updateData.opening_prompt !== undefined) {
+      updateFields.push(`opening_prompt = $${paramIndex}`);
+      values.push(updateData.opening_prompt);
       paramIndex++;
     }
     if (updateData.agent_bio !== undefined) {
