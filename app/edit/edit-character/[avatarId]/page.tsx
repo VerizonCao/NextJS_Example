@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import LayoutWithNavBar from '@/app/home/tab/layout-with-navbar';
+import { validateGreetingFormat, GREETING_PLACEHOLDER } from '@/app/utils/greetingValidation';
 
 type PageParams = {
   avatarId: string;
@@ -29,10 +30,11 @@ export default function EditAvatarPage({
     avatar_name: '',
     agent_bio: '',
     prompt: '',
-    scene_prompt: '',
+    opening_prompt: '',
     voice_id: '',
     is_public: false
   });
+  const [greetingError, setGreetingError] = useState<string | null>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
@@ -73,7 +75,7 @@ export default function EditAvatarPage({
             avatar_name: response.avatar.avatar_name,
             agent_bio: response.avatar.agent_bio || '',
             prompt: response.avatar.prompt || '',
-            scene_prompt: response.avatar.scene_prompt || '',
+            opening_prompt: response.avatar.opening_prompt || response.avatar.scene_prompt || '',
             voice_id: response.avatar.voice_id || '',
             is_public: response.avatar.is_public || false
           });
@@ -122,6 +124,16 @@ export default function EditAvatarPage({
 
   const handleSave = async () => {
     if (!isOwner) return;
+    
+    // Validate greeting format before saving
+    if (formData.opening_prompt.trim()) {
+      const validation = validateGreetingFormat(formData.opening_prompt);
+      if (!validation.isValid) {
+        setGreetingError(validation.error);
+        return;
+      }
+    }
+    
     try {
       const response = await updateAvatarData(avatarId, formData);
       if (response.success) {
@@ -130,6 +142,7 @@ export default function EditAvatarPage({
         if (updatedResponse.success && updatedResponse.avatar) {
           setAvatar(updatedResponse.avatar);
           setShowSuccessPopup(true);
+          setGreetingError(null);
         }
       } else {
         setErrorMessage(response.message);
@@ -147,6 +160,16 @@ export default function EditAvatarPage({
       ...prev,
       [field]: value
     }));
+    
+    // Clear greeting error when user starts typing
+    if (field === 'opening_prompt') {
+      setGreetingError(null);
+      // Validate on change
+      if (typeof value === 'string' && value.trim()) {
+        const validation = validateGreetingFormat(value);
+        setGreetingError(validation.error);
+      }
+    }
   };
 
   const handleDelete = async () => {
@@ -205,14 +228,14 @@ export default function EditAvatarPage({
                     </div>
 
                     <div>
-                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Agent Bio</div>
-                      <div className="flex h-10 items-center gap-2 relative self-stretch w-full">
-                        <input
-                          type="text"
+                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Bio</div>
+                      <div className="flex items-start gap-2.5 relative self-stretch w-full" style={{ height: '141px' }}>
+                        <textarea
                           value={formData.agent_bio}
                           onChange={(e) => handleInputChange('agent_bio', e.target.value)}
-                          className={`h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs w-full ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`w-full h-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                           placeholder="Type a message..."
+                          style={{ height: '100%' }}
                           disabled={!isOwner}
                         />
                       </div>
@@ -233,16 +256,20 @@ export default function EditAvatarPage({
                     </div>
 
                     <div>
-                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Scene Prompt</div>
-                      <div className="flex items-start gap-2.5 relative self-stretch w-full" style={{ height: '141px' }}>
+                      <div className="self-stretch mt-[-1.00px] font-semibold text-[12.6px] leading-[21.6px] relative font-['Montserrat',Helvetica] text-white tracking-[0]">Greeting</div>
+                      <div className="flex flex-col items-start gap-2.5 relative self-stretch w-full">
                         <textarea
-                          value={formData.scene_prompt}
-                          onChange={(e) => handleInputChange('scene_prompt', e.target.value)}
-                          className={`w-full h-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          placeholder="Type a message..."
-                          style={{ height: '100%' }}
+                          value={formData.opening_prompt}
+                          onChange={(e) => handleInputChange('opening_prompt', e.target.value)}
+                          className={`w-full h-[141px] px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs resize-none overflow-hidden ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          placeholder={GREETING_PLACEHOLDER}
                           disabled={!isOwner}
                         />
+                        {greetingError && (
+                          <div className="text-red-400 text-xs font-['Montserrat',Helvetica]">
+                            {greetingError}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
