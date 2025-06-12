@@ -637,14 +637,13 @@ export default function HomeCharacters({ initialAvatars }: HomeCharactersProps) 
                 <select
                   value={genderFilter}
                   onChange={(e) => handleGenderFilterChange(e.target.value as typeof genderFilter)}
-                  className="px-4 py-2 rounded-full bg-[#ffffff1a] text-white text-sm font-medium border-0 outline-none cursor-pointer font-['Montserrat',Helvetica] hover:bg-[#ffffff2a] focus:bg-[#ffffff2a] transition-all duration-200"
+                  className="px-4 py-2 rounded-xl bg-[#222327] text-white text-sm font-medium border border-[#d2d5da40] outline-none cursor-pointer font-['Montserrat',Helvetica] hover:bg-[#2a2a2e] focus:bg-[#2a2a2e] transition-all duration-200 appearance-none"
                   style={{
-                    appearance: 'none',
                     backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
                     backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 8px center',
+                    backgroundPosition: 'right 16px center',
                     backgroundSize: '16px',
-                    paddingRight: '32px'
+                    paddingRight: '48px'
                   }}
                 >
                   <option value="all" className="bg-[#1a1a1e] text-white">All</option>

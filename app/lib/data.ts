@@ -339,6 +339,7 @@ export async function saveAvatar(avatarData: {
   owner_id: string;
   image_uri?: string;
   is_public?: boolean;
+  gender?: string;
 }): Promise<boolean> {
   try {
     const result = await sql`
@@ -352,7 +353,8 @@ export async function saveAvatar(avatarData: {
         voice_id,
         owner_id, 
         image_uri,
-        is_public
+        is_public,
+        gender
       )
       VALUES (
         ${avatarData.avatar_id}, 
@@ -364,7 +366,8 @@ export async function saveAvatar(avatarData: {
         ${avatarData.voice_id || null},
         ${avatarData.owner_id}, 
         ${avatarData.image_uri || null},
-        ${avatarData.is_public || false}
+        ${avatarData.is_public || false},
+        ${avatarData.gender || null}
       )
     `;
     return true;
@@ -414,7 +417,12 @@ export async function loadAvatar(avatarId: string): Promise<Avatar | null> {
         create_time, 
         update_time,
         is_public,
-        opening_prompt
+        opening_prompt,
+        gender,
+        style,
+        thumb_count,
+        serve_time,
+        v1_score
       FROM avatars 
       WHERE avatar_id = ${avatarId}
     `;
@@ -477,7 +485,12 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
         create_time, 
         update_time,
         thumb_count,
-        opening_prompt
+        opening_prompt,
+        is_public,
+        serve_time,
+        v1_score,
+        gender,
+        style
       FROM avatars 
       WHERE is_public = true
       ORDER BY create_time DESC
@@ -858,6 +871,11 @@ export async function updateAvatarData(
     if (updateData.is_public !== undefined) {
       updateFields.push(`is_public = $${paramIndex}`);
       values.push(updateData.is_public);
+      paramIndex++;
+    }
+    if (updateData.gender !== undefined) {
+      updateFields.push(`gender = $${paramIndex}`);
+      values.push(updateData.gender);
       paramIndex++;
     }
 

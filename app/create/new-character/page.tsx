@@ -42,6 +42,7 @@ export default function ImageUploadPage() {
   const [showVoiceSection, setShowVoiceSection] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [gender, setGender] = useState('');
   const { data: session, status } = useSession();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -248,8 +249,9 @@ export default function ImageUploadPage() {
               agent_bio: bio,
               owner_email: owner_email,
               image_uri: key,
-              voice_id: voiceId, // Use the cleaned voice ID
-              is_public: isPublic
+              voice_id: voiceId,
+              is_public: isPublic,
+              gender: gender || undefined
             });
             
             if (result.success && result.avatar_id) {
@@ -371,77 +373,110 @@ export default function ImageUploadPage() {
 
                       {currentStep === 2 && (
                         <div className="flex flex-col items-start gap-4 relative w-full">
-                          {formFields.map((field) => (
-                            <React.Fragment key={field.id}>
-                              <div className="w-full font-semibold text-[12.6px] leading-[21.6px] font-['Montserrat',Helvetica] text-white tracking-[0]">
-                                {field.label}
-                              </div>
+                          {/* Character Name */}
+                          <div className="space-y-2 w-full">
+                            <label className="block text-sm font-medium text-white">Character Name</label>
+                            <input
+                              type="text"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65]"
+                              placeholder="Enter the name for your character"
+                            />
+                          </div>
 
-                              {field.type === "input" ? (
-                                <CustomInput
-                                  className="h-10 px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65] w-full"
-                                  placeholder={
-                                    field.id === "character-name"
-                                      ? "Enter the name for your character"
-                                      : field.id === "tagline"
-                                      ? "Give your character a quick catchphrase"
-                                      : "Type a message..."
-                                  }
-                                  wordLimit={field.wordLimit}
-                                  value={field.id === "character-name" ? name : field.id === "tagline" ? bio : ""}
-                                  onChange={(e) => {
-                                    if (field.id === "character-name") setName(e.target.value);
-                                    else if (field.id === "tagline") setBio(e.target.value);
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-full">
-                                  <textarea
-                                    className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65] resize-none min-h-[120px] max-h-[300px]"
-                                    placeholder={
-                                      field.id === "description"
-                                        ? "In a third person perspective, how would your character describe themselves?"
-                                        : field.id === "greeting"
-                                        ? GREETING_PLACEHOLDER
-                                        : "Type a message..."
-                                    }
-                                    value={field.id === "description" ? prompt : field.id === "greeting" ? greeting : ""}
-                                    onChange={(e) => {
-                                      if (field.id === "description") setPrompt(e.target.value);
-                                      else if (field.id === "greeting") {
-                                        setGreeting(e.target.value);
-                                        // Validate greeting format on change
-                                        if (e.target.value.trim()) {
-                                          const validation = validateGreetingFormat(e.target.value);
-                                          setGreetingError(validation.error);
-                                        } else {
-                                          setGreetingError("Greeting is required");
-                                        }
-                                      }
-                                    }}
-                                    style={{
-                                      height: 'auto',
-                                      minHeight: field.id === "greeting" ? '140px' : '120px'
-                                    }}
-                                    onInput={(e) => {
-                                      const target = e.target as HTMLTextAreaElement;
-                                      target.style.height = 'auto';
-                                      target.style.height = Math.min(target.scrollHeight, 300) + 'px';
-                                    }}
-                                  />
-                                  {field.id === "greeting" && greetingError && (
-                                    <div className="text-red-400 text-xs mt-1 font-['Montserrat',Helvetica]">
-                                      {greetingError}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </React.Fragment>
-                          ))}
-                          {/* Visibility Section */}
-                          <div className="space-y-3 w-full">
+                          {/* Gender Selection */}
+                          <div className="space-y-2 w-full">
+                            <label className="block text-sm font-medium text-white">Gender</label>
+                            <select
+                              value={gender}
+                              onChange={(e) => setGender(e.target.value)}
+                              className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs appearance-none"
+                              style={{
+                                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'right 16px center',
+                                backgroundSize: '16px',
+                                paddingRight: '48px'
+                              }}
+                            >
+                              <option value="" className="bg-[#1a1a1e]">Select gender</option>
+                              <option value="male" className="bg-[#1a1a1e]">Male</option>
+                              <option value="female" className="bg-[#1a1a1e]">Female</option>
+                              <option value="non-binary" className="bg-[#1a1a1e]">Non-binary</option>
+                            </select>
+                          </div>
+
+                          {/* Tagline */}
+                          <div className="space-y-2 w-full">
+                            <label className="block text-sm font-medium text-white">Tagline</label>
+                            <input
+                              type="text"
+                              value={bio}
+                              onChange={(e) => setBio(e.target.value)}
+                              className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65]"
+                              placeholder="Give your character a quick catchphrase"
+                            />
+                          </div>
+
+                          {/* Description */}
+                          <div className="space-y-2 w-full">
+                            <label className="block text-sm font-medium text-white">Description</label>
+                            <textarea
+                              value={prompt}
+                              onChange={(e) => setPrompt(e.target.value)}
+                              className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65] resize-none"
+                              placeholder="In a third person perspective, how would your character describe themselves?"
+                              style={{
+                                height: 'auto',
+                                minHeight: '120px'
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = 'auto';
+                                target.style.height = Math.min(target.scrollHeight, 300) + 'px';
+                              }}
+                            />
+                          </div>
+
+                          {/* Greeting */}
+                          <div className="space-y-2 w-full">
+                            <label className="block text-sm font-medium text-white">Greeting</label>
+                            <textarea
+                              value={greeting}
+                              onChange={(e) => {
+                                setGreeting(e.target.value);
+                                // Validate greeting format on change
+                                if (e.target.value.trim()) {
+                                  const validation = validateGreetingFormat(e.target.value);
+                                  setGreetingError(validation.error);
+                                } else {
+                                  setGreetingError("Greeting is required");
+                                }
+                              }}
+                              className="w-full px-3 py-2 bg-[#222327] rounded-2xl border border-solid border-[#d2d5da40] font-['Montserrat',Helvetica] font-normal text-white text-xs placeholder:text-[#535a65] resize-none"
+                              placeholder={GREETING_PLACEHOLDER}
+                              style={{
+                                height: 'auto',
+                                minHeight: '140px'
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = 'auto';
+                                target.style.height = Math.min(target.scrollHeight, 300) + 'px';
+                              }}
+                            />
+                            {greetingError && (
+                              <div className="text-red-400 text-xs mt-1 font-['Montserrat',Helvetica]">
+                                {greetingError}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Visibility */}
+                          <div className="space-y-2 w-full">
                             <label className="block text-sm font-medium text-white">Visibility</label>
-                            <div className="flex items-center justify-between p-4 bg-[#222327] rounded-xl">
+                            <div className="flex items-center justify-between p-4 bg-[#222327] rounded-2xl">
                               <div>
                                 <div className="text-sm font-medium text-white">{isPublic ? 'Public' : 'Private'}</div>
                                 <div className="text-xs text-[#8f9092]">

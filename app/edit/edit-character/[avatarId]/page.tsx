@@ -36,7 +36,8 @@ export default function EditAvatarPage({
     prompt: '',
     opening_prompt: '',
     voice_id: '',
-    is_public: false
+    is_public: false,
+    gender: ''
   });
   const [greetingError, setGreetingError] = useState<string | null>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -132,17 +133,20 @@ export default function EditAvatarPage({
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const response = await loadAvatar(avatarId);
-        if (response.success && response.avatar) {
-          setAvatar(response.avatar);
-          setFormData({
-            avatar_name: response.avatar.avatar_name,
-            agent_bio: response.avatar.agent_bio || '',
-            prompt: response.avatar.prompt || '',
-            opening_prompt: response.avatar.opening_prompt || response.avatar.scene_prompt || DEFAULT_GREETING_CONTENT,
-            voice_id: response.avatar.voice_id || '',
-            is_public: response.avatar.is_public || false
-          });
+              const response = await loadAvatar(avatarId);
+      if (response.success && response.avatar) {
+        console.log('Loaded avatar data:', response.avatar);
+        console.log('Avatar gender:', response.avatar.gender);
+        setAvatar(response.avatar);
+        setFormData({
+          avatar_name: response.avatar.avatar_name,
+          agent_bio: response.avatar.agent_bio || '',
+          prompt: response.avatar.prompt || '',
+          opening_prompt: response.avatar.opening_prompt || response.avatar.scene_prompt || DEFAULT_GREETING_CONTENT,
+          voice_id: response.avatar.voice_id || '',
+          is_public: response.avatar.is_public || false,
+          gender: response.avatar.gender || ''
+        });
           if (response.avatar.image_uri) {
             try {
               const { presignedUrl } = await getPresignedUrl(response.avatar.image_uri);
@@ -281,6 +285,29 @@ export default function EditAvatarPage({
               </p>
             </div>
 
+            {/* Gender Selection */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-white">Gender</label>
+                              <select
+                  value={formData.gender}
+                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  className={`w-full px-4 py-3 bg-[#222327] rounded-xl border border-[#d2d5da40] text-white text-sm focus:border-[#5856d6] focus:outline-none transition-colors appearance-none ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 16px center',
+                    backgroundSize: '16px',
+                    paddingRight: '48px'
+                  }}
+                  disabled={!isOwner}
+                >
+                  {!formData.gender && <option value="" className="bg-[#1a1a1e]">Select gender</option>}
+                  <option value="male" className="bg-[#1a1a1e]">Male</option>
+                  <option value="female" className="bg-[#1a1a1e]">Female</option>
+                  <option value="non-binary" className="bg-[#1a1a1e]">Non-binary</option>
+                </select>
+            </div>
+
             {/* Tagline */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-white">Tagline</label>
@@ -323,61 +350,59 @@ export default function EditAvatarPage({
               )}
             </div>
 
-            {/* Voice Selection - With Container - Fixed nested button issue */}
-            <div className="bg-[#1a1a1e] rounded-xl p-8">
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-white">Voice</label>
-                <div className="space-y-3">
-                  {voices.map((voice) => (
-                    <div
-                      key={voice.id}
-                      onClick={() => !isOwner ? null : handleInputChange('voice_id', voice.id)}
-                      className={`flex items-center justify-between w-full p-4 rounded-xl transition-colors cursor-pointer ${
-                        formData.voice_id === voice.id
-                          ? "bg-[#ffffff1a] border-2 border-white"
-                          : "bg-[#222327] hover:bg-[#2a2a2e] border-2 border-transparent"
-                      } ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isPlaying === voice.id) {
-                              handleStopAudio();
-                            } else {
-                              handlePlayAudio(voice.id);
-                            }
-                          }}
-                          className="w-10 h-10 flex items-center justify-center rounded-full bg-[#ffffff1a] hover:bg-[#ffffff20] text-white transition-colors"
-                        >
-                          {isPlaying === voice.id ? (
-                            <Square className="w-4 h-4" />
-                          ) : (
-                            <Play className="w-4 h-4 ml-0.5" />
-                          )}
-                        </button>
-                        <span className="text-white text-sm font-medium">
-                          {voice.id.startsWith('cloned-') ? 'Cloned Voice' : `Voice ${voice.id}`}
-                        </span>
-                      </div>
+            {/* Voice Selection */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-white">Voice</label>
+              <div className="space-y-3">
+                {voices.map((voice) => (
+                  <div
+                    key={voice.id}
+                    onClick={() => !isOwner ? null : handleInputChange('voice_id', voice.id)}
+                    className={`flex items-center justify-between w-full p-4 rounded-xl transition-colors cursor-pointer ${
+                      formData.voice_id === voice.id
+                        ? "bg-[#ffffff1a] border-2 border-white"
+                        : "bg-[#222327] hover:bg-[#2a2a2e] border-2 border-transparent"
+                    } ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isPlaying === voice.id) {
+                            handleStopAudio();
+                          } else {
+                            handlePlayAudio(voice.id);
+                          }
+                        }}
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-[#ffffff1a] hover:bg-[#ffffff20] text-white transition-colors"
+                      >
+                        {isPlaying === voice.id ? (
+                          <Square className="w-4 h-4" />
+                        ) : (
+                          <Play className="w-4 h-4 ml-0.5" />
+                        )}
+                      </button>
+                      <span className="text-white text-sm font-medium">
+                        {voice.id.startsWith('cloned-') ? 'Cloned Voice' : `Voice ${voice.id}`}
+                      </span>
                     </div>
-                  ))}
-                  
-                  {isOwner && (
-                    <div className="mt-4">
-                      <VoiceCloneUpload 
-                        onVoiceCloned={(voiceId, originalAudioUrl) => {
-                          const clonedVoiceId = `cloned-${voiceId}`;
-                          setVoices(prev => [...prev, {
-                            id: clonedVoiceId,
-                            audioUrl: originalAudioUrl
-                          }]);
-                          handleInputChange('voice_id', clonedVoiceId);
-                        }} 
-                      />
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ))}
+                
+                {isOwner && (
+                  <div className="mt-4">
+                    <VoiceCloneUpload 
+                      onVoiceCloned={(voiceId, originalAudioUrl) => {
+                        const clonedVoiceId = `cloned-${voiceId}`;
+                        setVoices(prev => [...prev, {
+                          id: clonedVoiceId,
+                          audioUrl: originalAudioUrl
+                        }]);
+                        handleInputChange('voice_id', clonedVoiceId);
+                      }} 
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
