@@ -10,6 +10,7 @@ export interface Avatar {
   agent_bio?: string | null;
   scene_prompt?: string | null;
   voice_id?: string | null;
+  opening_prompt?: string | null;
 }
 
 export interface ChatState {

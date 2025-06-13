@@ -53,9 +53,9 @@ const DragDropImageUpload: React.FC<DragDropImageUploadProps> = ({ onImageUpload
 
   return (
     <div
-      className={`relative w-[525.42px] h-[937.44px] rounded-xl border-2 border-dashed ${
+      className={`relative w-full h-full rounded-xl border-2 border-dashed ${
         isDragging ? 'border-[#5856d6] bg-[#5856d6]/10' : 'border-[#2a2a2e]'
-      } flex flex-col items-center justify-center cursor-pointer bg-[#222327] hover:bg-[#2a2a2e] transition-colors`}
+      } flex flex-col items-center justify-center cursor-pointer bg-[#222327] hover:bg-[#2a2a2e] transition-colors overflow-hidden`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -70,9 +70,11 @@ const DragDropImageUpload: React.FC<DragDropImageUploadProps> = ({ onImageUpload
         onChange={handleFileInput}
       />
       {displayImage ? (
-        <img src={displayImage} alt="Uploaded preview" className="w-full h-full object-cover rounded-xl" />
+        <div className="w-full h-full">
+          <img src={displayImage} alt="Uploaded preview" className="w-full h-full object-cover" />
+        </div>
       ) : (
-        <>
+        <div className="flex flex-col items-center justify-center p-6 text-center">
           <svg
             className="w-12 h-12 text-gray-400"
             fill="none"
@@ -91,7 +93,7 @@ const DragDropImageUpload: React.FC<DragDropImageUploadProps> = ({ onImageUpload
             <p className="mt-4 text-sm text-gray-400">Drag and drop your image here, or click to select a file</p>
             <p className="mt-2 text-sm text-gray-400">For best results, use a high resolution .jpg or .png of 9:16</p>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

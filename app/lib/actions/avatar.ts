@@ -48,11 +48,13 @@ export async function saveAvatarData(avatarData: {
   avatar_name: string;
   prompt?: string;
   scene_prompt?: string;
+  opening_prompt?: string;
   agent_bio?: string;
   owner_email: string;
   image_uri?: string;
   voice_id?: string;
   is_public?: boolean;
+  gender?: string;
 }): Promise<{ success: boolean; message: string; avatar_id?: string }> {
   try {
     const owner_id = await getUserByIdEmail(avatarData.owner_email);

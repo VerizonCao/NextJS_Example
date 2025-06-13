@@ -333,11 +333,13 @@ export async function saveAvatar(avatarData: {
   avatar_name: string;
   prompt?: string;
   scene_prompt?: string;
+  opening_prompt?: string;
   agent_bio?: string;
   voice_id?: string;
   owner_id: string;
   image_uri?: string;
   is_public?: boolean;
+  gender?: string;
 }): Promise<boolean> {
   try {
     const result = await sql`
@@ -346,22 +348,26 @@ export async function saveAvatar(avatarData: {
         avatar_name, 
         prompt, 
         scene_prompt,
+        opening_prompt,
         agent_bio,
         voice_id,
         owner_id, 
         image_uri,
-        is_public
+        is_public,
+        gender
       )
       VALUES (
         ${avatarData.avatar_id}, 
         ${avatarData.avatar_name}, 
         ${avatarData.prompt || null}, 
         ${avatarData.scene_prompt || null},
+        ${avatarData.opening_prompt || null},
         ${avatarData.agent_bio || null},
         ${avatarData.voice_id || null},
         ${avatarData.owner_id}, 
         ${avatarData.image_uri || null},
-        ${avatarData.is_public || false}
+        ${avatarData.is_public || false},
+        ${avatarData.gender || null}
       )
     `;
     return true;
@@ -388,6 +394,7 @@ export type Avatar = {
   v1_score: number | null;
   gender: string | null;
   style: string | null;
+  opening_prompt: string | null;
 };
 
 /**
@@ -409,7 +416,13 @@ export async function loadAvatar(avatarId: string): Promise<Avatar | null> {
         image_uri, 
         create_time, 
         update_time,
-        is_public
+        is_public,
+        opening_prompt,
+        gender,
+        style,
+        thumb_count,
+        serve_time,
+        v1_score
       FROM avatars 
       WHERE avatar_id = ${avatarId}
     `;
@@ -439,7 +452,8 @@ export async function loadAvatarsByOwner(ownerId: string): Promise<Avatar[]> {
         owner_id, 
         image_uri, 
         create_time, 
-        update_time
+        update_time,
+        opening_prompt
       FROM avatars 
       WHERE owner_id = ${ownerId}
       ORDER BY create_time DESC
@@ -470,7 +484,13 @@ export async function loadPublicAvatars(): Promise<Avatar[]> {
         image_uri, 
         create_time, 
         update_time,
-        thumb_count
+        thumb_count,
+        opening_prompt,
+        is_public,
+        serve_time,
+        v1_score,
+        gender,
+        style
       FROM avatars 
       WHERE is_public = true
       ORDER BY create_time DESC
@@ -823,6 +843,11 @@ export async function updateAvatarData(
       values.push(updateData.scene_prompt);
       paramIndex++;
     }
+    if (updateData.opening_prompt !== undefined) {
+      updateFields.push(`opening_prompt = $${paramIndex}`);
+      values.push(updateData.opening_prompt);
+      paramIndex++;
+    }
     if (updateData.agent_bio !== undefined) {
       updateFields.push(`agent_bio = $${paramIndex}`);
       values.push(updateData.agent_bio);
@@ -846,6 +871,11 @@ export async function updateAvatarData(
     if (updateData.is_public !== undefined) {
       updateFields.push(`is_public = $${paramIndex}`);
       values.push(updateData.is_public);
+      paramIndex++;
+    }
+    if (updateData.gender !== undefined) {
+      updateFields.push(`gender = $${paramIndex}`);
+      values.push(updateData.gender);
       paramIndex++;
     }
 
