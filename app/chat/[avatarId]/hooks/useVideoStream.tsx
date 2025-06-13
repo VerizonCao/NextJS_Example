@@ -69,7 +69,8 @@ export function useVideoStream(avatar: Avatar | null, isVideoMode: boolean) {
     const newRoomName = generateRoomId();
     setRoomName(newRoomName);
 
-
+    deleteUserPreviousRoomAction(session?.user?.email || '', newRoomName);
+    
     storeUserRoomAction(session?.user?.email || '', newRoomName);
 
     try {
@@ -90,8 +91,6 @@ export function useVideoStream(avatar: Avatar | null, isVideoMode: boolean) {
         userEmail: session?.user?.email || '',
       });
 
-
-      deleteUserPreviousRoomAction(session?.user?.email || '', newRoomName);
 
       await incrementAvatarRequestCounter(avatar.avatar_id);
 
