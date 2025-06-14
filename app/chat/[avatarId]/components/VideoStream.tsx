@@ -130,8 +130,9 @@ export function VideoStream({
               top: firstFrameReceived ? 'auto' : 0,
               left: firstFrameReceived ? 'auto' : 0,
               opacity: firstFrameReceived ? 1 : 0,
-              zIndex: firstFrameReceived ? 10 : 1,
-              transition: 'opacity 0.5s ease-in-out, z-index 0s ease-in-out 0.25s'
+              zIndex: firstFrameReceived ? 20 : 1,
+              transition: 'opacity 0.5s ease-in-out',
+              backgroundColor: '#000'
             }}
           >
             <LiveKitRoom
