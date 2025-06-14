@@ -84,8 +84,21 @@ export async function startStreamingSession({
     });
 
     try {
-      await lambdaClient.send(lambdaCommand);
+      const response = await lambdaClient.send(lambdaCommand);
       console.log("Lambda invocation succeeded for room:", room);
+      console.log("Lambda response:", {
+        StatusCode: response.StatusCode,
+        ExecutedVersion: response.ExecutedVersion,
+        Payload: response.Payload ? 
+          (() => {
+            try {
+              return JSON.parse(Buffer.from(response.Payload).toString());
+            } catch (e) {
+              return Buffer.from(response.Payload).toString();
+            }
+          })() 
+          : null
+      });
     } catch (lambdaError) {
       console.error("Lambda invocation failed:", lambdaError);
       // Continue with the rest of the function even if Lambda fails
